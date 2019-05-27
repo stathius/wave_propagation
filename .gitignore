@@ -1,3 +1,5 @@
+.DS_Store
+Result*
 *.jpg
 Video*
 # Byte-compiled / optimized / DLL files

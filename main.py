@@ -1,4 +1,5 @@
 from __future__ import print_function
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -11,9 +12,8 @@ import os
 from os import listdir
 import random
 import copy
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from skimage import measure #supports video also
-from torchvision.transforms import functional as FF
 import pickle
 import scipy.ndimage as ndimage
 import seaborn as sns
@@ -24,118 +24,16 @@ from scipy.spatial import distance
 import time
 
 
+from utils.io import save_network, save, load, figure_save, make_folder_results, imshow
+from utils.format import hex_str2bool
+from utils.datasets import Create_Datasets
+
+logging.basicConfig(format='%(message)s',level=logging.INFO)
 
 channels=3
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
-"""
-Saving and loading of figures, network state and other .pickle objects
-"""
-def save_network(obj, filename):
-    network_dict = obj.cpu().state_dict()
-    ## Add if torch.cuda.is_available():
-    obj.to(device)
-    save(obj=network_dict, filename=filename)
-
-def save(obj, filename):
-    filename += ".pickle" if ".pickle" not in filename else ""
-    with open(filename, 'wb') as handle:
-        pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-def load(filename):
-    filename += ".pickle" if ".pickle" not in filename else ""
-    with open(filename, 'rb') as handle:
-        return pickle.load(handle)
-
-def figure_save(destination, obj=None):
-    plt.savefig(destination)
-    plt.savefig(destination + ".svg", format="svg")
-    save(obj, destination) if obj else None
-    
-def make_folder_results(folder_name):
-    if os.path.isdir(folder_name):
-        imgs = os.listdir(folder_name)
-        for img in imgs:
-            os.remove(folder_name + "/" + img)
-    else:
-        os.mkdir(folder_name)
-
-
-def hex_str2bool(hex_string):
-    """
-    Converts a hex string to boolean value (for pHash/wHash)
-    :param hex_string: String of hex values
-    :return: Boolean equivalent of the hex string
-    """
-    integerValue = 1
-    for char in hex_string:
-        integerValue *= 16
-        if char == "0":
-            integerValue += 0
-        elif char == "1":
-            integerValue += 1
-        elif char == "2":
-            integerValue += 2
-        elif char == "3":
-            integerValue += 3
-        elif char == "4":
-            integerValue += 4
-        elif char == "5":
-            integerValue += 5
-        elif char == "6":
-            integerValue += 6
-        elif char == "7":
-            integerValue += 7
-        elif char == "8":
-            integerValue += 8
-        elif char == "9":
-            integerValue += 9
-        elif char == "a":
-            integerValue += 10
-        elif char == "b":
-            integerValue += 11
-        elif char == "c":
-            integerValue += 12
-        elif char == "d":
-            integerValue += 13
-        elif char == "e":
-            integerValue += 14
-        elif char == "f":
-            integerValue += 15
-    binary = bin(integerValue)
-    output = []
-    for i, element in enumerate(str(binary)):
-        if i > 2:
-            output.append(True if element == "1" else False)
-    return np.asarray(output)
-
-def imshow(inp, title=None, smoothen=False, return_np=False, obj=None):
-    """Imshow for Tensor."""
-    channels = inp.size()[0]
-    
-    if channels == 3:
-        inp = inp.numpy().transpose((1, 2, 0))
-    if smoothen:
-        inp = ndimage.gaussian_filter(inp, sigma=(.5, .5, 0))
-#     mean = np.array([0.485, 0.456, 0.406])
-#     std = np.array([0.229, 0.224, 0.225])
-#     inp = std * inp + mean
-    inp = np.clip(inp, 0, 1)
-    if obj is not None:
-        obj.imshow(inp)
-        obj.axis("off")
-        if title is not None:
-            obj.set_title(title)
-    else:
-        plt.imshow(inp)
-        plt.axis("off")
-        if title is not None:
-            plt.title(title)
-    if return_np:
-        return inp
-
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+# normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
 transformVar = {"Test": transforms.Compose([
     transforms.Resize(128),    #Already 184 x 184
@@ -153,158 +51,6 @@ transformVar = {"Test": transforms.Compose([
     ])
 }
 
-
-# In[84]:
-
-
-class Get_Data(Dataset):
-    """
-    Creates a data-loader.
-    """
-    def __init__(self, root_directory, transform=None, check_bad_data=True, channels=3):
-        if isinstance(root_directory, str):
-            self.root_dir = root_directory
-            self.classes = listdir(root_directory)
-            self.All_Imagesets = []
-            for cla in self.classes:
-                im_list = sorted(listdir(root_directory + cla))
-                if not check_bad_data:
-                    self.All_Imagesets.append((im_list, cla))
-                else:
-                    Good = True
-                    for im in im_list:
-                        Good = Good and self.filter_bad_data(root_directory + cla + "/" + im)
-                    if Good:
-                        self.All_Imagesets.append((im_list, cla))
-
-        elif isinstance(root_directory, list):
-            self.root_dir = root_directory[0]
-            self.classes = root_directory[1]
-            self.All_Imagesets = root_directory[2]
-
-        self.transform = transform
-        self.channels=channels
-
-
-    def __len__(self):
-        return len(self.All_Imagesets)
-
-    def __getitem__(self, idx):
-#         print('Get item')
-        img_path = self.All_Imagesets[idx][1]
-        im_list = sorted(listdir(self.root_dir + img_path))
-
-        Concat_Img = self.concatenate_data(img_path, im_list)
-
-        sample = {"image": Concat_Img,
-                  "target": torch.LongTensor([self.classes.index(str(img_path))])}
-        return sample
-
-    def filter_bad_data(self, img_path):
-        img = Image.open(img_path)
-        return False if np.shape(img)[-1] != channels else True
-
-    def concatenate_data(self, img_path, im_list):
-        """
-        Concatenated image tensor with all images having the same random transforms applied
-        """
-        for i, image in enumerate(im_list):
-            if self.channels == 1:
-                img = Image.open(self.root_dir + img_path + "/" + image).convert('L')
-            elif self.channels == 3:
-                img = Image.open(self.root_dir + img_path + "/" + image)
-            if i == 0:
-                if self.transform:
-                    for t in self.transform.transforms:
-                        if "RandomResizedCrop" in str(t):
-                            ii, j, h, w = t.get_params(img, t.scale, t.ratio)
-                            img = FF.resized_crop(img, ii, j, h, w, t.size, t.interpolation)
-                        elif "RandomHorizontalFlip" in str(t):
-                            Horizontal_Flip = random.choice([True, False])
-                            if Horizontal_Flip:
-                                img = FF.hflip(img)
-                        elif "RandomVerticalFlip" in str(t):
-                            Vertical_Flip = random.choice([True, False])
-                            if Vertical_Flip:
-                                img = FF.vflip(img)
-                        else:
-                            img = t(img)
-                Concat_Img = img
-            else:
-                if self.transform:
-                    for t in self.transform.transforms:
-                        if "RandomResizedCrop" in str(t):
-                            img = FF.resized_crop(img, ii, j, h, w, t.size, t.interpolation)
-                        elif "RandomHorizontalFlip" in str(t):
-                            if Horizontal_Flip:
-                                img = FF.hflip(img)
-                        elif "RandomVerticalFlip" in str(t):
-                            if Vertical_Flip:
-                                img = FF.vflip(img)
-                        else:
-                            img = t(img)
-                Concat_Img = torch.cat((Concat_Img, img), dim=0)
-        return Concat_Img
-
-
-def Create_Training_Testing_Datasets(root_directory, transform=None, test_fraction=0., validation_fraction=0., check_bad_data=True, channels=3):
-    """
-    Splits data into fractional parts (data does not overlap!!) and creates data-loaders for each fraction.
-    :param root_directory: Directory of data
-    :param transform: transforms to apply for each data set. Must contain "Train" and "Test" dict
-    :param test_fraction: Fraction of data to go to test-set
-    :param validation_fraction: Fraction of data to go to validation-set
-    :param check_bad_data: Option to evaluate and filter out corrupted data/images
-    :return:
-    """
-    def filter_bad_data(img_path):
-        img = Image.open(img_path)
-        return False if np.shape(img)[-1] != channels else True
-
-    print('Create datasets')
-    if (test_fraction > 0) or (validation_fraction > 0):
-        classes = listdir(root_directory)
-        All_Imagesets = []
-        for cla in classes:
-            im_list = sorted(listdir(root_directory + cla))
-            if not check_bad_data:
-                All_Imagesets.append((im_list, cla))
-            else:
-                Good = True
-                for im in im_list:
-                    Good = Good and filter_bad_data(root_directory + cla + "/" + im)
-                if Good:
-                    All_Imagesets.append((im_list, cla))
-
-        full_size = len(All_Imagesets)
-        if test_fraction > 0:
-            test = random.sample(All_Imagesets, int(full_size * test_fraction)) # All images i list of t0s
-            for item in test:
-                All_Imagesets.remove(item)
-
-            Send = [root_directory, classes, test]
-            Test = Get_Data(Send, transform["Test"], channels=channels)
-#             yield Test
-
-        if validation_fraction > 0:
-            validate = random.sample(All_Imagesets, int(full_size * validation_fraction))  # All images i list of t0s
-            for item in validate:
-                All_Imagesets.remove(item)
-
-            Send = [root_directory, classes, validate]
-            Validate = Get_Data(Send, transform["Test"], channels=channels)
-#             yield Validate
-
-        Send = [root_directory, classes, All_Imagesets]
-        Train = Get_Data(Send, transform["Train"], channels=channels)
-#         yield Train
-        return Test, Validate, Train
-    else:
-        Data = Get_Data(root_directory, transform, check_bad_data=check_bad_data, channels=channels)
-        return Data
-
-
-# In[85]:
 
 
 class Data_Analyser():
@@ -411,9 +157,6 @@ class Data_Analyser():
         plt.show()
 
 
-# In[86]:
-
-
 class Network (nn.Module):
     """
     The network structure
@@ -493,10 +236,6 @@ class Network (nn.Module):
     def reset_hidden(self, batch_size, training=False):
         self.h0 = torch.zeros((batch_size, 1000), requires_grad=training).to(device) #Requires grad replaces Variable
         self.c0 = torch.zeros((batch_size, 1000), requires_grad=training).to(device)
-
-
-# In[87]:
-
 
 class Scorekeeper():
     """
@@ -671,8 +410,6 @@ class Scorekeeper():
             plt.show()
 
 
-# In[88]:
-
 
 import time
 def train(epoch, DataLoader, Validate, plot=True, channels=3):
@@ -730,7 +467,7 @@ def train(epoch, DataLoader, Validate, plot=True, channels=3):
         ImageSeries = batch["image"]
         for i, t0 in enumerate(Starting_times):
             forward_start = time.time()
-            print('Starting t0: %d' % t0)
+            # print('Starting t0: %d' % t0)
             model.reset_hidden(batch_size=ImageSeries.size()[0], training=True)
             exp_lr_scheduler.optimizer.zero_grad()
             for n in range(2 * output_frames):
@@ -744,13 +481,13 @@ def train(epoch, DataLoader, Validate, plot=True, channels=3):
                     plot_predictions()
             loss = F.mse_loss(output, target)
             forward_time = time.time() - forward_start
-            print('Forward time: %.3f' % forward_time)
+            # print('Forward time: %.3f' % forward_time)
             loss.backward()
             exp_lr_scheduler.optimizer.step()
 
             mean_batch_loss += loss.item()
             backward_time = time.time() - (forward_time + forward_start)
-            print('Backward time: %.3f' % backward_time)
+            # print('Backward time: %.3f' % backward_time)
 
         Analyser.save_loss_batchwise(mean_batch_loss / (i + 1), 1)
         mean_loss += loss.item()
@@ -768,11 +505,8 @@ def train(epoch, DataLoader, Validate, plot=True, channels=3):
     print("Validation loss is", validation_loss)
 
 
-# In[99]:
-
-
-get_ipython().system('rm -rf Results/')
-get_ipython().system('rm Video_Data/.DS_Store')
+# get_ipython().system('rm -rf Results/')
+# get_ipython().system('rm Video_Data/.DS_Store')
 
 nr_net = 0 
 
@@ -792,9 +526,13 @@ DataGroup = "LSTM"
 #     maindir2 = stef_path
 #     version += 200
 # else:
+
+
+data_dir = '/disk/scratch/s1680171/'
+#data_dir = './'
+
 if not os.path.isdir("./Results"):
     os.mkdir("./Results")
-# maindir1 = "/mnt/Linux-HDD/Discrete_Data-sharing_LSTMs/Results/Simulation_Result_"\
 maindir1 = "./Results/Simulation_Result_" + Type_Network + "_v%03d/" % version
 
 if not os.path.isdir(maindir1):
@@ -807,21 +545,10 @@ if os.path.isfile(maindir1 + "All_Data_" + DataGroup + "_v%03d.pickle" % version
     My_Validate = My_Data["Validation data"]
     My_Test = My_Data["Testing data"]
 else:
-    My_Test, My_Validate, My_Train = Create_Training_Testing_Datasets(
-         "./Video_Data/", transformVar, test_fraction=0.15, validation_fraction=0.15, check_bad_data=False, channels=channels)
+    My_Test, My_Validate, My_Train = Create_Datasets(
+         data_dir+"Video_Data/", transformVar, test_fraction=0.15, validation_fraction=0.15, check_bad_data=False, channels=channels)
     My_Data = {"Training data": My_Train, "Validation data": My_Validate, "Testing data": My_Test}
     save(My_Data, maindir1 + "All_Data_" + DataGroup + "_v%03d" % version)
-    
-    
-
-
-# In[100]:
-
-
-ls
-
-
-# In[101]:
 
 
 # Analyser
@@ -831,17 +558,11 @@ else:
     Analyser = Data_Analyser(maindir1)
 
 
-# In[102]:
-
-
 # Model
 if os.path.isfile(maindir1 + Type_Network + "_Project_v%03d.pt" % version):
     model = torch.load(maindir1 + Type_Network + "_Project_v%03d.pt" % version)
 else:
     model = Network(channels)
-
-
-# In[103]:
 
 
 # Learning Rate scheduler w. optimizer
@@ -866,20 +587,8 @@ else:
 print('Optimizer created')
 
 
-# In[116]:
-
-
-a = My_Train[0]['image'][0:1,:,:]
-
-
-# In[119]:
-
-
+# a = My_Train[0]['image'][0:1,:,:]
 # imshow(a)
-
-
-# In[104]:
-
 
 Train_Data = DataLoader(My_Train, batch_size=16, shuffle=True, num_workers=12)
 Validate_Data = DataLoader(My_Validate, batch_size=16, shuffle=True, num_workers=12)
@@ -890,17 +599,11 @@ img_path = My_Train.All_Imagesets[0]
 im_list = sorted(listdir(root_dir + img_path[1]))
 
 
-# In[105]:
-
-
 model.to(device)
 score_keeper = Scorekeeper()
 
 
-# In[54]:
-
-
-for _ in range(3):
+for _ in range(50):
     print('Version %d' % version)
     # for g in exp_lr_scheduler.optimizer.param_groups:
     """
@@ -919,23 +622,17 @@ for _ in range(3):
     save(Analyser, maindir1 + Type_Network + "_Analyser_v%03d" % version)
     scheduler_dict = {"Type": lrschedule, "Scheduler": exp_lr_scheduler}
     save(scheduler_dict, maindir1 + Type_Network + "_lrScheduler_v%03d" % version)
-test(Test_Data, plot=False)
 # Analyser = []
 # model =[]
 # exp_lr_scheduler = []
 # scheduler_dict = []
 
 
-# In[ ]:
+# Analyser.plot_loss()
+# Analyser.plot_accuracy()
+# Analyser.plot_loss_batchwise()
+# Analyser.plot_validation_loss()
 
-
-Analyser.plot_loss()
-Analyser.plot_accuracy()
-Analyser.plot_loss_batchwise()
-Analyser.plot_validation_loss()
-
-
-# In[121]:
 
 
 def test(DataLoader, plot=True, channels=3):

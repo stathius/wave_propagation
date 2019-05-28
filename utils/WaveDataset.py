@@ -6,9 +6,9 @@ from os import listdir
 import random
 from PIL import Image
 
-class Get_Dataset(Dataset):
+class WaveDataset(Dataset):
     """
-    Creates a data-loader.
+    Creates a data-loader for the wave prop data
     """
     def __init__(self, root_directory, transform=None, check_bad_data=True, channels=3):
         if isinstance(root_directory, str):
@@ -39,7 +39,7 @@ class Get_Dataset(Dataset):
         return len(self.All_Imagesets)
 
     def __getitem__(self, idx):
-#         print('Get item')
+#         logging.info('Get item')
         img_path = self.All_Imagesets[idx][1]
         im_list = sorted(listdir(self.root_dir + img_path))
 
@@ -110,7 +110,7 @@ def Create_Datasets(root_directory, transform=None, test_fraction=0., validation
         img = Image.open(img_path)
         return False if np.shape(img)[-1] != channels else True
 
-    print('Create datasets')
+    logging.info('Create datasets')
     if (test_fraction > 0) or (validation_fraction > 0):
         classes = listdir(root_directory)
         All_Imagesets = []
@@ -132,7 +132,7 @@ def Create_Datasets(root_directory, transform=None, test_fraction=0., validation
                 All_Imagesets.remove(item)
 
             Send = [root_directory, classes, test]
-            Test = Get_Dataset(Send, transform["Test"], channels=channels)
+            Test = WaveDataset(Send, transform["Test"], channels=channels)
 #             yield Test
 
         if validation_fraction > 0:
@@ -141,13 +141,13 @@ def Create_Datasets(root_directory, transform=None, test_fraction=0., validation
                 All_Imagesets.remove(item)
 
             Send = [root_directory, classes, validate]
-            Validate = Get_Dataset(Send, transform["Test"], channels=channels)
+            Validate = WaveDataset(Send, transform["Test"], channels=channels)
 #             yield Validate
 
         Send = [root_directory, classes, All_Imagesets]
-        Train = Get_Dataset(Send, transform["Train"], channels=channels)
+        Train = WaveDataset(Send, transform["Train"], channels=channels)
 #         yield Train
         return Test, Validate, Train
     else:
-        Data = Get_Dataset(root_directory, transform, check_bad_data=check_bad_data, channels=channels)
+        Data = WaveDataset(root_directory, transform, check_bad_data=check_bad_data, channels=channels)
         return Data

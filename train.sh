@@ -15,17 +15,18 @@ export PATH=${CUDA_HOME}/bin:${PATH}
 export PYTHON_PATH=$PATH
 
 export STUDENT_ID=$(whoami)
+rm -rf /disk/scratch/s1680171/wave_propagation
 mkdir -p /disk/scratch/s1680171/wave_propagation
 
 export TMPDIR=/disk/scratch/s1680171/
 
-file="/disk/scratch/s1680171/wave_propagation/video.tar"
+file="/disk/scratch/s1680171/wave_propagation/video.tar.gz"
 if [ ! -f "$file" ]
 then
 	echo 'sending tar file'
-	rsync -ua --progress /home/s1680171/wave_propagation/video.tar /disk/scratch/s1680171/wave_propagation
+	rsync -ua --progress /home/s1680171/wave_propagation/video.tar.gz /disk/scratch/s1680171/wave_propagation
 	echo 'unzipping'
-	tar zxfk /disk/scratch/s1680171/wave_propagation/video.tar -C /disk/scratch/s1680171/wave_propagation/ >/dev/null 2>&1
+	tar zxfk /disk/scratch/s1680171/wave_propagation/video.tar.gz -C /disk/scratch/s1680171/wave_propagation/ >/dev/null 2>&1
 	echo 'unzipping finished'
 else
 	echo 'dataset already uploaded'

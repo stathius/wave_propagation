@@ -110,7 +110,6 @@ def Create_Datasets(root_directory, transform=None, test_fraction=0., validation
         img = Image.open(img_path)
         return False if np.shape(img)[-1] != channels else True
 
-    logging.info('Create datasets')
     if (test_fraction > 0) or (validation_fraction > 0):
         classes = listdir(root_directory)
         All_Imagesets = []

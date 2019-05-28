@@ -117,13 +117,13 @@ def train(epoch, DataLoader, Validate, plot=True, channels=3):
                     plot_predictions()
             loss = F.mse_loss(output, target)
             forward_time = time.time() - forward_start
-            # logging.info('Forward time: %.3f' % forward_time)
+            logging.info('Forward time: %.3f' % forward_time)
             loss.backward()
             exp_lr_scheduler.optimizer.step()
 
             mean_batch_loss += loss.item()
             backward_time = time.time() - (forward_time + forward_start)
-            # logging.info('Backward time: %.3f' % backward_time)
+            logging.info('Backward time: %.3f' % backward_time)
 
         analyser.save_loss_batchwise(mean_batch_loss / (i + 1), 1)
         mean_loss += loss.item()

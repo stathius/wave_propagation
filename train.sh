@@ -23,9 +23,9 @@ file="/disk/scratch/s1680171/wave_propagation/video.tar"
 if [ ! -f "$file" ]
 then
 	echo 'sending tar file'
-	rsync -ua --progress /home/s1680171/wave_propagation/video.tar /disk/scratch/s1680171
+	rsync -ua --progress /home/s1680171/wave_propagation/video.tar /disk/scratch/s1680171/wave_propagation
 	echo 'unzipping'
-	tar zxfk /disk/scratch/s1680171/video.tar -C /disk/scratch/s1680171 >/dev/null 2>&1
+	tar zxfk /disk/scratch/s1680171/wave_propagation/video.tar -C /disk/scratch/s1680171/wave_propagation/ >/dev/null 2>&1
 	echo 'unzipping finished'
 else
 	echo 'dataset already uploaded'

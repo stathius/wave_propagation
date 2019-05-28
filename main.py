@@ -528,7 +528,7 @@ DataGroup = "LSTM"
 # else:
 
 
-data_dir = '/disk/scratch/s1680171/'
+data_dir = '/disk/scratch/s1680171/wave_propagation/'
 #data_dir = './'
 
 if not os.path.isdir("./Results"):

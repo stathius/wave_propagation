@@ -7,34 +7,29 @@
 #SBATCH --time=0-10:00:00
 
 export CUDA_HOME=/opt/cuda-9.0.176.1/
-
 export CUDNN_HOME=/opt/cuDNN-7.0/
-
-export STUDENT_ID=$(whoami)
-
 export LD_LIBRARY_PATH=${CUDNN_HOME}/lib64:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH
-
 export LIBRARY_PATH=${CUDNN_HOME}/lib64:$LIBRARY_PATH
-
 export CPATH=${CUDNN_HOME}/include:$CPATH
-
 export PATH=${CUDA_HOME}/bin:${PATH}
-
 export PYTHON_PATH=$PATH
 
-mkdir -p /disk/scratch/${STUDENT_ID}
+export STUDENT_ID=$(whoami)
+mkdir -p /disk/scratch/s1680171/wave_propagation
 
-export TMPDIR=/disk/scratch/${STUDENT_ID}/
-export TMP=/disk/scratch/${STUDENT_ID}/
+export TMPDIR=/disk/scratch/s1680171/
 
-mkdir -p ${TMP}/datasets/
-export DATASET_DIR=${TMP}/datasets/
-
-echo 'sending tar file'
-rsync -ua --progress /home/${STUDENT_ID}/wave_propagation/video.tar /disk/scratch/${STUDENT_ID}/
-echo 'unzipping'
-tar zxfk /home/${STUDENT_ID}/wave_propagation/video.tar >/dev/null 2>&1
-echo 'unzipping finished'
+file="/disk/scratch/s1680171/wave_propagation/video.tar"
+if [ ! -f "$file" ]
+then
+	echo 'sending tar file'
+	rsync -ua --progress /home/s1680171/wave_propagation/video.tar /disk/scratch/s1680171
+	echo 'unzipping'
+	tar zxfk /disk/scratch/s1680171/video.tar -C /disk/scratch/s1680171 >/dev/null 2>&1
+	echo 'unzipping finished'
+else
+	echo 'dataset already uploaded'
+fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 python main.py

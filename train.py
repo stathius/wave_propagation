@@ -91,7 +91,6 @@ def train(epoch, DataLoader, Validate, plot=True, channels=3):
             imshow(des_target, title="Target %02d" % n, obj=tar)
             plt.show()
 
-    logging.info('Training Epoch: %d' % epoch)
     model.train()           # initialises training stage/functions
     mean_loss = 0
     logging.info('Ready to load batches')
@@ -177,6 +176,8 @@ maindir1 = "./Results/Simulation_Result_" + Type_Network + "_v%03d/" % version
 if not os.path.isdir(maindir1):
     make_folder_results(maindir1)
 
+
+logging.info('Create datasets')
 # Data
 if os.path.isfile(maindir1 + "All_Data_" + DataGroup + "_v%03d.pickle" % version):
     My_Data = load(maindir1 + "All_Data_" + DataGroup + "_v%03d" % version)
@@ -240,8 +241,10 @@ im_list = sorted(listdir(root_dir + img_path[1]))
 
 model.to(device)
 
-for _ in range(50):
-    logging.info('Version %d' % version)
+logging.info('Version %d' % version)
+logging.info('Start training')
+for e in range(50):
+    logging.info('Epoch %d' % e)
     # for g in exp_lr_scheduler.optimizer.param_groups:
     """
     Here we can access analyser.validation_loss to make decisions

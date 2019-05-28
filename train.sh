@@ -34,6 +34,7 @@ echo 'sending tar file'
 rsync -ua --progress /home/${STUDENT_ID}/wave_propagation/video.tar /disk/scratch/${STUDENT_ID}/
 echo 'unzipping'
 tar zxfk /home/${STUDENT_ID}/wave_propagation/video.tar >/dev/null 2>&1
+echo 'unzipping finished'
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 python main.py

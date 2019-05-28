@@ -32,4 +32,4 @@ else
 fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
-python main.py
+python train.py

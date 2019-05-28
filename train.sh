@@ -30,7 +30,8 @@ export TMP=/disk/scratch/${STUDENT_ID}/
 mkdir -p ${TMP}/datasets/
 export DATASET_DIR=${TMP}/datasets/
 
-rsync -ua --progress /home/${STUDENT_ID}/wave_propagation/Video_Data/ /disk/scratch/${STUDENT_ID}/Video_Data
+rsync -ua --progress /home/${STUDENT_ID}/wave_propagation/video.tar /disk/scratch/${STUDENT_ID}/
+tar zxf /home/${STUDENT_ID}/wave_propagation/video.tar /home/${STUDENT_ID}/wave_propagation/
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 python main.py

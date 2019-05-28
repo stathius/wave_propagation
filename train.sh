@@ -31,7 +31,7 @@ mkdir -p ${TMP}/datasets/
 export DATASET_DIR=${TMP}/datasets/
 
 rsync -ua --progress /home/${STUDENT_ID}/wave_propagation/video.tar /disk/scratch/${STUDENT_ID}/
-tar zxf /home/${STUDENT_ID}/wave_propagation/video.tar /home/${STUDENT_ID}/wave_propagation/
+tar zxfk /home/${STUDENT_ID}/wave_propagation/video.tar
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 python main.py

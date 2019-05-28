@@ -1,4 +1,6 @@
+import seaborn as sns
 from utils.Scorekeeper import Scorekeeper
+
 def test(test_data_loader, score_keeper, plot=True, channels=3):
     """
     Testing of network

@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader
 from skimage import measure #supports video also
 import pickle
 import scipy.ndimage as ndimage
-import seaborn as sns
 import pandas as pd
 import imagehash
 import math as m

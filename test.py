@@ -1,5 +1,6 @@
 import seaborn as sns
 from utils.Scorekeeper import Scorekeeper
+import pandas as pd
 
 def test(test_data_loader, score_keeper, plot=True, channels=3):
     """

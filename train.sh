@@ -30,9 +30,9 @@ export TMP=/disk/scratch/${STUDENT_ID}/
 mkdir -p ${TMP}/datasets/
 export DATASET_DIR=${TMP}/datasets/
 
-echo 'sending tar file\n'
+echo 'sending tar file'
 rsync -ua --progress /home/${STUDENT_ID}/wave_propagation/video.tar /disk/scratch/${STUDENT_ID}/
-echo 'unzipping\n'
+echo 'unzipping'
 tar zxfk /home/${STUDENT_ID}/wave_propagation/video.tar >/dev/null 2>&1
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp

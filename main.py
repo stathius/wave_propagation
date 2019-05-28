@@ -22,8 +22,9 @@ import imagehash
 import math as m
 from scipy.spatial import distance
 import time
+import platform
 
-
+from utils.analyser import Analyser
 from utils.io import save_network, save, load, figure_save, make_folder_results, imshow
 from utils.format import hex_str2bool
 from utils.datasets import Create_Datasets
@@ -50,112 +51,6 @@ transformVar = {"Test": transforms.Compose([
 #     normalize
     ])
 }
-
-
-
-class Data_Analyser():
-    """
-    Saves network data for later analasys. Epochwise loss, Batchwise loss, Accuracy (not currently in use) and
-    Validation loss
-    """
-    def __init__(self, maindir1):
-        self.epoch_loss = []
-        self.epoch_nr = []
-        self.batch_loss = []
-        self.batch_nr = []
-        self.accuracy = []
-        self.epoch_acc = []
-        self.validation_loss = []
-        self.validation_nr = []
-        self.maindir1 = maindir1
-
-    def save_loss(self, loss, epoch_increment=1):
-        """
-        Creates two lists, one of losses and one of index of epoch
-        """
-        self.epoch_loss.append(loss)
-        self.epoch_nr.append(self.epoch_nr[len(self.epoch_nr) - 1] + epoch_increment) if len(self.epoch_nr)            else self.epoch_nr.append(epoch_increment)
-
-    def plot_loss(self):
-        fig = plt.figure().add_axes()
-        sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
-        sns.set_context("talk")
-        data = {}
-        data.update({"Epoch": self.epoch_nr, "Loss": self.epoch_loss})
-        sns.lineplot(x="Epoch", y="Loss",
-                     data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(self.maindir1 + "Epoch_Loss" + Type_Network + "_Project_v%03d" % version, obj=fig)
-        plt.show()
-
-    def save_loss_batchwise(self, loss, batch_increment=1):
-        """
-        Creates two lists, one of losses and one of index of batch
-        """
-        self.batch_loss.append(loss)
-        self.batch_nr.append(self.batch_nr[len(self.batch_nr) - 1] + batch_increment) if len(self.batch_nr)            else self.batch_nr.append(batch_increment)
-
-    def plot_loss_batchwise(self):
-        fig = plt.figure().add_axes()
-        sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
-        sns.set_context("talk")
-        data = {}
-        data.update({"Batch": self.batch_nr, "Loss": self.batch_loss})
-        sns.lineplot(x="Batch", y="Loss",
-                     data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(self.maindir1 + "Batch_Loss" + Type_Network + "_Project_v%03d" % version, obj=fig)
-        plt.show()
-
-    def save_accuracy(self, accuracy, epoch_increment=1):
-        """
-        Creates two lists, one of accuracy and one of index of the accuracy (batchwise or epochwise)
-        NOT IN USE
-        """
-        self.accuracy.append(accuracy)
-        self.epoch_acc.append(self.epoch_acc[len(self.epoch_acc) - 1] + epoch_increment) if len(self.epoch_acc)            else self.epoch_acc.append(epoch_increment)
-
-    def plot_accuracy(self):
-        fig = plt.figure().add_axes()
-        sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
-        sns.set_context("talk")
-        data = {}
-        data.update({"Epoch": self.epoch_acc, "Accuracy": self.accuracy})
-        sns.lineplot(x="Epoch", y="Accuracy",
-                     data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(self.maindir1 + "Accuracy" + Type_Network + "_Project_v%03d" % version, obj=fig)
-        plt.show()
-
-    def save_validation_loss(self, loss, epoch_increment=1):
-        """
-        Creates two lists, one of validation losses and one of index of epoch
-        """
-        self.validation_loss.append(loss)
-        self.validation_nr.append(self.validation_nr[len(self.validation_nr) - 1] + epoch_increment) if             len(self.validation_nr) else self.validation_nr.append(epoch_increment)
-
-    def plot_validation_loss(self):
-        """
-        Plots validation and epoch loss next to each other
-        """
-        hue = []
-        loss = []
-        nr = []
-        for i, element in enumerate(self.epoch_loss):
-            loss.append(element)
-            nr.append(self.epoch_nr[i])
-            hue.append("Training Loss")
-        for i, element in enumerate(self.validation_loss):
-            loss.append(element)
-            nr.append(self.validation_nr[i])
-            hue.append("Validation Loss")
-        fig = plt.figure().add_axes()
-        sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
-        sns.set_context("talk")
-        data = {}
-        data.update({"Epoch": nr, "Loss": loss, "hue": hue})
-        sns.lineplot(x="Epoch", y="Loss", hue="hue",
-                     data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(self.maindir1 + "Validation_Loss" + Type_Network + "_Project_v%03d" % version, obj=fig)
-        plt.show()
-
 
 class Network (nn.Module):
     """
@@ -489,19 +384,19 @@ def train(epoch, DataLoader, Validate, plot=True, channels=3):
             backward_time = time.time() - (forward_time + forward_start)
             # print('Backward time: %.3f' % backward_time)
 
-        Analyser.save_loss_batchwise(mean_batch_loss / (i + 1), 1)
+        analyser.save_loss_batchwise(mean_batch_loss / (i + 1), 1)
         mean_loss += loss.item()
 
         print("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(epoch, batch_num + 1,
                    len(DataLoader), 100. * (batch_num + 1) / len(DataLoader), loss.item()))
         start_batch = time.time()
         
-    Analyser.save_loss(mean_loss / (batch_num + 1), 1)
-    #Analyser.plot_loss()
-    #Analyser.plot_loss_batchwise()
+    analyser.save_loss(mean_loss / (batch_num + 1), 1)
+    #analyser.plot_loss()
+    #analyser.plot_loss_batchwise()
     validation_loss = validate(Validate, plot=False)
-    Analyser.save_validation_loss(validation_loss, 1)
-    Analyser.plot_validation_loss()
+    analyser.save_validation_loss(validation_loss, 1)
+    analyser.plot_validation_loss()
     print("Validation loss is", validation_loss)
 
 
@@ -528,8 +423,10 @@ DataGroup = "LSTM"
 # else:
 
 
-data_dir = '/disk/scratch/s1680171/wave_propagation/'
-#data_dir = './'
+if 'Darwin' in platform.system():
+    data_dir = './'
+else:
+    data_dir = '/disk/scratch/s1680171/wave_propagation/'
 
 if not os.path.isdir("./Results"):
     os.mkdir("./Results")
@@ -551,11 +448,11 @@ else:
     save(My_Data, maindir1 + "All_Data_" + DataGroup + "_v%03d" % version)
 
 
-# Analyser
-if os.path.isfile(maindir1 + Type_Network + "_Analyser_v%03d.pickle" % version):
-    Analyser = load(maindir1 + Type_Network + "_Analyser_v%03d" % version)
+# analyser
+if os.path.isfile(maindir1 + Type_Network + "_analyser_v%03d.pickle" % version):
+    analyser = load(maindir1 + Type_Network + "_analyser_v%03d" % version)
 else:
-    Analyser = Data_Analyser(maindir1)
+    analyser = Analyser(maindir1)
 
 
 # Model
@@ -600,45 +497,43 @@ im_list = sorted(listdir(root_dir + img_path[1]))
 
 
 model.to(device)
-score_keeper = Scorekeeper()
-
 
 for _ in range(50):
     print('Version %d' % version)
     # for g in exp_lr_scheduler.optimizer.param_groups:
     """
-    Here we can access Analyser.validation_loss to make decisions
+    Here we can access analyser.validation_loss to make decisions
     """
     # Learning rate scheduler
     # perform scheduler step if independent from validation loss
     if lrschedule == 'step':
         exp_lr_scheduler.step()
-    train(len(Analyser.epoch_loss) + 1, Train_Data, Validate_Data, plot=False, channels=channels)
+    train(len(analyser.epoch_loss) + 1, Train_Data, Validate_Data, plot=False, channels=channels)
     # perform scheduler step if Dependent on validation loss
     if lrschedule == 'plateau':
-        exp_lr_scheduler.step(Analyser.validation_loss[-1])
+        exp_lr_scheduler.step(analyser.validation_loss[-1])
     save_network(model, maindir1 + Type_Network + "_Project_v%03d" % version)
     torch.save(model, maindir1 + Type_Network + "_Project_v%03d.pt" % version)
-    save(Analyser, maindir1 + Type_Network + "_Analyser_v%03d" % version)
+    save(analyser, maindir1 + Type_Network + "_analyser_v%03d" % version)
     scheduler_dict = {"Type": lrschedule, "Scheduler": exp_lr_scheduler}
     save(scheduler_dict, maindir1 + Type_Network + "_lrScheduler_v%03d" % version)
-# Analyser = []
+# analyser = []
 # model =[]
 # exp_lr_scheduler = []
 # scheduler_dict = []
 
 
-# Analyser.plot_loss()
-# Analyser.plot_accuracy()
-# Analyser.plot_loss_batchwise()
-# Analyser.plot_validation_loss()
+# analyser.plot_loss()
+# analyser.plot_accuracy()
+# analyser.plot_loss_batchwise()
+# analyser.plot_validation_loss()
 
 
 
-def test(DataLoader, plot=True, channels=3):
+def test(test_data_loader, score_keeper, plot=True, channels=3):
     """
     Testing of network
-    :param DataLoader: Data to test
+    :param test_data_loader: Data to test
     :param plot: If to plot predictions
     :return:
     """
@@ -813,7 +708,7 @@ def test(DataLoader, plot=True, channels=3):
     selected_batch = random.randint(0, 15)
     if (output_frames - refeed_offset) < input_frames:
         refeed_offset = output_frames - input_frames
-    for batch_num, batch in enumerate(DataLoader):
+    for batch_num, batch in enumerate(test_data_loader):
         OriginalSeries = batch["image"]
         ImageSeries = OriginalSeries[:, t0 * channels:(t0 + input_frames) * channels, :, :]
         #ImageSeries = introduce(ImageSeries)
@@ -845,10 +740,10 @@ def test(DataLoader, plot=True, channels=3):
                     target_cnt = copy.copy(cnt)
 
         total += target.size()[0]
-        print(batch_num + 1, "out of", len(DataLoader))
+        print(batch_num + 1, "out of", len(test_data_loader))
     print("Correct: {}\tPercentile: {:.0f}%".format(correct, 100 * correct / total))
     score_keeper.plot()
 
-
-# test(Test_Data, plot=True, channels=channels)
+score_keeper = Scorekeeper()
+# test(Test_Data, score_keeper, plot=True, channels=channels)
 

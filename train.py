@@ -116,14 +116,14 @@ def train(epoch, DataLoader, Validate, plot=True, channels=3):
                 if plot:
                     plot_predictions()
             loss = F.mse_loss(output, target)
-            forward_time = time.time() - forward_start
-            logging.info('Forward time: %.3f' % forward_time)
+            # forward_time = time.time() - forward_start
+            # logging.info('Forward time: %.3f' % forward_time)
             loss.backward()
             exp_lr_scheduler.optimizer.step()
 
             mean_batch_loss += loss.item()
-            backward_time = time.time() - (forward_time + forward_start)
-            logging.info('Backward time: %.3f' % backward_time)
+            # backward_time = time.time() - (forward_time + forward_start)
+            # logging.info('Backward time: %.3f' % backward_time)
 
         analyser.save_loss_batchwise(mean_batch_loss / (i + 1), 1)
         mean_loss += loss.item()
@@ -244,6 +244,8 @@ model.to(device)
 logging.info('Version %d' % version)
 logging.info('Start training')
 for e in range(50):
+    epoch_start = time.time()
+
     logging.info('Epoch %d' % e)
     # for g in exp_lr_scheduler.optimizer.param_groups:
     """
@@ -262,6 +264,10 @@ for e in range(50):
     save(analyser, maindir1 + Type_Network + "_analyser_v%03d" % version)
     scheduler_dict = {"Type": lrschedule, "Scheduler": exp_lr_scheduler}
     save(scheduler_dict, maindir1 + Type_Network + "_lrScheduler_v%03d" % version)
+
+    epoch_time = time.time() - epoch_start 
+    logging.info('Epoch time: %.1f' % epoch_time)
+
 # analyser = []
 # model =[]
 # exp_lr_scheduler = []

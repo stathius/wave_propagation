@@ -20,8 +20,8 @@ mkdir -p /disk/scratch/s1680171/wave_propagation
 
 export TMPDIR=/disk/scratch/s1680171/
 
-file="/disk/scratch/s1680171/wave_propagation/video.tar.gz"
-if [ ! -f "$file" ]
+file=/disk/scratch/s1680171/wave_propagation/video.tar.gz
+if [ ! -f $file ]
 then
 	echo 'sending tar file'
 	rsync -ua --progress /home/s1680171/wave_propagation/video.tar.gz /disk/scratch/s1680171/wave_propagation

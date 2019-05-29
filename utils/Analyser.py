@@ -19,7 +19,7 @@ class Analyser():
         Creates two lists, one of losses and one of index of epoch
         """
         self.epoch_loss.append(loss)
-        self.epoch_nr.append(self.epoch_nr[len(self.epoch_nr) - 1] + epoch_increment) if len(self.epoch_nr)            else self.epoch_nr.append(epoch_increment)
+        self.epoch_nr.append(self.epoch_nr[len(self.epoch_nr) - 1] + epoch_increment) if len(self.epoch_nr) else self.epoch_nr.append(epoch_increment)
 
     def plot_loss(self):
         fig = plt.figure().add_axes()
@@ -37,7 +37,7 @@ class Analyser():
         Creates two lists, one of losses and one of index of batch
         """
         self.batch_loss.append(loss)
-        self.batch_nr.append(self.batch_nr[len(self.batch_nr) - 1] + batch_increment) if len(self.batch_nr)            else self.batch_nr.append(batch_increment)
+        self.batch_nr.append(self.batch_nr[len(self.batch_nr) - 1] + batch_increment) if len(self.batch_nr) else self.batch_nr.append(batch_increment)
 
     def plot_loss_batchwise(self):
         fig = plt.figure().add_axes()
@@ -56,7 +56,7 @@ class Analyser():
         NOT IN USE
         """
         self.accuracy.append(accuracy)
-        self.epoch_acc.append(self.epoch_acc[len(self.epoch_acc) - 1] + epoch_increment) if len(self.epoch_acc)            else self.epoch_acc.append(epoch_increment)
+        self.epoch_acc.append(self.epoch_acc[len(self.epoch_acc) - 1] + epoch_increment) if len(self.epoch_acc) else self.epoch_acc.append(epoch_increment)
 
     def plot_accuracy(self):
         fig = plt.figure().add_axes()
@@ -74,7 +74,7 @@ class Analyser():
         Creates two lists, one of validation losses and one of index of epoch
         """
         self.validation_loss.append(loss)
-        self.validation_nr.append(self.validation_nr[len(self.validation_nr) - 1] + epoch_increment) if             len(self.validation_nr) else self.validation_nr.append(epoch_increment)
+        self.validation_nr.append(self.validation_nr[len(self.validation_nr) - 1] + epoch_increment) if len(self.validation_nr) else self.validation_nr.append(epoch_increment)
 
     def plot_validation_loss(self):
         """

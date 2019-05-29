@@ -49,12 +49,12 @@ transformVar = {"Test": transforms.Compose([
 }
 
 import time
-def train(epoch, DataLoader, Validate, plot=True, channels=3):
+def train(model, epoch, train_data, val_data, plot=True, channels=3):
     """
     Training of the network
     :param epoch: Which epoch are you on
-    :param DataLoader: Training data
-    :param Validate: Validation data
+    :param train: Training data
+    :param val_data: Validation data
     :return:
     """
     ### add grayscayle or rgb flag to gain speed
@@ -94,16 +94,13 @@ def train(epoch, DataLoader, Validate, plot=True, channels=3):
     model.train()           # initialises training stage/functions
     mean_loss = 0
     logging.info('Ready to load batches')
-    start_batch = time.time()
-    for batch_num, batch in enumerate(DataLoader):
-        batch_time = time.time() - start_batch
-        logging.info('Batch: %d loaded in %.3f' %(batch_num, batch_time))
+    for batch_num, batch in enumerate(train_data):
+        batch_start = time.time()
+        # logging.info('Batch: %d loaded in %.3f' %(batch_num, batch_time))
         mean_batch_loss = 0
         Starting_times = random.sample(range(100 - input_frames - (2 * output_frames) - 1), 10)
         ImageSeries = batch["image"]
         for i, t0 in enumerate(Starting_times):
-            forward_start = time.time()
-            # logging.info('Starting t0: %d' % t0)
             model.reset_hidden(batch_size=ImageSeries.size()[0], training=True)
             exp_lr_scheduler.optimizer.zero_grad()
             for n in range(2 * output_frames):
@@ -116,30 +113,90 @@ def train(epoch, DataLoader, Validate, plot=True, channels=3):
                 if plot:
                     plot_predictions()
             loss = F.mse_loss(output, target)
-            # forward_time = time.time() - forward_start
-            # logging.info('Forward time: %.3f' % forward_time)
             loss.backward()
             exp_lr_scheduler.optimizer.step()
 
             mean_batch_loss += loss.item()
-            # backward_time = time.time() - (forward_time + forward_start)
-            # logging.info('Backward time: %.3f' % backward_time)
+
 
         analyser.save_loss_batchwise(mean_batch_loss / (i + 1), 1)
         mean_loss += loss.item()
 
-        logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(epoch, batch_num + 1,
-                   len(DataLoader), 100. * (batch_num + 1) / len(DataLoader), loss.item()))
-        start_batch = time.time()
-        
+        batch_time = time.time() - batch_start
+        logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime{:.2f}".format(epoch, batch_num + 1,
+                   len(train_data), 100. * (batch_num + 1) / len(train_data), loss.item(), batch_time ) )        
+
+
     analyser.save_loss(mean_loss / (batch_num + 1), 1)
     #analyser.plot_loss()
     #analyser.plot_loss_batchwise()
-    validation_loss = validate(Validate, plot=False)
+    validation_loss = validate(val_data, channels, plot=False)
     analyser.save_validation_loss(validation_loss, 1)
     analyser.plot_validation_loss()
     logging.info("Validation loss is", validation_loss)
 
+
+def validate(val_data, channels, plot=True):
+    """
+    Validation of network (same protocol as training)
+    :param val_data: Data to test
+    :param plot: If to plot predictions
+    :return:
+    """
+    def initial_input(training):
+        Data = ImageSeries[:, (t0 + n) * channels:(t0 + n + input_frames) * channels, :, :].cuda()
+        output = model(Data, training=training)
+        target = ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].cuda()
+        return output, target
+
+    def new_input(output, target, training):
+        output = torch.cat((output, model(
+            output[:, -input_frames * channels:, :, :].clone(), mode="new_input", training=training)
+                            ), dim=1)
+        target = torch.cat(
+            (target, ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].cuda()), dim=1
+        )
+        return output, target
+
+    def consequent_propagation(output, target, training):
+        output = torch.cat((output, model(torch.Tensor([0]), mode="internal", training=training)), dim=1)
+        target = torch.cat(
+            (target, ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].cuda()), dim=1
+        )
+        return output, target
+
+    def plot_predictions():
+        if (i == 0) & (batch_num == 0):
+            predicted = output[i, -channels:, :, :].cpu().detach()
+            des_target = target[i, -channels:, :, :].cpu().detach()
+            fig = plt.figure()
+            pred = fig.add_subplot(1, 2, 1)
+            imshow(predicted, title="Predicted smoothened %02d" % n, smoothen=True, obj=pred)
+            tar = fig.add_subplot(1, 2, 2)
+            imshow(des_target, title="Target %02d" % n, obj=tar)
+            plt.show()
+
+    model.eval()
+    overall_loss = 0
+    for batch_num, batch in enumerate(val_data):
+        Starting_times = random.sample(range(100 - input_frames - (2 * output_frames) - 1), 10)
+        ImageSeries = batch["image"]
+        batch_loss = 0
+        for i, t0 in enumerate(Starting_times):
+            model.reset_hidden(batch_size=ImageSeries.size()[0], training=False)
+            for n in range(2 * output_frames):
+                if n == 0:
+                    output, target = initial_input(training=False)
+                elif n == output_frames:
+                    output, target = new_input(output, target, training=False)
+                else:
+                    output, target = consequent_propagation(output, target, training=False)
+                if plot:
+                    plot_predictions()
+            batch_loss += F.mse_loss(output, target).item()
+        overall_loss += batch_loss / (i + 1)
+        print(batch_num + 1, "out of", len(val_data))
+    return overall_loss / (batch_num + 1)
 
 # get_ipython().system('rm -rf Results/')
 # get_ipython().system('rm Video_Data/.DS_Store')
@@ -255,7 +312,7 @@ for e in range(50):
     # perform scheduler step if independent from validation loss
     if lrschedule == 'step':
         exp_lr_scheduler.step()
-    train(len(analyser.epoch_loss) + 1, Train_Data, Validate_Data, plot=False, channels=channels)
+    train(model, e , Train_Data, Validate_Data, plot=False, channels=channels)
     # perform scheduler step if Dependent on validation loss
     if lrschedule == 'plateau':
         exp_lr_scheduler.step(analyser.validation_loss[-1])

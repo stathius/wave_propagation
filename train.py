@@ -142,24 +142,24 @@ def validate(val_data, channels, plot=False):
     :return:
     """
     def initial_input(training):
-        Data = ImageSeries[:, (t0 + n) * channels:(t0 + n + input_frames) * channels, :, :].cuda()
+        Data = ImageSeries[:, (t0 + n) * channels:(t0 + n + input_frames) * channels, :, :].to(device)
         output = model(Data, training=training)
-        target = ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].cuda()
+        target = ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].to(device)
         return output, target
-
+ 
     def new_input(output, target, training):
         output = torch.cat((output, model(
             output[:, -input_frames * channels:, :, :].clone(), mode="new_input", training=training)
                             ), dim=1)
         target = torch.cat(
-            (target, ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].cuda()), dim=1
+            (target, ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].to(device)), dim=1
         )
         return output, target
 
     def consequent_propagation(output, target, training):
         output = torch.cat((output, model(torch.Tensor([0]), mode="internal", training=training)), dim=1)
         target = torch.cat(
-            (target, ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].cuda()), dim=1
+            (target, ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].to(device)), dim=1
         )
         return output, target
 
@@ -193,8 +193,9 @@ def validate(val_data, channels, plot=False):
                     plot_predictions()
             batch_loss += F.mse_loss(output, target).item()
         overall_loss += batch_loss / (i + 1)
-        print(batch_num + 1, "out of", len(val_data))
-    return overall_loss / (batch_num + 1)
+    val_loss = overall_loss / (batch_num + 1)
+    logging.info('Validation loss: %.3f ' % val_loss)
+    return val_loss
 
 # get_ipython().system('rm -rf Results/')
 # get_ipython().system('rm Video_Data/.DS_Store')

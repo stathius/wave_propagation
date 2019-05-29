@@ -315,7 +315,7 @@ for e in range(50):
     # perform scheduler step if Dependent on validation loss
     if lrschedule == 'plateau':
         exp_lr_scheduler.step(analyser.validation_loss[-1])
-    save_network(model, maindir1 + Type_Network + "_Project_v%03d" % version)
+    save_network(model, maindir1 + Type_Network + "_Project_v%03d" % version, device)
     torch.save(model, maindir1 + Type_Network + "_Project_v%03d.pt" % version)
     save(analyser, maindir1 + Type_Network + "_analyser_v%03d" % version)
     scheduler_dict = {"Type": lrschedule, "Scheduler": exp_lr_scheduler}

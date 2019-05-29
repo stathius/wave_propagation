@@ -3,10 +3,10 @@ import os
 """
 Saving and loading of figures, network state and other .pickle objects
 """
-def save_network(obj, filename):
+def save_network(obj, filename, device):
     network_dict = obj.cpu().state_dict()
-    ## Add if torch.cuda.is_available():
-    obj.to(device)
+    #always save the cpu model
+    obj.cpu()
     save(obj=network_dict, filename=filename)
 
 def save(obj, filename):

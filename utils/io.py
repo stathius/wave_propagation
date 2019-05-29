@@ -1,12 +1,26 @@
 import pickle
 import os
+import torch 
+
 """
 Saving and loading of figures, network state and other .pickle objects
 """
-def save_network(obj, filename, device):
-    network_dict = obj.cpu().state_dict()
-    save(obj=network_dict, filename=filename)
-    obj.to(device)
+
+def save_network(model, filename):
+    if hasattr(model, 'module'):
+        network_dict = model.module.state_dict()
+    else:
+        network_dict = model.state_dict()
+    torch.save(network_dict, filename)
+
+
+def load_network(model, filename):
+    dct = torch.load(filename)
+    try:
+        model.load_state_dict(dct)
+    except:
+        raise Warning('model and dictionary mismatch')
+    # return model
 
 def save(obj, filename):
     filename += ".pickle" if ".pickle" not in filename else ""

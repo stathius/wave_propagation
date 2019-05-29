@@ -124,7 +124,8 @@ def train(model, epoch, train_data, val_data, plot=False, channels=3):
 
         batch_time = time.time() - batch_start
         logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1,
-                   len(train_data), 100. * (batch_num + 1) / len(train_data), loss.item(), batch_time ) )        
+                   len(train_data), 100. * (batch_num + 1) / len(train_data), loss.item(), batch_time ) ) 
+        break       
 
 
     analyser.save_loss(mean_loss / (batch_num + 1), 1)

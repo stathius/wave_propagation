@@ -131,7 +131,8 @@ def train(model, epoch, train_data, val_data, plot=False, channels=3):
     analyser.save_loss(mean_loss / (batch_num + 1), 1)
     validation_loss = validate(val_data, channels, plot=False)
     analyser.save_validation_loss(validation_loss, 1)
-    logging.info("Validation loss is", validation_loss)
+    logging.info('Validation loss: %.3f ' % validation_loss)
+
 
 
 def validate(val_data, channels, plot=False):
@@ -194,7 +195,6 @@ def validate(val_data, channels, plot=False):
             batch_loss += F.mse_loss(output, target).item()
         overall_loss += batch_loss / (i + 1)
     val_loss = overall_loss / (batch_num + 1)
-    logging.info('Validation loss: %.3f ' % val_loss)
     return val_loss
 
 # get_ipython().system('rm -rf Results/')

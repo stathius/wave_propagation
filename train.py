@@ -49,7 +49,7 @@ transformVar = {"Test": transforms.Compose([
 }
 
 import time
-def train(model, epoch, train_data, val_data, plot=True, channels=3):
+def train(model, epoch, train_data, val_data, plot=False, channels=3):
     """
     Training of the network
     :param epoch: Which epoch are you on
@@ -123,20 +123,17 @@ def train(model, epoch, train_data, val_data, plot=True, channels=3):
         mean_loss += loss.item()
 
         batch_time = time.time() - batch_start
-        logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime{:.2f}".format(epoch, batch_num + 1,
+        logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1,
                    len(train_data), 100. * (batch_num + 1) / len(train_data), loss.item(), batch_time ) )        
 
 
     analyser.save_loss(mean_loss / (batch_num + 1), 1)
-    #analyser.plot_loss()
-    #analyser.plot_loss_batchwise()
     validation_loss = validate(val_data, channels, plot=False)
     analyser.save_validation_loss(validation_loss, 1)
-    analyser.plot_validation_loss()
     logging.info("Validation loss is", validation_loss)
 
 
-def validate(val_data, channels, plot=True):
+def validate(val_data, channels, plot=False):
     """
     Validation of network (same protocol as training)
     :param val_data: Data to test
@@ -329,7 +326,6 @@ for e in range(50):
 # model =[]
 # exp_lr_scheduler = []
 # scheduler_dict = []
-
 
 # analyser.plot_loss()
 # analyser.plot_accuracy()

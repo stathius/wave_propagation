@@ -49,12 +49,12 @@ transformVar = {"Test": transforms.Compose([
 }
 
 import time
-def train(model, epoch, train_data, val_data, plot=False, channels=3):
+def train(model, epoch, train_dataloader, val_dataloader, channels, device, plot=False,):
     """
     Training of the network
     :param epoch: Which epoch are you on
     :param train: Training data
-    :param val_data: Validation data
+    :param val_dataloader: Validation data
     :return:
     """
     ### add grayscayle or rgb flag to gain speed
@@ -93,8 +93,8 @@ def train(model, epoch, train_data, val_data, plot=False, channels=3):
 
     model.train()           # initialises training stage/functions
     mean_loss = 0
-    logging.info('Ready to load batches')
-    for batch_num, batch in enumerate(train_data):
+    logging.info('Training: Ready to load batches')
+    for batch_num, batch in enumerate(train_dataloader):
         batch_start = time.time()
         # logging.info('Batch: %d loaded in %.3f' %(batch_num, batch_time))
         mean_batch_loss = 0
@@ -124,21 +124,21 @@ def train(model, epoch, train_data, val_data, plot=False, channels=3):
 
         batch_time = time.time() - batch_start
         logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1,
-                   len(train_data), 100. * (batch_num + 1) / len(train_data), loss.item(), batch_time ) ) 
+                   len(train_dataloader), 100. * (batch_num + 1) / len(train_dataloader), loss.item(), batch_time ) ) 
         break       
 
 
     analyser.save_loss(mean_loss / (batch_num + 1), 1)
-    validation_loss = validate(val_data, channels, plot=False)
+    validation_loss = validate(val_dataloader, channels, plot=False)
     analyser.save_validation_loss(validation_loss, 1)
     logging.info('Validation loss: %.3f ' % validation_loss)
 
 
 
-def validate(val_data, channels, plot=False):
+def validate(val_dataloader, channels, plot=False):
     """
     Validation of network (same protocol as training)
-    :param val_data: Data to test
+    :param val_dataloader: Data to test
     :param plot: If to plot predictions
     :return:
     """
@@ -177,7 +177,7 @@ def validate(val_data, channels, plot=False):
 
     model.eval()
     overall_loss = 0
-    for batch_num, batch in enumerate(val_data):
+    for batch_num, batch in enumerate(val_dataloader):
         Starting_times = random.sample(range(100 - input_frames - (2 * output_frames) - 1), 10)
         ImageSeries = batch["image"]
         batch_loss = 0
@@ -236,15 +236,15 @@ if not os.path.isdir(maindir1):
 logging.info('Create datasets')
 # Data
 if os.path.isfile(maindir1 + "All_Data_" + DataGroup + "_v%03d.pickle" % version):
-    My_Data = load(maindir1 + "All_Data_" + DataGroup + "_v%03d" % version)
-    My_Train = My_Data["Training data"]
-    My_Validate = My_Data["Validation data"]
-    My_Test = My_Data["Testing data"]
+    all_data = load(maindir1 + "All_Data_" + DataGroup + "_v%03d" % version)
+    train_dataset = all_data["Training data"]
+    val_dataset = all_data["Validation data"]
+    test_dataset = all_data["Testing data"]
 else:
-    My_Test, My_Validate, My_Train = Create_Datasets(
+    test_dataset, val_dataset, train_dataset = Create_Datasets(
          data_dir+"Video_Data/", transformVar, test_fraction=0.15, validation_fraction=0.15, check_bad_data=False, channels=channels)
-    My_Data = {"Training data": My_Train, "Validation data": My_Validate, "Testing data": My_Test}
-    save(My_Data, maindir1 + "All_Data_" + DataGroup + "_v%03d" % version)
+    all_data = {"Training data": train_dataset, "Validation data": val_dataset, "Testing data": test_dataset}
+    save(all_data, maindir1 + "All_Data_" + DataGroup + "_v%03d" % version)
 
 
 # analyser
@@ -283,26 +283,26 @@ else:
 logging.info('Optimizer created')
 
 
-# a = My_Train[0]['image'][0:1,:,:]
+# a = train_dataset[0]['image'][0:1,:,:]
 # imshow(a)
 
-Train_Data = DataLoader(My_Train, batch_size=16, shuffle=True, num_workers=12)
-Validate_Data = DataLoader(My_Validate, batch_size=16, shuffle=True, num_workers=12)
-Test_Data = DataLoader(My_Test, batch_size=16, shuffle=True, num_workers=12)
+train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=12)
+val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=True, num_workers=12)
+test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True, num_workers=12)
 
-root_dir = My_Train.root_dir
-img_path = My_Train.All_Imagesets[0]
+root_dir = train_dataset.root_dir
+img_path = train_dataset.All_Imagesets[0]
 im_list = sorted(listdir(root_dir + img_path[1]))
-
 
 model.to(device)
 
 logging.info('Version %d' % version)
 logging.info('Start training')
-for e in range(50):
+epochs=50
+for epoch in range(epochs):
     epoch_start = time.time()
 
-    logging.info('Epoch %d' % e)
+    logging.info('Epoch %d' % epoch)
     # for g in exp_lr_scheduler.optimizer.param_groups:
     """
     Here we can access analyser.validation_loss to make decisions
@@ -311,7 +311,8 @@ for e in range(50):
     # perform scheduler step if independent from validation loss
     if lrschedule == 'step':
         exp_lr_scheduler.step()
-    train(model, e , Train_Data, Validate_Data, plot=False, channels=channels)
+
+    train(model, epoch, train_dataloader, val_dataloader, channels, device, plot=False,)
     # perform scheduler step if Dependent on validation loss
     if lrschedule == 'plateau':
         exp_lr_scheduler.step(analyser.validation_loss[-1])

@@ -5,9 +5,8 @@ Saving and loading of figures, network state and other .pickle objects
 """
 def save_network(obj, filename, device):
     network_dict = obj.cpu().state_dict()
-    #always save the cpu model
-    obj.cpu()
     save(obj=network_dict, filename=filename)
+    obj.to(device)
 
 def save(obj, filename):
     filename += ".pickle" if ".pickle" not in filename else ""

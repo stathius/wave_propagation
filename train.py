@@ -48,47 +48,42 @@ transformVar = {"Test": transforms.Compose([
     ])
 }
 
-import time
+### COMMON FUNCTIONS TRAIN/VAL/TEST
+def initial_input(model, image_series, starting_frame, n, num_input_frames, channels, device, training):
+    input_frames = image_series[:, (starting_frame + n) * channels:(starting_frame + n + num_input_frames) * channels, :, :].to(device)
+    output = model(input_frames, training=training)
+    target = image_series[:, (starting_frame + n + num_input_frames) * channels:(starting_frame + n + num_input_frames + 1) * channels, :, :].to(device)
+    return output, target
 
-def train_epoch(model, epoch, train_dataloader, val_dataloader, channels, device, plot=False,):
+def new_input(output, target, channels, training):
+    output = torch.cat((output, model(output[:, -num_input_frames * channels:, :, :].clone(), mode="new_input", training=training)), dim=1)
+    target = torch.cat((target, image_series[:, (t0 + n + num_input_frames) * channels:(t0 + n + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
+    return output, target
+
+def consequent_propagation(output, target, channels, training):
+    output = torch.cat((output, model(torch.Tensor([0]), mode="internal", training=training)), dim=1)
+    target = torch.cat((target, image_series[:, (t0 + n + num_input_frames) * channels:(t0 + n + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
+    return output, target
+
+def plot_predictions():
+    if (i == 0) & (batch_num == 0):
+        predicted = output[i, -channels:, :, :].cpu().detach()
+        des_target = target[i, -channels:, :, :].cpu().detach()
+        fig = plt.figure()
+        pred = fig.add_subplot(1, 2, 1)
+        imshow(predicted, title="Predicted smoothened %02d" % n, smoothen=True, obj=pred)
+        tar = fig.add_subplot(1, 2, 2)
+        imshow(des_target, title="Target %02d" % n, obj=tar)
+        plt.show()
+
+
+def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False,):
     """
     Training of the network
     :param train: Training data
     :param val_dataloader: Validation data
     :return:
     """
-    def initial_input(channels, training):
-        Data = ImageSeries[:, (t0 + n) * channels:(t0 + n + input_frames) * channels, :, :].to(device)
-        output = model(Data, training=training)
-        target = ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].to(device)
-        return output, target
-
-    def new_input(output, target, channels, training):
-        output = torch.cat((output, model(
-            output[:, -input_frames * channels:, :, :].clone(), mode="new_input", training=training)
-                            ), dim=1)
-        target = torch.cat(
-            (target, ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].to(device)), dim=1
-        )
-        return output, target
-
-    def consequent_propagation(output, target, channels, training):
-        output = torch.cat((output, model(torch.Tensor([0]), mode="internal", training=training)), dim=1)
-        target = torch.cat(
-            (target, ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].to(device)), dim=1
-        )
-        return output, target
-
-    def plot_predictions():
-        if (i == 0) & (batch_num == 0):
-            predicted = output[i, -channels:, :, :].cpu().detach()
-            des_target = target[i, -channels:, :, :].cpu().detach()
-            fig = plt.figure()
-            pred = fig.add_subplot(1, 2, 1)
-            imshow(predicted, title="Predicted smoothened %02d" % n, smoothen=True, obj=pred)
-            tar = fig.add_subplot(1, 2, 2)
-            imshow(des_target, title="Target %02d" % n, obj=tar)
-            plt.show()
 
     model.train()           # initialises training stage/functions
     mean_loss = 0
@@ -97,15 +92,15 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, channels, device
         batch_start = time.time()
         # logging.info('Batch: %d loaded in %.3f' %(batch_num, batch_time))
         mean_batch_loss = 0
-        sequence_starting_points = random.sample(range(100 - input_frames - (2 * output_frames) - 1), 10)
-        ImageSeries = batch["image"]
+        sequence_starting_points = random.sample(range(100 - num_input_frames - (2 * num_output_frames) - 1), 10)
+        image_series = batch["image"]
         for i, t0 in enumerate(sequence_starting_points):
-            model.reset_hidden(batch_size=ImageSeries.size()[0], training=True)
+            model.reset_hidden(batch_size=image_series.size()[0], training=True)
             lr_scheduler.optimizer.zero_grad()
-            for n in range(2 * output_frames):
+            for n in range(2 * num_output_frames):
                 if n == 0:
-                    output, target = initial_input(channels, training=True)
-                elif n == output_frames:
+                    output, target = initial_input(model, image_series, starting_frame, n, num_input_frames, channels, device, training=True)
+                elif n == num_output_frames:
                     output, target = new_input(output, target, channels, training=True)
                 else:
                     output, target = consequent_propagation(output, target, channels, training=True)
@@ -140,51 +135,18 @@ def validate(model, val_dataloader, channels, plot=False):
     :param plot: If to plot predictions
     :return:
     """
-    def initial_input(channels, training):
-        Data = ImageSeries[:, (t0 + n) * channels:(t0 + n + input_frames) * channels, :, :].to(device)
-        output = model(Data, training=training)
-        target = ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].to(device)
-        return output, target
- 
-    def new_input(output, target, channels, training):
-        output = torch.cat((output, model(
-            output[:, -input_frames * channels:, :, :].clone(), mode="new_input", training=training)
-                            ), dim=1)
-        target = torch.cat(
-            (target, ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].to(device)), dim=1
-        )
-        return output, target
-
-    def consequent_propagation(output, target, channels, training):
-        output = torch.cat((output, model(torch.Tensor([0]), mode="internal", training=training)), dim=1)
-        target = torch.cat(
-            (target, ImageSeries[:, (t0 + n + input_frames) * channels:(t0 + n + input_frames + 1) * channels, :, :].to(device)), dim=1
-        )
-        return output, target
-
-    def plot_predictions():
-        if (i == 0) & (batch_num == 0):
-            predicted = output[i, -channels:, :, :].cpu().detach()
-            des_target = target[i, -channels:, :, :].cpu().detach()
-            fig = plt.figure()
-            pred = fig.add_subplot(1, 2, 1)
-            imshow(predicted, title="Predicted smoothened %02d" % n, smoothen=True, obj=pred)
-            tar = fig.add_subplot(1, 2, 2)
-            imshow(des_target, title="Target %02d" % n, obj=tar)
-            plt.show()
-
     model.eval()
     overall_loss = 0
     for batch_num, batch in enumerate(val_dataloader):
-        sequence_starting_points = random.sample(range(100 - input_frames - (2 * output_frames) - 1), 10)
-        ImageSeries = batch["image"]
+        sequence_starting_points = random.sample(range(100 - num_input_frames - (2 * num_output_frames) - 1), 10)
+        image_series = batch["image"]
         batch_loss = 0
         for i, t0 in enumerate(sequence_starting_points):
-            model.reset_hidden(batch_size=ImageSeries.size()[0], training=False)
-            for n in range(2 * output_frames):
+            model.reset_hidden(batch_size=image_series.size()[0], training=False)
+            for n in range(2 * num_output_frames):
                 if n == 0:
                     output, target = initial_input(channels, training=False)
-                elif n == output_frames:
+                elif n == num_output_frames:
                     output, target = new_input(output, target, channels, training=False)
                 else:
                     output, target = consequent_propagation(output, target, channels, training=False)
@@ -201,8 +163,8 @@ def validate(model, val_dataloader, channels, plot=False):
 nr_net = 0 
 
 version = nr_net + 10
-input_frames = 5
-output_frames = 10
+num_input_frames = 5
+num_output_frames = 10
 network_type = "7_kernel_3LSTM"
 
 # Little trick to adjust path files for compatibility (I have a backup of the Main.py in case it doesn't work)
@@ -299,7 +261,7 @@ for epoch in range(epochs):
     epoch_start = time.time()
 
     logging.info('Epoch %d' % epoch)
-    train_epoch(model, epoch, train_dataloader, val_dataloader, channels, device, plot=False)
+    train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False)
     """
     Here we can access analyser.validation_loss to make decisions
     """

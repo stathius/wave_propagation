@@ -5,7 +5,8 @@
 #SBATCH --gres=gpu:2
 #SBATCH --mem=12000  # memory in Mb
 #SBATCH --time=0-10:00:00
-
+hostname
+nvidia-smi
 export CUDA_HOME=/opt/cuda-9.0.176.1/
 export CUDNN_HOME=/opt/cuDNN-7.0/
 export LD_LIBRARY_PATH=${CUDNN_HOME}/lib64:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH

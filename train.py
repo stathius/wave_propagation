@@ -122,7 +122,6 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
         batch_time = time.time() - batch_start
         logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1,
                    len(train_dataloader), 100. * (batch_num + 1) / len(train_dataloader), loss.item(), batch_time ) )        
-        break
 
     analyser.save_loss(mean_loss / (batch_num + 1), 1)
     val_start = time.time()
@@ -262,7 +261,7 @@ model.to(device)
 
 logging.info('Experiment %d' % version)
 logging.info('Start training')
-epochs=1
+epochs=50
 for epoch in range(epochs):
     epoch_start = time.time()
 

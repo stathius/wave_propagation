@@ -1,3 +1,4 @@
+*.tar.gz
 *.pt
 .DS_Store
 Result*

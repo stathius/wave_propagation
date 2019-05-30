@@ -63,9 +63,10 @@ def new_input(model, image_series, starting_point, num_input_frames, num_output_
     target = torch.cat((target, image_series[:, index * channels:(index + 1) * channels, :, :].to(device)), dim=1)
     return output_frames, target
 
-def consequent_propagation(output_frames, target, channels, training):
+def consequent_propagation(model, image_series, starting_point, n, output_frames, target, channels, device, training):
     output_frames = torch.cat((output_frames, model(torch.Tensor([0]), mode="internal", training=training)), dim=1)
-    target = torch.cat((target, image_series[:, (starting_point + n + num_input_frames) * channels:(starting_point + n + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
+    index = starting_point + n + num_input_frames
+    target = torch.cat((target, image_series[:, index*channels:(index + 1) * channels, :, :].to(device)), dim=1)
     return output_frames, target
 
 def plot_predictions():
@@ -106,7 +107,7 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
                 elif n == num_output_frames:
                     output_frames, target = new_input(model, image_series, starting_point, num_input_frames, num_output_frames, output_frames, target, channels, device, training=training)
                 else:
-                    output_frames, target = consequent_propagation(output_frames, target, channels, training=training)
+                    output_frames, target = consequent_propagation(model, image_series, starting_point, n, output_frames, target, channels, device, training=training)
                 if plot:
                     plot_predictions()
             loss = F.mse_loss(output_frames, target)
@@ -114,7 +115,6 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
             lr_scheduler.optimizer.step()
 
             mean_batch_loss += loss.item()
-
 
         analyser.save_loss_batchwise(mean_batch_loss / (i + 1), batch_increment=1)
         mean_loss += loss.item()
@@ -138,6 +138,7 @@ def validate(model, val_dataloader, channels, plot=False):
     :param plot: If to plot predictions
     :return:
     """
+    training = False
     model.eval()
     overall_loss = 0
     for batch_num, batch in enumerate(val_dataloader):
@@ -148,11 +149,11 @@ def validate(model, val_dataloader, channels, plot=False):
             model.reset_hidden(batch_size=image_series.size()[0], training=False)
             for n in range(2 * num_output_frames):
                 if n == 0:
-                    output_frames, target = initial_input(channels, training=False)
+                    output_frames, target = initial_input(model, image_series, starting_point, num_input_frames, channels, device, training=training)
                 elif n == num_output_frames:
-                    output_frames, target = new_input(output_frames, target, channels, training=False)
+                    output_frames, target = new_input(model, image_series, starting_point, num_input_frames, num_output_frames, output_frames, target, channels, device, training=training)
                 else:
-                    output_frames, target = consequent_propagation(output_frames, target, channels, training=False)
+                    output_frames, target = consequent_propagation(model, image_series, starting_point, n, output_frames, target, channels, device, training=training)
                 if plot:
                     plot_predictions()
             batch_loss += F.mse_loss(output, target).item()

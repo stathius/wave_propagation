@@ -49,6 +49,7 @@ transformVar = {"Test": transforms.Compose([
 }
 
 import time
+
 def train_epoch(model, epoch, train_dataloader, val_dataloader, channels, device, plot=False,):
     """
     Training of the network
@@ -278,7 +279,7 @@ filename_metadata = results_dir + network_type + "_analyser_v%03d.pickle" % vers
 meta_data_dict = {  "optimizer": optimizer_algorithm.state_dict(),
                     "scheduler_type": scheduler_type, 
                     "scheduler": lr_scheduler.state_dict()}
-save(scheduler_dict, filename_metadata)
+save(meta_data_dict, filename_metadata)
 
 
 train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=12)
@@ -286,7 +287,7 @@ val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=True, num_worker
 test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True, num_workers=12)
 
 root_dir = train_dataset.root_dir
-img_path = train_dataset.All_Imagesets[0]
+img_path = train_dataset.imagesets[0]
 im_list = sorted(listdir(root_dir + img_path[1]))
 
 model.to(device)
@@ -298,7 +299,7 @@ for epoch in range(epochs):
     epoch_start = time.time()
 
     logging.info('Epoch %d' % epoch)
-    train_epoch(model, epoch, train_dataloader, val_dataloader, channels, device, plot=False,)
+    train_epoch(model, epoch, train_dataloader, val_dataloader, channels, device, plot=False)
     """
     Here we can access analyser.validation_loss to make decisions
     """

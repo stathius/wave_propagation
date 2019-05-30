@@ -158,7 +158,7 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames, channel
                     output_frames, target = consequent_propagation(model, image_series, starting_point, n, output_frames, target, channels, device, training=training)
                 if plot:
                     plot_predictions()
-            batch_loss += F.mse_loss(output, target).item()
+            batch_loss += F.mse_loss(output_frames, target).item()
         overall_loss += batch_loss / (i + 1)
     val_loss = overall_loss / (batch_num + 1)
     return val_loss

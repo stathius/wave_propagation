@@ -100,7 +100,7 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, channels, device
         ImageSeries = batch["image"]
         for i, t0 in enumerate(sequence_starting_points):
             model.reset_hidden(batch_size=ImageSeries.size()[0], training=True)
-            exp_lr_scheduler.optimizer.zero_grad()
+            lr_scheduler.optimizer.zero_grad()
             for n in range(2 * output_frames):
                 if n == 0:
                     output, target = initial_input(channels, training=True)
@@ -112,7 +112,7 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, channels, device
                     plot_predictions()
             loss = F.mse_loss(output, target)
             loss.backward()
-            exp_lr_scheduler.optimizer.step()
+            lr_scheduler.optimizer.step()
 
             mean_batch_loss += loss.item()
 
@@ -203,8 +203,6 @@ version = nr_net + 10
 input_frames = 5
 output_frames = 10
 network_type = "7_kernel_3LSTM"
-DataGroup = "LSTM"
-
 
 # Little trick to adjust path files for compatibility (I have a backup of the Main.py in case it doesn't work)
 # stef_path = "/media/sg6513/DATADRIVE2/MSc/Wavebox/"
@@ -230,58 +228,58 @@ if not os.path.isdir(results_dir):
     make_folder_results(results_dir)
 
 
-logging.info('Create datasets')
 # Data
-if os.path.isfile(results_dir + "All_Data_" + DataGroup + "_v%03d.pickle" % version):
-    all_data = load(results_dir + "All_Data_" + DataGroup + "_v%03d" % version)
+filename_data = results_dir + "all_data_" + "_v%03d.pickle" % version
+if os.path.isfile(filename_data):
+    logging.info('Loading datasets')
+    all_data = load(filename_data)
     train_dataset = all_data["Training data"]
     val_dataset = all_data["Validation data"]
     test_dataset = all_data["Testing data"]
 else:
+    logging.info('Creating new datasets')
     test_dataset, val_dataset, train_dataset = Create_Datasets(
          data_dir+"Video_Data/", transformVar, test_fraction=0.15, validation_fraction=0.15, check_bad_data=False, channels=channels)
     all_data = {"Training data": train_dataset, "Validation data": val_dataset, "Testing data": test_dataset}
-    save(all_data, results_dir + "All_Data_" + DataGroup + "_v%03d" % version)
+    save(all_data, filename_data)
 
 
 # analyser
-if os.path.isfile(results_dir + network_type + "_analyser_v%03d.pickle" % version):
-    analyser = load(results_dir + network_type + "_analyser_v%03d" % version)
+filename_analyser = results_dir + network_type + "_analyser_v%03d.pickle" % version
+if os.path.isfile(filename_analyser):
+    logging.info('Loading analyser')
+    analyser = load(filename_analyser)
 else:
+    logging.info('Creating analyser')
     analyser = Analyser(results_dir)
 
-
 # Model
-if os.path.isfile(results_dir + network_type + "_Project_v%03d.pt" % version):
-    model = torch.load(results_dir + network_type + "_Project_v%03d.pt" % version)
+filename_model = results_dir + network_type + "_model_v%03d.pt" % version
+if os.path.isfile(filename_model):
+    model = torch.load(filename_model)
 else:
     model = Network(device, channels)
 
-
 # Learning Rate scheduler w. optimizer
-if os.path.isfile(results_dir + network_type + "_lrScheduler_v%03d.pickle" % version):
-    scheduler_dict = load(results_dir + network_type + "_lrScheduler_v%03d" % version)
-    scheduler_type = scheduler_dict["Type"]
-    exp_lr_scheduler = scheduler_dict["Scheduler"]
-else:
-    # Optimizer
-    optimizer_algorithm = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4)
-    # Add learning rate schedulers
-    # Decay LR by a factor of gamma every step_size epochs
-    scheduler_type = 'plateau'
-    if scheduler_type == 'step':
-        gamma = 0.5
-        step_size = 40
-        exp_lr_scheduler = optim.lr_scheduler.StepLR(optimizer_algorithm, step_size=step_size, gamma=gamma)
-    elif scheduler_type == 'plateau':
-        # Reduce learning rate when a metric has stopped improving
-        exp_lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='min', factor=0.1, patience=7)
-        optimizer_algorithm = []
-logging.info('Optimizer created')
+# Optimizer
+optimizer_algorithm = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4)
+# Add learning rate schedulers
+# Decay LR by a factor of gamma every step_size epochs
+scheduler_type = 'plateau'
+if scheduler_type == 'step':
+    gamma = 0.5
+    step_size = 40
+    lr_scheduler = optim.lr_scheduler.StepLR(optimizer_algorithm, step_size=step_size, gamma=gamma)
+elif scheduler_type == 'plateau':
+    # Reduce learning rate when a metric has stopped improving
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='min', factor=0.1, patience=7)
 
+filename_metadata = results_dir + network_type + "_analyser_v%03d.pickle" % version
+meta_data_dict = {  "optimizer": optimizer_algorithm.state_dict(),
+                    "scheduler_type": scheduler_type, 
+                    "scheduler": lr_scheduler.state_dict()}
+save(scheduler_dict, filename_metadata)
 
-# a = train_dataset[0]['image'][0:1,:,:]
-# imshow(a)
 
 train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=12)
 val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=True, num_workers=12)
@@ -293,37 +291,34 @@ im_list = sorted(listdir(root_dir + img_path[1]))
 
 model.to(device)
 
-logging.info('Version %d' % version)
+logging.info('Experiment %d' % version)
 logging.info('Start training')
 epochs=1
 for epoch in range(epochs):
     epoch_start = time.time()
 
     logging.info('Epoch %d' % epoch)
-    # for g in exp_lr_scheduler.optimizer.param_groups:
+    train_epoch(model, epoch, train_dataloader, val_dataloader, channels, device, plot=False,)
     """
     Here we can access analyser.validation_loss to make decisions
     """
     # Learning rate scheduler
     # perform scheduler step if independent from validation loss
     if scheduler_type == 'step':
-        exp_lr_scheduler.step()
-
-    train_epoch(model, epoch, train_dataloader, val_dataloader, channels, device, plot=False,)
+        lr_scheduler.step()
     # perform scheduler step if Dependent on validation loss
     if scheduler_type == 'plateau':
-        exp_lr_scheduler.step(analyser.validation_loss[-1])
-    save_network(model, results_dir + network_type + "_network_v%03d" % version, device)
-    save(analyser, results_dir + network_type + "_analyser_v%03d" % version)
-    scheduler_dict = {"type": scheduler_type, "scheduler": exp_lr_scheduler.state_dict()}
-    save(scheduler_dict, results_dir + network_type + "_scheduler_v%03d" % version)
+        validation_loss = analyser.validation_loss[-1]
+        lr_scheduler.step(validation_loss)
+    save_network(model, filename_model)
+    save(analyser, filename_analyser)
 
     epoch_time = time.time() - epoch_start 
     logging.info('Epoch time: %.1f' % epoch_time)
 
 # analyser = []
 # model =[]
-# exp_lr_scheduler = []
+# lr_scheduler = []
 # scheduler_dict = []
 
 # analyser.plot_loss()

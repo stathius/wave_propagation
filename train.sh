@@ -16,7 +16,6 @@ export PATH=${CUDA_HOME}/bin:${PATH}
 export PYTHON_PATH=$PATH
 
 export STUDENT_ID=$(whoami)
-rm -rf /disk/scratch/s1680171/wave_propagation
 mkdir -p /disk/scratch/s1680171/wave_propagation
 
 export TMPDIR=/disk/scratch/s1680171/

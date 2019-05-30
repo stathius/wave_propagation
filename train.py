@@ -126,7 +126,7 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
 
     analyser.save_loss(mean_loss / (batch_num + 1), 1)
     val_start = time.time()
-    validation_loss = alidate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False)
+    validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False)
     analyser.save_validation_loss(validation_loss, 1)
     val_time = time.time() - val_start
     logging.info('Validation loss: %.3f\tTime: %.3f' % (validation_loss, val_time))
@@ -243,7 +243,7 @@ elif scheduler_type == 'plateau':
     # Reduce learning rate when a metric has stopped improving
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='min', factor=0.1, patience=7)
 
-filename_metadata = results_dir + network_type + "_analyser_v%03d.pickle" % version
+filename_metadata = results_dir + network_type + "_metadata_v%03d.pickle" % version
 meta_data_dict = {  "optimizer": optimizer_algorithm.state_dict(),
                     "scheduler_type": scheduler_type, 
                     "scheduler": lr_scheduler.state_dict()}

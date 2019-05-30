@@ -55,14 +55,14 @@ def initial_input(model, image_series, starting_frame, n, num_input_frames, chan
     target = image_series[:, (starting_frame + n + num_input_frames) * channels:(starting_frame + n + num_input_frames + 1) * channels, :, :].to(device)
     return output, target
 
-def new_input(output, target, channels, training):
+def new_input(model, output, target, channels, training):
     output = torch.cat((output, model(output[:, -num_input_frames * channels:, :, :].clone(), mode="new_input", training=training)), dim=1)
-    target = torch.cat((target, image_series[:, (t0 + n + num_input_frames) * channels:(t0 + n + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
+    target = torch.cat((target, image_series[:, (starting_frame + n + num_input_frames) * channels:(starting_frame + n + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
     return output, target
 
 def consequent_propagation(output, target, channels, training):
     output = torch.cat((output, model(torch.Tensor([0]), mode="internal", training=training)), dim=1)
-    target = torch.cat((target, image_series[:, (t0 + n + num_input_frames) * channels:(t0 + n + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
+    target = torch.cat((target, image_series[:, (starting_frame + n + num_input_frames) * channels:(starting_frame + n + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
     return output, target
 
 def plot_predictions():
@@ -92,9 +92,9 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
         batch_start = time.time()
         # logging.info('Batch: %d loaded in %.3f' %(batch_num, batch_time))
         mean_batch_loss = 0
-        sequence_starting_points = random.sample(range(100 - num_input_frames - (2 * num_output_frames) - 1), 10)
+        random_starting_frames = random.sample(range(100 - num_input_frames - (2 * num_output_frames) - 1), 10)
         image_series = batch["image"]
-        for i, t0 in enumerate(sequence_starting_points):
+        for i, starting_frame in enumerate(random_starting_frames):
             model.reset_hidden(batch_size=image_series.size()[0], training=True)
             lr_scheduler.optimizer.zero_grad()
             for n in range(2 * num_output_frames):
@@ -138,10 +138,10 @@ def validate(model, val_dataloader, channels, plot=False):
     model.eval()
     overall_loss = 0
     for batch_num, batch in enumerate(val_dataloader):
-        sequence_starting_points = random.sample(range(100 - num_input_frames - (2 * num_output_frames) - 1), 10)
+        random_starting_frames = random.sample(range(100 - num_input_frames - (2 * num_output_frames) - 1), 10)
         image_series = batch["image"]
         batch_loss = 0
-        for i, t0 in enumerate(sequence_starting_points):
+        for i, starting_frame in enumerate(random_starting_frames):
             model.reset_hidden(batch_size=image_series.size()[0], training=False)
             for n in range(2 * num_output_frames):
                 if n == 0:

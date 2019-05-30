@@ -122,16 +122,18 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
         batch_time = time.time() - batch_start
         logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1,
                    len(train_dataloader), 100. * (batch_num + 1) / len(train_dataloader), loss.item(), batch_time ) )        
-
+        break
 
     analyser.save_loss(mean_loss / (batch_num + 1), 1)
-    validation_loss = validate(val_dataloader, channels, plot=False)
+    val_start = time.time()
+    validation_loss = alidate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False)
     analyser.save_validation_loss(validation_loss, 1)
-    logging.info('Validation loss: %.3f ' % validation_loss)
+    val_time = time.time() - val_start
+    logging.info('Validation loss: %.3f\tTime: %.3f' % (validation_loss, val_time))
 
 
 
-def validate(model, val_dataloader, channels, plot=False):
+def validate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False):
     """
     Validation of network (same protocol as training)
     :param val_dataloader: Data to test

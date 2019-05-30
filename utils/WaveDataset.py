@@ -14,33 +14,33 @@ class WaveDataset(Dataset):
         if isinstance(root_directory, str):
             self.root_dir = root_directory
             self.classes = listdir(root_directory)
-            self.All_Imagesets = []
+            self.imagesets = []
             for cla in self.classes:
                 im_list = sorted(listdir(root_directory + cla))
                 if not check_bad_data:
-                    self.All_Imagesets.append((im_list, cla))
+                    self.imagesets.append((im_list, cla))
                 else:
                     Good = True
                     for im in im_list:
                         Good = Good and self.filter_bad_data(root_directory + cla + "/" + im)
                     if Good:
-                        self.All_Imagesets.append((im_list, cla))
+                        self.imagesets.append((im_list, cla))
 
         elif isinstance(root_directory, list):
             self.root_dir = root_directory[0]
             self.classes = root_directory[1]
-            self.All_Imagesets = root_directory[2]
+            self.imagesets = root_directory[2]
 
         self.transform = transform
         self.channels=channels
 
 
     def __len__(self):
-        return len(self.All_Imagesets)
+        return len(self.imagesets)
 
     def __getitem__(self, idx):
 #         logging.info('Get item')
-        img_path = self.All_Imagesets[idx][1]
+        img_path = self.imagesets[idx][1]
         im_list = sorted(listdir(self.root_dir + img_path))
 
         Concat_Img = self.concatenate_data(img_path, im_list)
@@ -112,38 +112,38 @@ def Create_Datasets(root_directory, transform=None, test_fraction=0., validation
 
     if (test_fraction > 0) or (validation_fraction > 0):
         classes = listdir(root_directory)
-        All_Imagesets = []
+        imagesets = []
         for cla in classes:
             im_list = sorted(listdir(root_directory + cla))
             if not check_bad_data:
-                All_Imagesets.append((im_list, cla))
+                imagesets.append((im_list, cla))
             else:
                 Good = True
                 for im in im_list:
                     Good = Good and filter_bad_data(root_directory + cla + "/" + im)
                 if Good:
-                    All_Imagesets.append((im_list, cla))
+                    imagesets.append((im_list, cla))
 
-        full_size = len(All_Imagesets)
+        full_size = len(imagesets)
         if test_fraction > 0:
-            test = random.sample(All_Imagesets, int(full_size * test_fraction)) # All images i list of t0s
+            test = random.sample(imagesets, int(full_size * test_fraction)) # All images i list of t0s
             for item in test:
-                All_Imagesets.remove(item)
+                imagesets.remove(item)
 
             Send = [root_directory, classes, test]
             Test = WaveDataset(Send, transform["Test"], channels=channels)
 #             yield Test
 
         if validation_fraction > 0:
-            validate = random.sample(All_Imagesets, int(full_size * validation_fraction))  # All images i list of t0s
+            validate = random.sample(imagesets, int(full_size * validation_fraction))  # All images i list of t0s
             for item in validate:
-                All_Imagesets.remove(item)
+                imagesets.remove(item)
 
             Send = [root_directory, classes, validate]
             Validate = WaveDataset(Send, transform["Test"], channels=channels)
 #             yield Validate
 
-        Send = [root_directory, classes, All_Imagesets]
+        Send = [root_directory, classes, imagesets]
         Train = WaveDataset(Send, transform["Train"], channels=channels)
 #         yield Train
         return Test, Validate, Train

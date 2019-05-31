@@ -11,24 +11,6 @@ def test(test_data_loader, score_keeper, plot=True, channels=3):
     :param plot: If to plot predictions
     :return:
     """
-    def Smoothen(batch):
-        """
-        If you want to smoothen (Gaussian) the output images
-        NOT USED
-        """
-        tran = transforms.ToTensor()
-        for i in range(batch.size()[0]):
-            if i == 0:
-                inb = batch[i, :, :, :].numpy().transpose((1, 2, 0))
-                inb = ndimage.gaussian_filter(inb, sigma=(1, 1, 0))
-                out = tran(inb).unsqueeze_(0)
-            else:
-                inb = batch[i, :, :, :].numpy().transpose((1, 2, 0))
-                inb = ndimage.gaussian_filter(inb, sigma=(1, 1, 0))
-                inb = tran(inb).unsqueeze_(0)
-                out = torch.cat((out, inb), dim=0)
-        return out
-
     def initial_input(No_more_Target):
         output = model(ImageSeries.to(device))
         try:

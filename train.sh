@@ -4,7 +4,7 @@
 #SBATCH --partition=MSC
 #SBATCH --gres=gpu:2
 #SBATCH --mem=12000  # memory in Mb
-#SBATCH --time=0-10:00:00
+#SBATCH --time=0-24:00:00
 hostname
 nvidia-smi
 export CUDA_HOME=/opt/cuda-9.0.176.1/

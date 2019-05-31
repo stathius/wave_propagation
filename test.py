@@ -1,6 +1,8 @@
+import matplotlib.pyplot as plt
 import seaborn as sns
-from utils.Scorekeeper import Scorekeeper
 import pandas as pd
+from utils.io import figure_save
+from utils.Scorekeeper import Scorekeeper
 
 def test(test_data_loader, score_keeper, plot=True, channels=3):
     """

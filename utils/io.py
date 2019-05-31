@@ -2,6 +2,8 @@ import pickle
 import os
 import torch 
 import matplotlib.pyplot as plt
+import scipy.ndimage as ndimage
+import numpy as np
 
 """
 Saving and loading of figures, network state and other .pickle objects
@@ -15,13 +17,13 @@ def save_network(model, filename):
     torch.save(network_dict, filename)
 
 
-def load_network(model, filename):
-    dct = torch.load(filename)
+def load_network(model, device, filename):
+    dct = torch.load(filename, map_location='cpu')
     try:
         model.load_state_dict(dct)
     except:
         raise Warning('model and dictionary mismatch')
-    # return model
+    model.to(device)
 
 def save(obj, filename):
     filename += ".pickle" if ".pickle" not in filename else ""

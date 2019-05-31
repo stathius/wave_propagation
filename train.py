@@ -25,8 +25,9 @@ from utils.io import save_network, save, load, figure_save, make_folder_results,
 from utils.format import hex_str2bool
 from utils.WaveDataset import Create_Datasets
 
-logging.basicConfig(format='%(message)s',level=logging.INFO)
+debug = True
 
+logging.basicConfig(format='%(message)s',level=logging.INFO)
 channels=1
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -115,7 +116,7 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
             lr_scheduler.optimizer.step()
 
             mean_batch_loss += loss.item()
-            break
+            if debug: break
 
         analyser.save_loss_batchwise(mean_batch_loss / (i + 1), batch_increment=1)
         mean_loss += loss.item()
@@ -124,7 +125,7 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
         logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1,
                    len(train_dataloader), 100. * (batch_num + 1) / len(train_dataloader), loss.item(), batch_time ) )        
 
-        if batch_num > 2:
+        if debug and batch_num > 2:
             print('break')
             break
 
@@ -164,6 +165,7 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames, channel
                     plot_predictions()
             batch_loss += F.mse_loss(output_frames, target).item()
         overall_loss += batch_loss / (i + 1)
+        if debug: break
     val_loss = overall_loss / (batch_num + 1)
     return val_loss
 
@@ -191,7 +193,7 @@ if not os.path.isdir(results_dir):
 
 
 # Data
-filename_data = results_dir + "all_data.pickle" % version
+filename_data = results_dir + "all_data.pickle"
 if os.path.isfile(filename_data):
     logging.info('Loading datasets')
     all_data = load(filename_data)
@@ -207,7 +209,7 @@ else:
 
 
 # analyser
-filename_analyser = results_dir + network_type + "_analyser_v%03d.pickle" % version
+filename_analyser = results_dir + network_type + "_analyser.pickle" 
 if os.path.isfile(filename_analyser):
     logging.info('Loading analyser')
     analyser = load(filename_analyser)
@@ -216,7 +218,7 @@ else:
     analyser = Analyser(results_dir)
 
 # Model
-filename_model = results_dir + "model.pt" % version
+filename_model = results_dir + "model.pt"
 if os.path.isfile(filename_model):
     model = torch.load(filename_model)
 else:
@@ -236,7 +238,7 @@ elif scheduler_type == 'plateau':
     # Reduce learning rate when a metric has stopped improving
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='min', factor=0.1, patience=7)
 
-filename_metadata = results_dir + "metadata.pickle" % version
+filename_metadata = results_dir + "metadata.pickle" 
 meta_data_dict = {  "optimizer": optimizer_algorithm.state_dict(),
                     "scheduler_type": scheduler_type, 
                     "scheduler": lr_scheduler.state_dict()}
@@ -269,10 +271,9 @@ for epoch in range(epochs):
     if scheduler_type == 'step':
         lr_scheduler.step()
     # perform scheduler step if Dependent on validation loss
-    ####### uncomment
-    # if scheduler_type == 'plateau':
-    #     validation_loss = analyser.validation_loss[-1]
-    #     lr_scheduler.step(validation_loss)
+    if scheduler_type == 'plateau':
+        validation_loss = analyser.validation_loss[-1]
+        lr_scheduler.step(validation_loss)
     save_network(model, filename_model)
     save(analyser, filename_analyser)
 

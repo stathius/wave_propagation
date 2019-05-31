@@ -115,6 +115,7 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
             lr_scheduler.optimizer.step()
 
             mean_batch_loss += loss.item()
+            break
 
         analyser.save_loss_batchwise(mean_batch_loss / (i + 1), batch_increment=1)
         mean_loss += loss.item()
@@ -123,12 +124,16 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
         logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1,
                    len(train_dataloader), 100. * (batch_num + 1) / len(train_dataloader), loss.item(), batch_time ) )        
 
+        if batch_num > 2:
+            print('break')
+            break
+
     analyser.save_loss(mean_loss / (batch_num + 1), 1)
-    val_start = time.time()
-    validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False)
-    analyser.save_validation_loss(validation_loss, 1)
-    val_time = time.time() - val_start
-    logging.info('Validation loss: %.6f\tTime: %.3f' % (validation_loss, val_time))
+    # val_start = time.time()
+    # validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False)
+    # analyser.save_validation_loss(validation_loss, 1)
+    # val_time = time.time() - val_start
+    # logging.info('Validation loss: %.6f\tTime: %.3f' % (validation_loss, val_time))
 
 
 
@@ -172,17 +177,6 @@ num_input_frames = 5
 num_output_frames = 10
 network_type = "7_kernel_3LSTM"
 
-# Little trick to adjust path files for compatibility (I have a backup of the Main.py in case it doesn't work)
-# stef_path = "/media/sg6513/DATADRIVE2/MSc/Wavebox/"
-# if os.path.isfile(stef_path + "stefpc.txt"):
-#     if not os.path.isdir(stef_path + "Results"):
-#         os.mkdir(stef_path + "Results")
-#     results_dir = stef_path + "Results/Simulation_Result_" + network_type + "_v%03d/" % version
-#     maindir2 = stef_path
-#     version += 200
-# else:
-
-
 if 'Darwin' in platform.system():
     data_dir = './'
 else:
@@ -190,14 +184,14 @@ else:
 
 if not os.path.isdir("./Results"):
     os.mkdir("./Results")
-results_dir = "./Results/Simulation_Result_" + network_type + "_v%03d/" % version
+results_dir = "./Results/" + network_type + "_v%03d/" % version
 
 if not os.path.isdir(results_dir):
     make_folder_results(results_dir)
 
 
 # Data
-filename_data = results_dir + "all_data_" + "_v%03d.pickle" % version
+filename_data = results_dir + "all_data.pickle" % version
 if os.path.isfile(filename_data):
     logging.info('Loading datasets')
     all_data = load(filename_data)
@@ -222,7 +216,7 @@ else:
     analyser = Analyser(results_dir)
 
 # Model
-filename_model = results_dir + network_type + "_model_v%03d.pt" % version
+filename_model = results_dir + "model.pt" % version
 if os.path.isfile(filename_model):
     model = torch.load(filename_model)
 else:
@@ -242,7 +236,7 @@ elif scheduler_type == 'plateau':
     # Reduce learning rate when a metric has stopped improving
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='min', factor=0.1, patience=7)
 
-filename_metadata = results_dir + network_type + "_metadata_v%03d.pickle" % version
+filename_metadata = results_dir + "metadata.pickle" % version
 meta_data_dict = {  "optimizer": optimizer_algorithm.state_dict(),
                     "scheduler_type": scheduler_type, 
                     "scheduler": lr_scheduler.state_dict()}
@@ -261,7 +255,7 @@ model.to(device)
 
 logging.info('Experiment %d' % version)
 logging.info('Start training')
-epochs=50
+epochs=3
 for epoch in range(epochs):
     epoch_start = time.time()
 
@@ -275,9 +269,10 @@ for epoch in range(epochs):
     if scheduler_type == 'step':
         lr_scheduler.step()
     # perform scheduler step if Dependent on validation loss
-    if scheduler_type == 'plateau':
-        validation_loss = analyser.validation_loss[-1]
-        lr_scheduler.step(validation_loss)
+    ####### uncomment
+    # if scheduler_type == 'plateau':
+    #     validation_loss = analyser.validation_loss[-1]
+    #     lr_scheduler.step(validation_loss)
     save_network(model, filename_model)
     save(analyser, filename_analyser)
 

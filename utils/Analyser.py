@@ -20,7 +20,7 @@ class Analyser():
         self.validation_nr = []
         self.results_dir = results_dir
 
-    def save_loss(self, loss, epoch_increment=1):
+    def save_epoch_loss(self, loss, epoch_increment=1):
         """
         Creates two lists, one of losses and one of index of epoch
         """
@@ -54,25 +54,6 @@ class Analyser():
         sns.lineplot(x="Batch", y="Loss",
                      data=pd.DataFrame.from_dict(data), ax=fig)
         figure_save(os.path.join(self.results_dir, "Batch_Loss"), obj=fig)
-        plt.show()
-
-    def save_accuracy(self, accuracy, epoch_increment=1):
-        """
-        Creates two lists, one of accuracy and one of index of the accuracy (batchwise or epochwise)
-        NOT IN USE
-        """
-        self.accuracy.append(accuracy)
-        self.epoch_acc.append(self.epoch_acc[len(self.epoch_acc) - 1] + epoch_increment) if len(self.epoch_acc) else self.epoch_acc.append(epoch_increment)
-
-    def plot_accuracy(self):
-        fig = plt.figure().add_axes()
-        sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
-        sns.set_context("talk")
-        data = {}
-        data.update({"Epoch": self.epoch_acc, "Accuracy": self.accuracy})
-        sns.lineplot(x="Epoch", y="Accuracy",
-                     data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(os.path.join(self.results_dir,"Accuracy"), obj=fig)
         plt.show()
 
     def save_validation_loss(self, loss, epoch_increment=1):

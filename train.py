@@ -128,7 +128,7 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
             print('break')
             break
 
-    analyser.save_loss(mean_loss / (batch_num + 1), 1)
+    analyser.save_epoch_loss(mean_loss / (batch_num + 1), 1)
     # val_start = time.time()
     # validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False)
     # analyser.save_validation_loss(validation_loss, 1)
@@ -285,6 +285,5 @@ for epoch in range(epochs):
 # scheduler_dict = []
 
 # analyser.plot_loss()
-# analyser.plot_accuracy()
 # analyser.plot_loss_batchwise()
 # analyser.plot_validation_loss()

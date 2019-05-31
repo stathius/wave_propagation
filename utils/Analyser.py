@@ -9,7 +9,7 @@ class Analyser():
     Saves network data for later analasys. Epochwise loss, Batchwise loss, Accuracy (not currently in use) and
     Validation loss
     """
-    def __init__(self, results_dirs):
+    def __init__(self, results_dir):
         self.epoch_loss = []
         self.epoch_nr = []
         self.batch_loss = []

@@ -1,6 +1,7 @@
 import pickle
 import os
 import torch 
+import matplotlib.pyplot as plt
 
 """
 Saving and loading of figures, network state and other .pickle objects

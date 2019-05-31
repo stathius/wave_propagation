@@ -14,7 +14,6 @@ import copy
 from torch.utils.data import DataLoader
 from skimage import measure #supports video also
 import pickle
-import scipy.ndimage as ndimage
 from scipy.spatial import distance
 import time
 import platform
@@ -70,7 +69,7 @@ def consequent_propagation(model, image_series, starting_point, n, output_frames
     target = torch.cat((target, image_series[:, index*channels:(index + 1) * channels, :, :].to(device)), dim=1)
     return output_frames, target
 
-def plot_predictions():
+def plot_predictions(output_frames, target, channels):
     if (i == 0) & (batch_num == 0):
         predicted = output_frames[i, -channels:, :, :].cpu().detach()
         des_target = target[i, -channels:, :, :].cpu().detach()
@@ -110,7 +109,7 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
                 else:
                     output_frames, target = consequent_propagation(model, image_series, starting_point, n, output_frames, target, channels, device, training=training)
                 if plot:
-                    plot_predictions()
+                    plot_predictions(output_frames, target, channels)
             loss = F.mse_loss(output_frames, target)
             loss.backward()
             lr_scheduler.optimizer.step()
@@ -130,11 +129,11 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
             break
 
     analyser.save_epoch_loss(mean_loss / (batch_num + 1), 1)
-    # val_start = time.time()
-    # validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False)
-    # analyser.save_validation_loss(validation_loss, 1)
-    # val_time = time.time() - val_start
-    # logging.info('Validation loss: %.6f\tTime: %.3f' % (validation_loss, val_time))
+    val_start = time.time()
+    validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False)
+    analyser.save_validation_loss(validation_loss, 1)
+    val_time = time.time() - val_start
+    logging.info('Validation loss: %.6f\tTime: %.3f' % (validation_loss, val_time))
 
 
 
@@ -162,7 +161,7 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames, channel
                 else:
                     output_frames, target = consequent_propagation(model, image_series, starting_point, n, output_frames, target, channels, device, training=training)
                 if plot:
-                    plot_predictions()
+                    plot_predictions(output_frames, target, channels)
             batch_loss += F.mse_loss(output_frames, target).item()
         overall_loss += batch_loss / (i + 1)
         if debug: break

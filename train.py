@@ -128,7 +128,7 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
     validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False)
     analyser.save_validation_loss(validation_loss, 1)
     val_time = time.time() - val_start
-    logging.info('Validation loss: %.3f\tTime: %.3f' % (validation_loss, val_time))
+    logging.info('Validation loss: %.6f\tTime: %.3f' % (validation_loss, val_time))
 
 
 

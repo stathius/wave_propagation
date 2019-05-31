@@ -1,3 +1,8 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+from utils.io import figure_save
+
 class Analyser():
     """
     Saves network data for later analasys. Epochwise loss, Batchwise loss, Accuracy (not currently in use) and
@@ -96,7 +101,6 @@ class Analyser():
         sns.set_context("talk")
         data = {}
         data.update({"Epoch": nr, "Loss": loss, "hue": hue})
-        sns.lineplot(x="Epoch", y="Loss", hue="hue",
-                     data=pd.DataFrame.from_dict(data), ax=fig)
+        sns.lineplot(x="Epoch", y="Loss", hue="hue", data=pd.DataFrame.from_dict(data), ax=fig)
         figure_save(self.maindir1 + "Validation_Loss" + Type_Network + "_Project_v%03d" % version, obj=fig)
         plt.show()

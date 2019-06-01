@@ -51,27 +51,25 @@ class Network (nn.Module):
             nn.ConvTranspose2d(60, channels, kernel_size=3, stride=2, padding=1, output_padding=1)
         )
 
-        self.LSTM_0 = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
-
-        self.LSTM = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
-
-        self.LSTM_new_input = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
+        self.LSTM_initial_input = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
+        self.LSTM_propagation = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
+        self.LSTM_reinsert = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
 
 
-    def forward(self, x, mode="input", training=False): #"input", "new_input", "internal"
+    def forward(self, x, mode="initial_input", training=False): #"initial_input", "new_initial_input", "internal"
         x.requires_grad_(training)
         with torch.set_grad_enabled(training):
-            if "input" in mode:
+            if "initial_input" in mode:
                 x = self.encoder_conv(x)
                 self.org_size = x.size()
                 x = x.view(-1, 30720)
                 x = self.encoder_linear(x)
-                if mode == "input":
-                    self.h0, self.c0 = self.LSTM_0(x, (self.h0, self.c0))
-                elif mode == "new_input":
-                    self.h0, self.c0 = self.LSTM_new_input(x, (self.h0, self.c0))
-            elif mode == "internal":
-                self.h0, self.c0 = self.LSTM(self.h0, (self.h0, self.c0))
+                if mode == "initial_input":
+                    self.h0, self.c0 = self.LSTM_initial_input(x, (self.h0, self.c0))
+                elif mode == "reinsert":
+                    self.h0, self.c0 = self.LSTM_reinserting(x, (self.h0, self.c0))
+            elif mode == "propagate":
+                self.h0, self.c0 = self.LSTM_propagation(self.h0, (self.h0, self.c0))
             x = self.h0.clone()
             x = self.decoder_linear(x)
             x = x.view(self.org_size)

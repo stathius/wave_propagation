@@ -225,7 +225,8 @@ else:
 # Model
 filename_model = results_dir + "model.pt"
 if os.path.isfile(filename_model):
-    model = load_network(filename_model)
+    model = Network(device, channels)
+    model = load_network(model, device, filename_model)
 else:
     model = Network(device, channels)
 

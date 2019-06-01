@@ -24,6 +24,7 @@ def load_network(model, device, filename):
     except:
         raise Warning('model and dictionary mismatch')
     model.to(device)
+    return model
 
 def save(obj, filename):
     filename += ".pickle" if ".pickle" not in filename else ""

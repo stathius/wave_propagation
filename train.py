@@ -20,7 +20,7 @@ import platform
 
 from utils.Network import Network
 from utils.Analyser import Analyser
-from utils.io import save_network, save, load, figure_save, make_folder_results, imshow
+from utils.io import save_network, load_network, save, load, figure_save, make_folder_results, imshow
 from utils.format import hex_str2bool
 from utils.WaveDataset import Create_Datasets
 
@@ -225,7 +225,7 @@ else:
 # Model
 filename_model = results_dir + "model.pt"
 if os.path.isfile(filename_model):
-    model = torch.load(filename_model)
+    model = load_network(filename_model)
 else:
     model = Network(device, channels)
 

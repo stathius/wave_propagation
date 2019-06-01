@@ -51,22 +51,27 @@ def make_folder_results(folder_name):
 def imshow(inp, title=None, smoothen=False, return_np=False, obj=None):
     """Imshow for Tensor."""
     channels = inp.size()[0]
-    
+
     if channels == 3:
         inp = inp.numpy().transpose((1, 2, 0))
+        smooth_filter = (.5, .5, 0)
+    elif channels == 1:
+        inp = inp[0,:,:].numpy()
+        smooth_filter = (.5, .5)
+    else:
+        raise Expeption('Image size not supported ' + inp.size())
+
     if smoothen:
-        inp = ndimage.gaussian_filter(inp, sigma=(.5, .5, 0))
-#     mean = np.array([0.485, 0.456, 0.406])
-#     std = np.array([0.229, 0.224, 0.225])
-#     inp = std * inp + mean
+        inp = ndimage.gaussian_filter(inp, sigma=smooth_filter)
+
     inp = np.clip(inp, 0, 1)
     if obj is not None:
-        obj.imshow(inp)
+        obj.imshow(inp, cmap='gray')
         obj.axis("off")
         if title is not None:
             obj.set_title(title)
     else:
-        plt.imshow(inp)
+        plt.imshow(inp, cmap='gray')
         plt.axis("off")
         if title is not None:
             plt.title(title)

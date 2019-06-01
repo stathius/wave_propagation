@@ -254,7 +254,7 @@ model.to(device)
 if __name__ == "__main__":
     logging.info('Experiment %d' % version)
     logging.info('Start training')
-    epochs=3
+    epochs=50
     for epoch in range(epochs):
         epoch_start = time.time()
 

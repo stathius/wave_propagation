@@ -214,7 +214,7 @@ val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=True, num_worker
 test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True, num_workers=12)
 
 # analyser
-filename_analyser = results_dir + network_type + "_analyser.pickle" 
+filename_analyser = "analyser.pickle" 
 if os.path.isfile(filename_analyser):
     logging.info('Loading analyser')
     analyser = load(filename_analyser)

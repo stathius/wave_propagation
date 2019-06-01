@@ -24,7 +24,7 @@ from utils.io import save_network, save, load, figure_save, make_folder_results,
 from utils.format import hex_str2bool
 from utils.WaveDataset import Create_Datasets
 
-debug = True
+debug = False
 
 logging.basicConfig(format='%(message)s',level=logging.INFO)
 channels=1
@@ -56,7 +56,7 @@ def initial_input(model, image_series, starting_point, num_input_frames, channel
     target_frame  [16, 1, 128, 128]
     """
     input_frames = image_series[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :].to(device)
-    output_frame = model(input_frames, mode='initial_input' training=training)
+    output_frame = model(input_frames, mode='initial_input', training=training)
     index = starting_point + num_input_frames
     target_frame = image_series[:, index * channels:(index + 1) * channels, :, :].to(device)
     return output_frame, target_frame
@@ -107,8 +107,8 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
             for n in range(2 * num_output_frames):
                 if n == 0:
                     output_frame, target_frame = initial_input(model, image_series, starting_point, num_input_frames, channels, device, training=training)
-                elif n == num_output_frames:target_frame
-                    output_frame, target_frame = reinsert(model, image_series, starting_point, num_input_frames, num_output_frames, output_frame, , channels, device, training=training)
+                elif n == num_output_frames:
+                    output_frame, target_frame = reinsert(model, image_series, starting_point, num_input_frames, num_output_frames, output_frame, target_frame, channels, device, training=training)
                 else:
                     output_frame, target_frame = propagate(model, image_series, starting_point, num_input_frames, n, output_frame, target_frame, channels, device, training=training)
                 if plot and (i == 0) and (batch_num == 0):
@@ -251,7 +251,7 @@ save(meta_data_dict, filename_metadata)
 
 model.to(device)
 
-if __module__ == 'main':
+if __name__ == "__main__":
     logging.info('Experiment %d' % version)
     logging.info('Start training')
     epochs=3

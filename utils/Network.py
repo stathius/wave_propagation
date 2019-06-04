@@ -77,5 +77,7 @@ class Network (nn.Module):
             return x
 
     def reset_hidden(self, batch_size, training=False):
+        # TODO
+        # user random values?
         self.h0 = torch.zeros((batch_size, 1000), requires_grad=training).to(self.device) #Requires grad replaces Variable
         self.c0 = torch.zeros((batch_size, 1000), requires_grad=training).to(self.device)

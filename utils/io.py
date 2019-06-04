@@ -60,19 +60,19 @@ def imshow(inp, title=None, smoothen=False, return_np=False, obj=None):
         inp = inp[0,:,:].numpy()
         smooth_filter = (.5, .5)
     else:
-        raise Expeption('Image size not supported ' + inp.size())
+        raise Exception('Image size not supported ', inp.size())
 
     if smoothen:
         inp = ndimage.gaussian_filter(inp, sigma=smooth_filter)
 
     inp = np.clip(inp, 0, 1)
     if obj is not None:
-        obj.imshow(inp, cmap='gray')
+        obj.imshow(inp, cmap='gray', interpolation='none')
         obj.axis("off")
         if title is not None:
             obj.set_title(title)
     else:
-        plt.imshow(inp, cmap='gray')
+        plt.imshow(inp, cmap='gray', interpolation='none')
         plt.axis("off")
         if title is not None:
             plt.title(title)

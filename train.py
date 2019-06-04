@@ -5,23 +5,19 @@ import matplotlib.pyplot as plt
 import torch
 from torchvision import transforms
 import torch.nn.functional as F
-from PIL import Image
 import torch.optim as optim
 import os
 from os import listdir
 import random
 import copy
 from torch.utils.data import DataLoader
-from skimage import measure #supports video also
 import pickle
-from scipy.spatial import distance
 import time
 import platform
 
 from utils.Network import Network
 from utils.Analyser import Analyser
 from utils.io import save_network, load_network, save, load, figure_save, make_folder_results, imshow
-from utils.format import hex_str2bool
 from utils.WaveDataset import Create_Datasets
 
 debug = False
@@ -47,40 +43,40 @@ transformVar = {"Test": transforms.Compose([
 }
 
 ### COMMON FUNCTIONS TRAIN/VAL/TEST
-def initial_input(model, image_series, starting_point, num_input_frames, channels, device, training):
+def initial_input(model, batch, starting_point, num_input_frames, channels, device, training):
     """
     var           size
-    image_series  [16, 100, 128, 128]
+    batch  [16, 100, 128, 128]
     input_frames  [16, 5, 128, 128]
-    output_frame  [16, 1, 128, 128]
-    target_frame  [16, 1, 128, 128]
+    output_frames  [16, 1, 128, 128]
+    target_frames  [16, 1, 128, 128]
     """
-    input_frames = image_series[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :].to(device)
-    output_frame = model(input_frames, mode='initial_input', training=training)
+    input_frames = batch[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :].to(device)
+    output_frames = model(input_frames, mode='initial_input', training=training)
     index = starting_point + num_input_frames
-    target_frame = image_series[:, index * channels:(index + 1) * channels, :, :].to(device)
-    return output_frame, target_frame
+    target_frames = batch[:, index * channels:(index + 1) * channels, :, :].to(device)
+    return output_frames, target_frames
 
-def reinsert(model, image_series, starting_point, num_input_frames, num_output_frames, output_frame, target_frame, channels, device, training):
-    output_frame = torch.cat((output_frame, model(output_frame[:, -num_input_frames * channels:, :, :].clone(), mode="reinsert", training=training)), dim=1)
+def reinsert(model, batch, starting_point, num_input_frames, num_output_frames, output_frames, target_frames, channels, device, training):
+    output_frames = torch.cat((output_frames, model(output_frames[:, -num_input_frames * channels:, :, :].clone(), mode="reinsert", training=training)), dim=1)
     index = starting_point + num_output_frames + num_input_frames
-    target_frame = torch.cat((target_frame, image_series[:, index * channels:(index + 1) * channels, :, :].to(device)), dim=1)
-    return output_frame, target_frame
+    target_frames = torch.cat((target_frames, batch[:, index * channels:(index + 1) * channels, :, :].to(device)), dim=1)
+    return output_frames, target_frames
 
-def propagate(model, image_series, starting_point, num_input_frames, n, output_frame, target_frame, channels, device, training):
-    output_frame = torch.cat((output_frame, model(torch.Tensor([0]), mode="propagate", training=training)), dim=1)
+def propagate(model, batch, starting_point, num_input_frames, n, output_frames, target_frames, channels, device, training):
+    output_frames = torch.cat((output_frames, model(torch.Tensor([0]), mode="propagate", training=training)), dim=1)
     index = starting_point + n + num_input_frames
-    target_frame = torch.cat((target_frame, image_series[:, index * channels:(index + 1) * channels, :, :].to(device)), dim=1)
-    return output_frame, target_frame
+    target_frames = torch.cat((target_frames, batch[:, index * channels:(index + 1) * channels, :, :].to(device)), dim=1)
+    return output_frames, target_frames
 
-def plot_predictions(output_frame, target_frame, channels):
-    predicted = output_frame[i, -channels:, :, :].cpu().detach()
-    des_target_frame = target_frame[i, -channels:, :, :].cpu().detach()
-    fig = plt.figure()
+def plot_predictions(output_frames, target_frames, channels):
+    predicted = output_frames[i, -channels:, :, :].cpu().detach()
+    des_target_frames = target_frames[i, -channels:, :, :].cpu().detach()
+    fig = plt.figure(figsize=[8,8])
     pred = fig.add_subplot(1, 2, 1)
     imshow(predicted, title="Predicted smoothened %02d" % n, smoothen=True, obj=pred)
     tar = fig.add_subplot(1, 2, 2)
-    imshow(des_target_frame, title="Target %02d" % n, obj=tar)
+    imshow(des_target_frames, title="Target %02d" % n, obj=tar)
     plt.show()
 
 
@@ -100,20 +96,20 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
         # logging.info('Batch: %d loaded in %.3f' %(batch_num, batch_time))
         mean_batch_loss = 0
         random_starting_points = random.sample(range(100 - num_input_frames - (2 * num_output_frames) - 1), 10)
-        image_series = batch["image"]
+        batch = batch["image"]
         for i, starting_point in enumerate(random_starting_points):
-            model.reset_hidden(batch_size=image_series.size()[0], training=True)
+            model.reset_hidden(batch_size=batch.size()[0], training=True)
             lr_scheduler.optimizer.zero_grad()
             for n in range(2 * num_output_frames):
                 if n == 0:
-                    output_frame, target_frame = initial_input(model, image_series, starting_point, num_input_frames, channels, device, training=training)
+                    output_frames, target_frames = initial_input(model, batch, starting_point, num_input_frames, channels, device, training=training)
                 elif n == num_output_frames:
-                    output_frame, target_frame = reinsert(model, image_series, starting_point, num_input_frames, num_output_frames, output_frame, target_frame, channels, device, training=training)
+                    output_frames, target_frames = reinsert(model, batch, starting_point, num_input_frames, num_output_frames, output_frames, target_frames, channels, device, training=training)
                 else:
-                    output_frame, target_frame = propagate(model, image_series, starting_point, num_input_frames, n, output_frame, target_frame, channels, device, training=training)
+                    output_frames, target_frames = propagate(model, batch, starting_point, num_input_frames, n, output_frames, target_frames, channels, device, training=training)
                 if plot and (i == 0) and (batch_num == 0):
-                    plot_predictions(output_frame, target_frame, channels)
-            loss = F.mse_loss(output_frame, target_frame)
+                    plot_predictions(output_frames, target_frames, channels)
+            loss = F.mse_loss(output_frames, target_frames)
             loss.backward()
             lr_scheduler.optimizer.step()
 
@@ -139,7 +135,6 @@ def train_epoch(model, epoch, train_dataloader, val_dataloader, num_input_frames
     logging.info('Validation loss: %.6f\tTime: %.3f' % (validation_loss, val_time))
 
 
-
 def validate(model, val_dataloader, num_input_frames, num_output_frames, channels, device, plot=False):
     """
     Validation of network (same protocol as training)
@@ -152,20 +147,20 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames, channel
     overall_loss = 0
     for batch_num, batch in enumerate(val_dataloader):
         random_starting_points = random.sample(range(100 - num_input_frames - (2 * num_output_frames) - 1), 10)
-        image_series = batch["image"]
+        batch = batch["image"]
         batch_loss = 0
         for i, starting_point in enumerate(random_starting_points):
-            model.reset_hidden(batch_size=image_series.size()[0], training=False)
+            model.reset_hidden(batch_size=batch.size()[0], training=False)
             for n in range(2 * num_output_frames):
                 if n == 0:
-                    output_frame, target_frame = initial_input(model, image_series, starting_point, num_input_frames, channels, device, training=training)
+                    output_frames, target_frames = initial_input(model, batch, starting_point, num_input_frames, channels, device, training=training)
                 elif n == num_output_frames:
-                    output_frame, target_frame = reinsert(model, image_series, starting_point, num_input_frames, num_output_frames, output_frame, target_frame, channels, device, training=training)
+                    output_frames, target_frames = reinsert(model, batch, starting_point, num_input_frames, num_output_frames, output_frames, target_frames, channels, device, training=training)
                 else:
-                    output_frame, target_frame = propagate(model, image_series, starting_point, num_input_frames, n, output_frame, target_frame, channels, device, training=training)
+                    output_frames, target_frames = propagate(model, batch, starting_point, num_input_frames, n, output_frames, target_frames, channels, device, training=training)
                 if plot and (i == 0) and (batch_num == 0):
-                    plot_predictions(output_frame, target_frame, channels)
-            batch_loss += F.mse_loss(output_frame, target_frame).item()
+                    plot_predictions(output_frames, target_frames, channels)
+            batch_loss += F.mse_loss(output_frames, target_frames).item()
         overall_loss += batch_loss / (i + 1)
         if debug: break
     val_loss = overall_loss / (batch_num + 1)
@@ -214,7 +209,7 @@ val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=True, num_worker
 test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True, num_workers=12)
 
 # analyser
-filename_analyser = "analyser.pickle" 
+filename_analyser = results_dir + "analyser.pickle" 
 if os.path.isfile(filename_analyser):
     logging.info('Loading analyser')
     analyser = load(filename_analyser)
@@ -268,7 +263,7 @@ if __name__ == "__main__":
         # perform scheduler step if independent from validation loss
         if scheduler_type == 'step':
             lr_scheduler.step()
-        # perform scheduler step if Dependent on validation loss
+        # perform scheduler step if dependent on validation loss
         if scheduler_type == 'plateau':
             validation_loss = analyser.validation_loss[-1]
             lr_scheduler.step(validation_loss)

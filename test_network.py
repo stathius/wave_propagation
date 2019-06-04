@@ -19,19 +19,19 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
     :return:
     """
     def initial_input(No_more_Target):
-        output = model(images_series.to(device))
+        output = model(ImageSeries.to(device))
         try:
-            target = batch[:, (t0 + cnt + num_input_frames) * channels:(t0 + cnt + num_input_frames + 1) * channels, :, :].to(device)
+            target = batch_images[:, (t0 + cnt + num_input_frames) * channels:(t0 + cnt + num_input_frames + 1) * channels, :, :].to(device)
         except:
             No_more_Target = True
             target = None
         return output, target, No_more_Target
 
     def reinsert(output, target, No_more_Target):
-        output = torch.cat((output, model(images_series, mode="reinsert")), dim=1)
+        output = torch.cat((output, model(ImageSeries, mode="reinsert")), dim=1)
         try:
             target = torch.cat(
-                (target, batch[:, (t0 + cnt + num_input_frames) * channels:(t0 + cnt + num_input_frames + 1) * channels, :, :].to(device)
+                (target, batch_images[:, (t0 + cnt + num_input_frames) * channels:(t0 + cnt + num_input_frames + 1) * channels, :, :].to(device)
                  ), dim=1)
         except:
             No_more_Target = True
@@ -42,7 +42,7 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
             output = torch.cat((output, model(torch.Tensor([0]), mode="propagate")), dim=1)
             try:
                 target = torch.cat(
-                    (target, batch[:, (t0 + cnt + num_input_frames) * channels:(t0 + cnt + num_input_frames + 1) * channels, :, :].to(device)
+                    (target, batch_images[:, (t0 + cnt + num_input_frames) * channels:(t0 + cnt + num_input_frames + 1) * channels, :, :].to(device)
                 ), dim=1)
             except:
                 No_more_Target = True
@@ -50,11 +50,11 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
 
     def plot_predictions():
         if (total == 0) & (n == 0) & (run == 0):
-            for imag in range(int(images_series.shape[1] / channels)):
+            for imag in range(int(ImageSeries.shape[1] / channels)):
                 fig = plt.figure().add_axes()
                 sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
                 sns.set_context("talk")
-                imshow(images_series[selected_batch, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
+                imshow(ImageSeries[selected_batch, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
                 figure_save(results_dir + "Input %02d" % imag)
         if (total == 0) & (n < (num_output_frames - refeed_offset)):
             predicted = output[selected_batch, -channels:, :, :].cpu()
@@ -170,17 +170,17 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
     if (num_output_frames - refeed_offset) < num_input_frames:
         refeed_offset = num_output_frames - num_input_frames
     for batch_num, batch in enumerate(test_dataloader):
-        batch = batch["image"]
-        images_series = batch[:, t0 * channels:(t0 + num_input_frames) * channels, :, :]
-        model.reset_hidden(images_series.size()[0])
+        batch_images = batch["image"]
+        ImageSeries = batch_images[:, t0 * channels:(t0 + num_input_frames) * channels, :, :]
+        model.reset_hidden(ImageSeries.size()[0])
         No_more_Target = False
         cnt = target_cnt = 0
         for run in range(int(math.ceil((100 - (t0 + num_input_frames + 1)) / (num_output_frames - refeed_offset)))):
             if run != 0:
                 if (refeed_offset == 0) or ((num_output_frames - refeed_offset) <= num_input_frames):
-                    images_series = output[:, -num_input_frames * channels:, :, :]
+                    ImageSeries = output[:, -num_input_frames * channels:, :, :]
                 else:
-                    images_series = output[:, -(num_input_frames + refeed_offset) * channels:-refeed_offset * channels, :, :]
+                    ImageSeries = output[:, -(num_input_frames + refeed_offset) * channels:-refeed_offset * channels, :, :]
                 cnt -= refeed_offset
             for n in range(num_output_frames):
                 if n == 0:

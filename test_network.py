@@ -19,19 +19,19 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
     :return:
     """
     def initial_input(No_more_Target):
-        output = model(ImageSeries.to(device))
+        output = model(image_series.to(device))
         try:
-            target = batch_images[:, (t0 + cnt + num_input_frames) * channels:(t0 + cnt + num_input_frames + 1) * channels, :, :].to(device)
+            target = batch_images[:, (starting_point + cnt + num_input_frames) * channels:(starting_point + cnt + num_input_frames + 1) * channels, :, :].to(device)
         except:
             No_more_Target = True
             target = None
         return output, target, No_more_Target
 
     def reinsert(output, target, No_more_Target):
-        output = torch.cat((output, model(ImageSeries, mode="reinsert")), dim=1)
+        output = torch.cat((output, model(image_series, mode="reinsert")), dim=1)
         try:
             target = torch.cat(
-                (target, batch_images[:, (t0 + cnt + num_input_frames) * channels:(t0 + cnt + num_input_frames + 1) * channels, :, :].to(device)
+                (target, batch_images[:, (starting_point + cnt + num_input_frames) * channels:(starting_point + cnt + num_input_frames + 1) * channels, :, :].to(device)
                  ), dim=1)
         except:
             No_more_Target = True
@@ -42,7 +42,7 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
             output = torch.cat((output, model(torch.Tensor([0]), mode="propagate")), dim=1)
             try:
                 target = torch.cat(
-                    (target, batch_images[:, (t0 + cnt + num_input_frames) * channels:(t0 + cnt + num_input_frames + 1) * channels, :, :].to(device)
+                    (target, batch_images[:, (starting_point + cnt + num_input_frames) * channels:(starting_point + cnt + num_input_frames + 1) * channels, :, :].to(device)
                 ), dim=1)
             except:
                 No_more_Target = True
@@ -50,11 +50,11 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
 
     def plot_predictions():
         if (total == 0) & (n == 0) & (run == 0):
-            for imag in range(int(ImageSeries.shape[1] / channels)):
+            for imag in range(int(image_series.shape[1] / channels)):
                 fig = plt.figure().add_axes()
                 sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
                 sns.set_context("talk")
-                imshow(ImageSeries[selected_batch, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
+                imshow(image_series[selected_batch, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
                 figure_save(results_dir + "Input %02d" % imag)
         if (total == 0) & (n < (num_output_frames - refeed_offset)):
             predicted = output[selected_batch, -channels:, :, :].cpu()
@@ -138,49 +138,26 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
                                  target[ba, -channels:, :, :].cpu(), 
                                  cnt,"pHash", "pHash2", "SSIM", "Own", "RMSE")
 
-    def introduce(prev_data):
-        """
-        If you want to introduce new droplets live during simulation
-        NOT USED
-        """
-        def find_mean(input_img):
-            for k in range(int(input_img.size()[0])):
-                mean, number = np.unique(input_img[k:k + 1, :, :], return_counts=True)
-                mean = np.full(np.shape(input_img[k:k + 1, :, :]), mean[np.argmax(number)])
-                mean = torch.Tensor([mean])
-                if k == 0:
-                    matrix = mean
-                else:
-                    matrix = torch.cat((matrix, mean), dim=1)
-            return matrix.squeeze_(0)
-
-        prev_data = prev_data.cpu()
-        data = My_Test[0]["image"][t0 * channels: (t0 + num_input_frames) * channels, :, :]
-        for i in range(int(data.size()[0] / channels)):
-            means = find_mean(data[i * channels:(i + 1) * channels, :, :])
-            prev_data[selected_batch, i * channels:(i + 1) * channels, :, :] += data[i * channels:(i + 1) * channels, :, :] - means
-        return prev_data
-
 
     model.eval()
     correct = total = 0
-    t0 = 15 # Can be 0
+    starting_point = 15 # Can be 0
     refeed_offset = 0
     selected_batch = random.randint(0, 15)
     if (num_output_frames - refeed_offset) < num_input_frames:
         refeed_offset = num_output_frames - num_input_frames
     for batch_num, batch in enumerate(test_dataloader):
         batch_images = batch["image"]
-        ImageSeries = batch_images[:, t0 * channels:(t0 + num_input_frames) * channels, :, :]
-        model.reset_hidden(ImageSeries.size()[0])
+        image_series = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :]
+        model.reset_hidden(image_series.size()[0])
         No_more_Target = False
         cnt = target_cnt = 0
-        for run in range(int(math.ceil((100 - (t0 + num_input_frames + 1)) / (num_output_frames - refeed_offset)))):
+        for run in range(int(math.ceil((100 - (starting_point + num_input_frames + 1)) / (num_output_frames - refeed_offset)))):
             if run != 0:
                 if (refeed_offset == 0) or ((num_output_frames - refeed_offset) <= num_input_frames):
-                    ImageSeries = output[:, -num_input_frames * channels:, :, :]
+                    image_series = output[:, -num_input_frames * channels:, :, :]
                 else:
-                    ImageSeries = output[:, -(num_input_frames + refeed_offset) * channels:-refeed_offset * channels, :, :]
+                    image_series = output[:, -(num_input_frames + refeed_offset) * channels:-refeed_offset * channels, :, :]
                 cnt -= refeed_offset
             for n in range(num_output_frames):
                 if n == 0:

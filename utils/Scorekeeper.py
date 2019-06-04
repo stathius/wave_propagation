@@ -2,6 +2,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from utils.io import figure_save
+import numpy as np
+from skimage import measure #supports video also
+from scipy.spatial import distance
+from PIL import Image
+import imagehash
+from utils.format import hex_str2bool
 
 class Scorekeeper():
     """
@@ -64,17 +70,15 @@ class Scorekeeper():
             self.MSE = True
 
         if "pHash" in args:
-            hamming = self.pHash(predicted, target, "hamming")
-            self.pHash_val.append(hamming)
+            self.pHash_val.append(self.pHash(predicted, target, "hamming"))
             self.pHash_frame.append(frame_nr)
-            self.pHash_hue.append("pHash")
+            self.pHash_hue.append("pHash - hamming")
             self.phash = True
 
-        if "pHash" in args:
-            hamming = self.pHash(predicted, target, "jaccard")
-            self.pHash2_val.append(hamming)
+        if "pHash2" in args:
+            self.pHash2_val.append(self.pHash(predicted, target, "jaccard"))
             self.pHash2_frame.append(frame_nr)
-            self.pHash2_hue.append("pHash")
+            self.pHash2_hue.append("pHash - jaccard")
             self.phash2 = True
 
     def hamming2(self, s1, s2):
@@ -119,7 +123,7 @@ class Scorekeeper():
 
         return relative_diff, absolute_diff
 
-    def plot(self):
+    def plot(self, results_dir):
         if self.own:
             all_data = {}
             all_data.update({"Time-steps Ahead": self.frame, "Difference": self.intermitted, "Scoring Type": self.hue})
@@ -127,7 +131,7 @@ class Scorekeeper():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Difference", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig)
-            figure_save(maindir1 + "Scoring_Quality", obj=fig)
+            figure_save(results_dir + "Scoring_Quality", obj=fig)
             plt.show()
 
         if self.SSIM:
@@ -139,7 +143,7 @@ class Scorekeeper():
             sns.lineplot(x="Time-steps Ahead", y="Similarity", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig)
             plt.ylim(0, 1)
-            figure_save(maindir1 + "SSIM_Quality", obj=fig)
+            figure_save(results_dir + "SSIM_Quality", obj=fig)
             plt.show()
 
         if self.MSE:
@@ -150,7 +154,7 @@ class Scorekeeper():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig)
-            figure_save(maindir1 + "RMSE_Quality", obj=fig)
+            figure_save(results_dir + "RMSE_Quality", obj=fig)
             plt.show()
 
         if self.phash:
@@ -161,7 +165,7 @@ class Scorekeeper():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Hamming Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig)
-            figure_save(maindir1 + "Scoring_Spatial_Hamming", obj=fig)
+            figure_save(results_dir + "Scoring_Spatial_Hamming", obj=fig)
             plt.show()
 
         if self.phash2:
@@ -172,5 +176,5 @@ class Scorekeeper():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Jaccard Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig)
-            figure_save(maindir1 + "Scoring_Spatial_Jaccard", obj=fig)
+            figure_save(results_dir + "Scoring_Spatial_Jaccard", obj=fig)
             plt.show()

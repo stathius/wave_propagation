@@ -1,3 +1,5 @@
+import numpy as np
+
 def hex_str2bool(hex_string):
     """
     Converts a hex string to boolean value (for pHash/wHash)

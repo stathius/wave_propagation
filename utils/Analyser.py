@@ -73,16 +73,24 @@ class Analyser():
         for i, element in enumerate(self.epoch_loss):
             loss.append(element)
             nr.append(self.epoch_nr[i])
-            hue.append("Training Loss")
+            hue.append("Training")
         for i, element in enumerate(self.validation_loss):
             loss.append(element)
             nr.append(self.validation_nr[i])
-            hue.append("Validation Loss")
+            hue.append("Validation")
         fig = plt.figure().add_axes()
         sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
         sns.set_context("talk")
         data = {}
-        data.update({"Epoch": nr, "Loss": loss, "hue": hue})
-        sns.lineplot(x="Epoch", y="Loss", hue="hue", data=pd.DataFrame.from_dict(data), ax=fig)
+        data.update({"Epoch": nr, "Loss": loss, "Dataset": hue})
+        sns.lineplot(x="Epoch", y="Loss", hue="Dataset", data=pd.DataFrame.from_dict(data), ax=fig)
         figure_save(os.path.join(self.results_dir, "Validation_Loss"), obj=fig)
         plt.show()
+        return data
+
+        # df_1['region'] = 'A'
+        # df_2['region'] = 'B'
+        # df_3['region'] = 'C'
+        # df = pd.concat([df_1,df_2,df_3])
+        # sns.pointplot(ax=ax,x=x_col,y=y_col,data=df,hue='region')
+

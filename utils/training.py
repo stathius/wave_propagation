@@ -149,7 +149,8 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
     def initial_input(no_more_target):
         output = model(input_frames.to(device))
         try:
-            target = batch_images[:, (starting_point + some_counter + num_input_frames) * channels:(starting_point + some_counter + num_input_frames + 1) * channels, :, :].to(device)
+            target_index = starting_point + num_input_frames
+            target = batch_images[:, target_index * channels:(target_index + 1) * channels, :, :].to(device)
         except Exception as e:
             print(e)
             no_more_target = True
@@ -159,8 +160,8 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
     def reinsert(output, target, no_more_target):
         output = torch.cat((output, model(input_frames, mode="reinsert")), dim=1)
         try:
-            target = torch.cat((target, 
-                batch_images[:, (starting_point + some_counter + num_input_frames) * channels:(starting_point + some_counter + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
+            target_index = starting_point + some_counter + num_input_frames
+            target = torch.cat((target, batch_images[:, target_index*channels:(target_index + 1) * channels, :, :].to(device)), dim=1)
         except Exception as e:
             print(e)
             no_more_target = True
@@ -170,8 +171,8 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
         if current_frame_index < (num_output_frames - refeed_offset):
             output = torch.cat((output, model(torch.Tensor([0]), mode="propagate")), dim=1)
             try:
-                target = torch.cat((target, 
-                    batch_images[:, (starting_point + some_counter + num_input_frames) * channels:(starting_point + some_counter + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
+                target_index = starting_point + some_counter + num_input_frames
+                target = torch.cat((target, batch_images[:, target_index* channels:(target_index+ 1) * channels, :, :].to(device)), dim=1)
             except:
                 no_more_target = True
         return output, target, no_more_target
@@ -298,6 +299,5 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
                 if not no_more_target:
                     target_counter = copy.copy(some_counter)
 
-        total += target.size()[0]
         logging.info("{:d} out of {:d}".format(batch_num + 1, len(test_dataloader)))
         if debug: break

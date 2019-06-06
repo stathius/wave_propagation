@@ -36,9 +36,9 @@ def reinsert(model, batch_images, starting_point, num_input_frames, num_output_f
     target_frames = torch.cat((target_frames, batch_images[:, target_index * channels:(target_index + 1) * channels, :, :].to(device)), dim=1)
     return output_frames, target_frames
 
-def propagate(model, batch_images, starting_point, num_input_frames, current_frame, output_frames, target_frames, channels, device, training):
+def propagate(model, batch_images, starting_point, num_input_frames, current_frame_index, output_frames, target_frames, channels, device, training):
     output_frames = torch.cat((output_frames, model(torch.Tensor([0]), mode="propagate", training=training)), dim=1)
-    target_index = starting_point + current_frame + num_input_frames
+    target_index = starting_point + current_frame_index + num_input_frames
     target_frames = torch.cat((target_frames, batch_images[:, target_index * channels:(target_index + 1) * channels, :, :].to(device)), dim=1)
     return output_frames, target_frames
 
@@ -73,13 +73,13 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, val_dataloader, nu
         for i, starting_point in enumerate(random_starting_points):
             model.reset_hidden(batch_size=batch_images.size()[0], training=True)
             lr_scheduler.optimizer.zero_grad()
-            for current_frame in range(num_output_frames):
-                if current_frame == 0:
+            for current_frame_index in range(num_output_frames):
+                if current_frame_index == 0:
                     output_frames, target_frames = initial_input(model, batch_images, starting_point, num_input_frames, channels, device, training=training)
-                elif current_frame == reinsert_offset:
+                elif current_frame_index == reinsert_offset:
                     output_frames, target_frames = reinsert(model, batch_images, starting_point, num_input_frames, num_output_frames, reinsert_offset, output_frames, target_frames, channels, device, training=training)
                 else:
-                    output_frames, target_frames = propagate(model, batch_images, starting_point, num_input_frames, current_frame, output_frames, target_frames, channels, device, training=training)
+                    output_frames, target_frames = propagate(model, batch_images, starting_point, num_input_frames, current_frame_index, output_frames, target_frames, channels, device, training=training)
                 if plot and (i == 0) and (batch_num == 0):
                     plot_predictions(output_frames, target_frames, channels)
             loss = F.mse_loss(output_frames, target_frames)
@@ -121,13 +121,13 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
         batch_loss = 0
         for i, starting_point in enumerate(random_starting_points):
             model.reset_hidden(batch_size=batch_images.size()[0], training=False)
-            for current_frame in range(num_output_frames):
-                if current_frame == 0:
+            for current_frame_index in range(num_output_frames):
+                if current_frame_index == 0:
                     output_frames, target_frames = initial_input(model, batch_images, starting_point, num_input_frames, channels, device, training=training)
-                elif current_frame == reinsert_offset:
+                elif current_frame_index == reinsert_offset:
                     output_frames, target_frames = reinsert(model, batch_images, starting_point, num_input_frames, num_output_frames, reinsert_offset, output_frames, target_frames, channels, device, training=training)
                 else:
-                    output_frames, target_frames = propagate(model, batch_images, starting_point, num_input_frames, current_frame, output_frames, target_frames, channels, device, training=training)
+                    output_frames, target_frames = propagate(model, batch_images, starting_point, num_input_frames, current_frame_index, output_frames, target_frames, channels, device, training=training)
                 if plot and (i == 0) and (batch_num == 0):
                     plot_predictions(output_frames, target_frames, channels)
             batch_loss += F.mse_loss(output_frames, target_frames).item()
@@ -149,7 +149,7 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
     def initial_input(no_more_target):
         output = model(image_series.to(device))
         try:
-            target = batch_images[:, (starting_point + cnt + num_input_frames) * channels:(starting_point + cnt + num_input_frames + 1) * channels, :, :].to(device)
+            target = batch_images[:, (starting_point + some_counter + num_input_frames) * channels:(starting_point + some_counter + num_input_frames + 1) * channels, :, :].to(device)
         except Exception as e:
             print(e)
             no_more_target = True
@@ -160,41 +160,41 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
         output = torch.cat((output, model(image_series, mode="reinsert")), dim=1)
         try:
             target = torch.cat((target, 
-                batch_images[:, (starting_point + cnt + num_input_frames) * channels:(starting_point + cnt + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
+                batch_images[:, (starting_point + some_counter + num_input_frames) * channels:(starting_point + some_counter + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
         except Exception as e:
             print(e)
             no_more_target = True
         return output, target, no_more_target
 
     def propagate(output, target, no_more_target):
-        if current_frame < (num_output_frames - refeed_offset):
+        if current_frame_index < (num_output_frames - refeed_offset):
             output = torch.cat((output, model(torch.Tensor([0]), mode="propagate")), dim=1)
             try:
                 target = torch.cat((target, 
-                    batch_images[:, (starting_point + cnt + num_input_frames) * channels:(starting_point + cnt + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
+                    batch_images[:, (starting_point + some_counter + num_input_frames) * channels:(starting_point + some_counter + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
             except:
                 no_more_target = True
         return output, target, no_more_target
 
     def plot_predictions():
-        if (total == 0) & (current_frame == 0) & (run == 0):
+        if (total == 0) & (current_frame_index == 0) & (run == 0):
             for imag in range(int(image_series.shape[1] / channels)):
                 fig = plt.figure().add_axes()
                 sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
                 sns.set_context("talk")
                 imshow(image_series[selected_batch, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
                 figure_save(results_dir + "Input %02d" % imag)
-        if (total == 0) & (current_frame < (num_output_frames - refeed_offset)):
+        if (total == 0) & (current_frame_index < (num_output_frames - refeed_offset)):
             predicted = output[selected_batch, -channels:, :, :].cpu()
             des_target = target[selected_batch, -channels:, :, :].cpu()
             fig = plt.figure()
             sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
             sns.set_context("talk")
             pred = fig.add_subplot(1, 2, 1)
-            imshow(predicted, title="Predicted %02d" % cnt, smoothen=True, obj=pred)
+            imshow(predicted, title="Predicted %02d" % some_counter, smoothen=True, obj=pred)
             tar = fig.add_subplot(1, 2, 2)
-            imshow(des_target, title="Target %02d" % target_cnt, obj=tar)
-            figure_save(results_dir + "Prediction %02d" % cnt)
+            imshow(des_target, title="Target %02d" % target_counter, obj=tar)
+            figure_save(results_dir + "Prediction %02d" % some_counter)
             plt.show() if plot else plt.close()
 
     def plot_cutthrough(frequently_plot=5, direction="Horizontal", location=None):
@@ -223,7 +223,7 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
             profile.set_title("Intensity Profile")
 
         if total == 0:
-            if ((cnt + 1) % frequently_plot) == 0 or (cnt == 0):
+            if ((some_counter + 1) % frequently_plot) == 0 or (some_counter == 0):
                 predicted = output[selected_batch, -channels:, :, :].cpu()
                 des_target = target[selected_batch, -channels:, :, :].cpu()
                 fig = plt.figure()
@@ -234,8 +234,8 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
                 with sns.axes_style("darkgrid"):  # darkgrid, whitegrid, dark, white, and ticks
                     profile = fig.add_subplot(2, 2, (3, 4))
 
-                predicted = imshow(predicted, title="Predicted %02d" % cnt, return_np=True, obj=pre)
-                des_target = imshow(des_target, title="Target %02d" % target_cnt, return_np=True, obj=tar)
+                predicted = imshow(predicted, title="Predicted %02d" % some_counter, return_np=True, obj=pre)
+                des_target = imshow(des_target, title="Target %02d" % target_counter, return_np=True, obj=tar)
                 if not location:
                     if "Horizontal" in direction:
                         std = np.std(des_target, axis=1)
@@ -253,18 +253,18 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
                     tar.plot([stdmax[0], stdmax[0]], [0, np.shape(std)[0]], color="yellow")
 
                 cutthrough(predicted, des_target, "Predicted", "Target")
-                figure_save(results_dir + "Cut-through %02d" % cnt, obj=fig)
+                figure_save(results_dir + "Cut-through %02d" % some_counter, obj=fig)
                 plt.show() if plot else plt.close()
 
 
 
 
-    def add_score(score_keeper, output, target, num_output_frames, channels, cnt, no_more_target):
-        if (not no_more_target) & (current_frame < (num_output_frames - refeed_offset)):
+    def add_score(score_keeper, output, target, num_output_frames, channels, some_counter, no_more_target):
+        if (not no_more_target) & (current_frame_index < (num_output_frames - refeed_offset)):
             for ba in range(output.size()[0]):
                 score_keeper.add(output[ba, -channels:, :, :].cpu(), 
                                  target[ba, -channels:, :, :].cpu(), 
-                                 cnt,"pHash", "pHash2", "SSIM", "Own", "RMSE")
+                                 some_counter,"pHash", "pHash2", "SSIM", "Own", "RMSE")
 
 
     model.eval()
@@ -279,16 +279,16 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
         image_series = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :]
         model.reset_hidden(image_series.size()[0])
         no_more_target = False
-        cnt = target_cnt = 0
+        some_counter = target_counter = 0
         for run in range(int(math.ceil((100 - (starting_point + num_input_frames + 1)) / (num_output_frames - refeed_offset)))):
             if run != 0:
                 if (refeed_offset == 0) or ((num_output_frames - refeed_offset) <= num_input_frames):
                     image_series = output[:, -num_input_frames * channels:, :, :]
                 else:
                     image_series = output[:, -(num_input_frames + refeed_offset) * channels:-refeed_offset * channels, :, :]
-                cnt -= refeed_offset
-            for current_frame in range(num_output_frames):
-                if current_frame == 0:
+                some_counter -= refeed_offset
+            for current_frame_index in range(num_output_frames):
+                if current_frame_index == 0:
                     if run == 0:
                         output, target, no_more_target = initial_input(no_more_target)
                     else:
@@ -297,12 +297,12 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
                     output, target, no_more_target = propagate(output, target, no_more_target)
                     # output & target size is [batches, channels * (n + 1), 128, 128]
 
-                add_score(score_keeper, output, target, num_output_frames, channels, cnt, no_more_target)
+                add_score(score_keeper, output, target, num_output_frames, channels, some_counter, no_more_target)
                 plot_predictions()
                 plot_cutthrough()
-                cnt += 1
+                some_counter += 1
                 if not no_more_target:
-                    target_cnt = copy.copy(cnt)
+                    target_counter = copy.copy(some_counter)
 
         total += target.size()[0]
         logging.info("{:d} out of {:d}".format(batch_num + 1, len(test_dataloader)))

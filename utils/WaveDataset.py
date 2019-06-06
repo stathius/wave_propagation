@@ -3,34 +3,26 @@ import pickle
 from torch.utils.data import Dataset
 from torchvision.transforms import functional as FF
 from os import listdir
+import numpy as np
 import random
 from PIL import Image
+
+
+def open_image(filename, grayscale=False):
+    if grayscale:
+        image = Image.open(filename).convert('L')
+    else:
+        image = Image.open(filename)
+    return image
 
 class WaveDataset(Dataset):
     """
     Creates a data-loader for the wave prop data
     """
     def __init__(self, root_directory, transform=None, check_bad_data=True, channels=3):
-        if isinstance(root_directory, str):
-            self.root_dir = root_directory
-            self.classes = listdir(root_directory)
-            self.imagesets = []
-            for cla in self.classes:
-                im_list = sorted(listdir(root_directory + cla))
-                if not check_bad_data:
-                    self.imagesets.append((im_list, cla))
-                else:
-                    Good = True
-                    for im in im_list:
-                        Good = Good and self.filter_bad_data(root_directory + cla + "/" + im)
-                    if Good:
-                        self.imagesets.append((im_list, cla))
-
-        elif isinstance(root_directory, list):
-            self.root_dir = root_directory[0]
-            self.classes = root_directory[1]
-            self.imagesets = root_directory[2]
-
+        self.root_dir = root_directory[0]
+        self.classes = root_directory[1]
+        self.imagesets = root_directory[2]
         self.transform = transform
         self.channels=channels
 
@@ -49,19 +41,15 @@ class WaveDataset(Dataset):
                   "target": torch.LongTensor([self.classes.index(str(img_path))])}
         return sample
 
-    def filter_bad_data(self, img_path):
-        img = Image.open(img_path)
-        return False if np.shape(img)[-1] != channels else True
-
     def concatenate_data(self, img_path, im_list):
         """
         Concatenated image tensor with all images having the same random transforms applied
         """
         for i, image in enumerate(im_list):
             if self.channels == 1:
-                img = Image.open(self.root_dir + img_path + "/" + image).convert('L')
+                img = image_open(self.root_dir + img_path + "/" + image, grayscale=True)
             elif self.channels == 3:
-                img = Image.open(self.root_dir + img_path + "/" + image)
+                img = image_open(self.root_dir + img_path + "/" + image, grayscale=False)
             if i == 0:
                 if self.transform:
                     for t in self.transform.transforms:
@@ -96,7 +84,7 @@ class WaveDataset(Dataset):
         return Concat_Img
 
 
-def Create_Datasets(root_directory, transform=None, test_fraction=0., validation_fraction=0., check_bad_data=True, channels=3):
+def create_datasets(root_directory, transform=None, test_fraction=0., validation_fraction=0., check_bad_data=True, channels=3):
     """
     Splits data into fractional parts (data does not overlap!!) and creates data-loaders for each fraction.
     :param root_directory: Directory of data
@@ -106,11 +94,18 @@ def Create_Datasets(root_directory, transform=None, test_fraction=0., validation
     :param check_bad_data: Option to evaluate and filter out corrupted data/images
     :return:
     """
-    def filter_bad_data(img_path):
-        img = Image.open(img_path)
-        return False if np.shape(img)[-1] != channels else True
+    def filter_bad_data(img_path, channels):
+        img = open_image(img_path, grayscale=True)
+        good = False
+        if (len(np.shape(img)) == 2) and (channels == 1):
+            good = True
+        elif (len(np.shape(img)) == 3) and (channels == np.shape(img)[-1]):
+            good = True
+        return good
 
     if (test_fraction > 0) or (validation_fraction > 0):
+        bad_images = 0 
+        good_images = 0
         classes = listdir(root_directory)
         imagesets = []
         for cla in classes:
@@ -120,9 +115,14 @@ def Create_Datasets(root_directory, transform=None, test_fraction=0., validation
             else:
                 Good = True
                 for im in im_list:
-                    Good = Good and filter_bad_data(root_directory + cla + "/" + im)
+                    Good = Good and filter_bad_data(root_directory + cla + "/" + im, channels)
                 if Good:
                     imagesets.append((im_list, cla))
+                    good_images += 1
+                else:
+                    bad_images += 1
+        if check_bad_data:
+            print('Loaded %d folders. Could not load %d folders' % (good_images, bad_images))
 
         full_size = len(imagesets)
         if test_fraction > 0:

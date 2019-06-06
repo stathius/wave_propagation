@@ -195,7 +195,7 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
             tar = fig.add_subplot(1, 2, 2)
             imshow(des_target, title="Target %02d" % target_counter, obj=tar)
             figure_save(results_dir + "Prediction %02d" % some_counter)
-            plt.show() if plot else plt.close()
+            plt.show()
 
     def plot_cutthrough(frequently_plot=5, direction="Horizontal", location=None):
         def cutthrough(img1, img2,  hue1, hue2):
@@ -254,7 +254,7 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
 
                 cutthrough(predicted, des_target, "Predicted", "Target")
                 figure_save(results_dir + "Cut-through %02d" % some_counter, obj=fig)
-                plt.show() if plot else plt.close()
+                plt.show()
 
 
     model.eval()
@@ -292,8 +292,9 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
                         score_keeper.add(output[ba, -channels:, :, :].cpu(), target[ba, -channels:, :, :].cpu(), 
                                          some_counter,"pHash", "pHash2", "SSIM", "Own", "RMSE")
 
-                plot_predictions()
-                plot_cutthrough()
+                if plot:
+                    plot_predictions()
+                    plot_cutthrough()
                 some_counter += 1
                 if not no_more_target:
                     target_counter = copy.copy(some_counter)

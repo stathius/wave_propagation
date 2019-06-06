@@ -308,4 +308,3 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
         logging.info("{:d} out of {:d}".format(batch_num + 1, len(test_dataloader)))
         if debug: break
     logging.info("Correct: {}\tPercentile: {:.0f}%".format(correct, 100 * correct / total))
-    score_keeper.plot(results_dir)

@@ -47,9 +47,9 @@ class WaveDataset(Dataset):
         """
         for i, image in enumerate(im_list):
             if self.channels == 1:
-                img = image_open(self.root_dir + img_path + "/" + image, grayscale=True)
+                img = open_image(self.root_dir + img_path + "/" + image, grayscale=True)
             elif self.channels == 3:
-                img = image_open(self.root_dir + img_path + "/" + image, grayscale=False)
+                img = open_image(self.root_dir + img_path + "/" + image, grayscale=False)
             if i == 0:
                 if self.transform:
                     for t in self.transform.transforms:

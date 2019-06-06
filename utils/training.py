@@ -146,35 +146,35 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
     :param plot: If to plot predictionss
     :return:
     """
-    def initial_input(No_more_Target):
+    def initial_input(no_more_target):
         output = model(image_series.to(device))
         try:
             target = batch_images[:, (starting_point + cnt + num_input_frames) * channels:(starting_point + cnt + num_input_frames + 1) * channels, :, :].to(device)
         except Exception as e:
             print(e)
-            No_more_Target = True
+            no_more_target = True
             target = None
-        return output, target, No_more_Target
+        return output, target, no_more_target
 
-    def reinsert(output, target, No_more_Target):
+    def reinsert(output, target, no_more_target):
         output = torch.cat((output, model(image_series, mode="reinsert")), dim=1)
         try:
             target = torch.cat((target, 
                 batch_images[:, (starting_point + cnt + num_input_frames) * channels:(starting_point + cnt + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
         except Exception as e:
             print(e)
-            No_more_Target = True
-        return output, target, No_more_Target
+            no_more_target = True
+        return output, target, no_more_target
 
-    def propagate(output, target, No_more_Target):
+    def propagate(output, target, no_more_target):
         if current_frame < (num_output_frames - refeed_offset):
             output = torch.cat((output, model(torch.Tensor([0]), mode="propagate")), dim=1)
             try:
                 target = torch.cat((target, 
                     batch_images[:, (starting_point + cnt + num_input_frames) * channels:(starting_point + cnt + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
             except:
-                No_more_Target = True
-        return output, target, No_more_Target
+                no_more_target = True
+        return output, target, no_more_target
 
     def plot_predictions():
         if (total == 0) & (current_frame == 0) & (run == 0):
@@ -259,8 +259,8 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
 
 
 
-    def add_score(score_keeper, output, target, num_output_frames, channels, cnt, No_more_Target):
-        if (not No_more_Target) & (current_frame < (num_output_frames - refeed_offset)):
+    def add_score(score_keeper, output, target, num_output_frames, channels, cnt, no_more_target):
+        if (not no_more_target) & (current_frame < (num_output_frames - refeed_offset)):
             for ba in range(output.size()[0]):
                 score_keeper.add(output[ba, -channels:, :, :].cpu(), 
                                  target[ba, -channels:, :, :].cpu(), 
@@ -278,7 +278,7 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
         batch_images = batch["image"]
         image_series = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :]
         model.reset_hidden(image_series.size()[0])
-        No_more_Target = False
+        no_more_target = False
         cnt = target_cnt = 0
         for run in range(int(math.ceil((100 - (starting_point + num_input_frames + 1)) / (num_output_frames - refeed_offset)))):
             if run != 0:
@@ -290,18 +290,18 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
             for current_frame in range(num_output_frames):
                 if current_frame == 0:
                     if run == 0:
-                        output, target, No_more_Target = initial_input(No_more_Target)
+                        output, target, no_more_target = initial_input(no_more_target)
                     else:
-                        output, target, No_more_Target = reinsert(output, target, No_more_Target)
+                        output, target, no_more_target = reinsert(output, target, no_more_target)
                 else:
-                    output, target, No_more_Target = propagate(output, target, No_more_Target)
+                    output, target, no_more_target = propagate(output, target, no_more_target)
                     # output & target size is [batches, channels * (n + 1), 128, 128]
 
-                add_score(score_keeper, output, target, num_output_frames, channels, cnt, No_more_Target)
+                add_score(score_keeper, output, target, num_output_frames, channels, cnt, no_more_target)
                 plot_predictions()
                 plot_cutthrough()
                 cnt += 1
-                if not No_more_Target:
+                if not no_more_target:
                     target_cnt = copy.copy(cnt)
 
         total += target.size()[0]

@@ -257,16 +257,6 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
                 plt.show() if plot else plt.close()
 
 
-
-
-    def add_score(score_keeper, output, target, num_output_frames, channels, some_counter, no_more_target):
-        if (not no_more_target) & (current_frame_index < (num_output_frames - refeed_offset)):
-            for ba in range(output.size()[0]):
-                score_keeper.add(output[ba, -channels:, :, :].cpu(), 
-                                 target[ba, -channels:, :, :].cpu(), 
-                                 some_counter,"pHash", "pHash2", "SSIM", "Own", "RMSE")
-
-
     model.eval()
     correct = total = 0
     starting_point = 15 # Can be 0
@@ -297,7 +287,11 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
                     output, target, no_more_target = propagate(output, target, no_more_target)
                     # output & target size is [batches, channels * (n + 1), 128, 128]
 
-                add_score(score_keeper, output, target, num_output_frames, channels, some_counter, no_more_target)
+                if (not no_more_target) & (current_frame_index < (num_output_frames - refeed_offset)):
+                    for ba in range(output.size()[0]):
+                        score_keeper.add(output[ba, -channels:, :, :].cpu(), target[ba, -channels:, :, :].cpu(), 
+                                         some_counter,"pHash", "pHash2", "SSIM", "Own", "RMSE")
+
                 plot_predictions()
                 plot_cutthrough()
                 some_counter += 1

@@ -258,7 +258,6 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
 
 
     model.eval()
-    correct = total = 0
     starting_point = 15 # Can be 0
     refeed_offset = 0
     selected_batch = random.randint(0, 15)
@@ -302,4 +301,3 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
         total += target.size()[0]
         logging.info("{:d} out of {:d}".format(batch_num + 1, len(test_dataloader)))
         if debug: break
-    logging.info("Correct: {}\tPercentile: {:.0f}%".format(correct, 100 * correct / total))

@@ -139,6 +139,39 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
     return val_loss
 
 
+
+def initial_input_test(model, input_frames, batch_images, starting_point, num_input_frames, channels, no_more_target, device):
+    output = model(input_frames.to(device))
+    try:
+        target_index = starting_point + num_input_frames
+        target = batch_images[:, target_index * channels:(target_index + 1) * channels, :, :].to(device)
+    except Exception as e:
+        print(e)
+        no_more_target = True
+        target = None
+    return output, target, no_more_target
+
+def reinsert_test(model, input_frames, output, target, batch_images, starting_point, num_input_frames, some_counter, channels, no_more_target, device):
+    output = torch.cat((output, model(input_frames, mode="reinsert")), dim=1)
+    try:
+        target_index = starting_point + some_counter + num_input_frames
+        target = torch.cat((target, batch_images[:, target_index*channels:(target_index + 1) * channels, :, :].to(device)), dim=1)
+    except Exception as e:
+        print(e)
+        no_more_target = True
+    return output, target, no_more_target
+
+def propagate_test(model, output, target, batch_images, starting_point, num_input_frames, some_counter, num_output_frames, current_frame_index, refeed_offset, channels, no_more_target, device):
+    if current_frame_index < (num_output_frames - refeed_offset):
+        output = torch.cat((output, model(torch.Tensor([0]), mode="propagate")), dim=1)
+        try:
+            target_index = starting_point + some_counter + num_input_frames
+            target = torch.cat((target, batch_images[:, target_index* channels:(target_index+ 1) * channels, :, :].to(device)), dim=1)
+        except Exception as e:
+            print(e)
+            no_more_target = True
+    return output, target, no_more_target
+
 def test(model, test_dataloader, num_input_frames, num_output_frames, channels, device, score_keeper, results_dir, plot=True):
     """
     Testing of network
@@ -146,36 +179,6 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
     :param plot: If to plot predictionss
     :return:
     """
-    def initial_input(no_more_target):
-        output = model(input_frames.to(device))
-        try:
-            target_index = starting_point + num_input_frames
-            target = batch_images[:, target_index * channels:(target_index + 1) * channels, :, :].to(device)
-        except Exception as e:
-            print(e)
-            no_more_target = True
-            target = None
-        return output, target, no_more_target
-
-    def reinsert(output, target, no_more_target):
-        output = torch.cat((output, model(input_frames, mode="reinsert")), dim=1)
-        try:
-            target_index = starting_point + some_counter + num_input_frames
-            target = torch.cat((target, batch_images[:, target_index*channels:(target_index + 1) * channels, :, :].to(device)), dim=1)
-        except Exception as e:
-            print(e)
-            no_more_target = True
-        return output, target, no_more_target
-
-    def propagate(output, target, no_more_target):
-        if current_frame_index < (num_output_frames - refeed_offset):
-            output = torch.cat((output, model(torch.Tensor([0]), mode="propagate")), dim=1)
-            try:
-                target_index = starting_point + some_counter + num_input_frames
-                target = torch.cat((target, batch_images[:, target_index* channels:(target_index+ 1) * channels, :, :].to(device)), dim=1)
-            except:
-                no_more_target = True
-        return output, target, no_more_target
 
     def plot_predictions():
         if (total == 0) & (current_frame_index == 0) & (run == 0):
@@ -280,11 +283,11 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
             for current_frame_index in range(num_output_frames):
                 if current_frame_index == 0:
                     if run == 0:
-                        output, target, no_more_target = initial_input(no_more_target)
+                        output, target, no_more_target = initial_input_test(model, input_frames, batch_images, starting_point, num_input_frames, channels, no_more_target, device)
                     else:
-                        output, target, no_more_target = reinsert(output, target, no_more_target)
+                        output, target, no_more_target = reinsert_test(model, input_frames, output, target, batch_images, starting_point, num_input_frames, some_counter, channels, no_more_target, device)
                 else:
-                    output, target, no_more_target = propagate(output, target, no_more_target)
+                    output, target, no_more_target = propagate_test(model, output, target, batch_images, starting_point, num_input_frames, some_counter, num_output_frames, current_frame_index, refeed_offset, channels, no_more_target, device)
                     # output & target size is [batches, channels * (n + 1), 128, 128]
 
                 if (not no_more_target) & (current_frame_index < (num_output_frames - refeed_offset)):

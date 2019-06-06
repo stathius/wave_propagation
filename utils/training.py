@@ -147,7 +147,7 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
     :return:
     """
     def initial_input(no_more_target):
-        output = model(image_series.to(device))
+        output = model(input_frames.to(device))
         try:
             target = batch_images[:, (starting_point + some_counter + num_input_frames) * channels:(starting_point + some_counter + num_input_frames + 1) * channels, :, :].to(device)
         except Exception as e:
@@ -157,7 +157,7 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
         return output, target, no_more_target
 
     def reinsert(output, target, no_more_target):
-        output = torch.cat((output, model(image_series, mode="reinsert")), dim=1)
+        output = torch.cat((output, model(input_frames, mode="reinsert")), dim=1)
         try:
             target = torch.cat((target, 
                 batch_images[:, (starting_point + some_counter + num_input_frames) * channels:(starting_point + some_counter + num_input_frames + 1) * channels, :, :].to(device)), dim=1)
@@ -178,11 +178,11 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
 
     def plot_predictions():
         if (total == 0) & (current_frame_index == 0) & (run == 0):
-            for imag in range(int(image_series.shape[1] / channels)):
+            for imag in range(int(input_frames.shape[1] / channels)):
                 fig = plt.figure().add_axes()
                 sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
                 sns.set_context("talk")
-                imshow(image_series[selected_batch, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
+                imshow(input_frames[selected_batch, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
                 figure_save(results_dir + "Input %02d" % imag)
         if (total == 0) & (current_frame_index < (num_output_frames - refeed_offset)):
             predicted = output[selected_batch, -channels:, :, :].cpu()
@@ -266,16 +266,16 @@ def test(model, test_dataloader, num_input_frames, num_output_frames, channels, 
         refeed_offset = num_output_frames - num_input_frames
     for batch_num, batch in enumerate(test_dataloader):
         batch_images = batch["image"]
-        image_series = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :]
-        model.reset_hidden(image_series.size()[0])
+        input_frames = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :]
+        model.reset_hidden(input_frames.size()[0])
         no_more_target = False
         some_counter = target_counter = 0
         for run in range(int(math.ceil((100 - (starting_point + num_input_frames + 1)) / (num_output_frames - refeed_offset)))):
             if run != 0:
                 if (refeed_offset == 0) or ((num_output_frames - refeed_offset) <= num_input_frames):
-                    image_series = output[:, -num_input_frames * channels:, :, :]
+                    input_frames = output[:, -num_input_frames * channels:, :, :]
                 else:
-                    image_series = output[:, -(num_input_frames + refeed_offset) * channels:-refeed_offset * channels, :, :]
+                    input_frames = output[:, -(num_input_frames + refeed_offset) * channels:-refeed_offset * channels, :, :]
                 some_counter -= refeed_offset
             for current_frame_index in range(num_output_frames):
                 if current_frame_index == 0:

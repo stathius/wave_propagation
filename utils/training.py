@@ -152,7 +152,6 @@ def reinsert_test(model, input_frames, output, target, batch_images, starting_po
     return output, target
 
 def propagate_test(model, output, target, batch_images, starting_point, num_input_frames, prediction_counter, num_output_frames, current_frame_idx, channels, device):
-    # if current_frame_idx < (num_output_frames - refeed_offset):
     output = torch.cat((output, model(torch.Tensor([0]), mode="propagate")), dim=1)
     target_idx = starting_point + prediction_counter + num_input_frames
     target = torch.cat((target, batch_images[:, target_idx* channels:(target_idx+ 1) * channels, :, :].to(device)), dim=1)
@@ -174,7 +173,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
                 sns.set_context("talk")
                 imshow(input_frames[batch_to_plot, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
                 figure_save(results_dir + "Input %02d" % imag)
-        if (total == 0) & (current_frame_idx < (num_output_frames - refeed_offset)):
+        if (total == 0):
             predicted = output[batch_to_plot, -channels:, :, :].cpu()
             des_target = target[batch_to_plot, -channels:, :, :].cpu()
             fig = plt.figure()
@@ -250,10 +249,6 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
     model.eval()
     batch_to_plot = random.randint(0, 15)
 
-    # refeed_offset = 0
-    # if (num_output_frames - refeed_offset) < num_input_frames:
-    #     refeed_offset = num_output_frames - num_input_frames
-
     for batch_num, batch in enumerate(test_dataloader):
         prediction_counter = target_counter = 0
 
@@ -261,15 +256,10 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
         model.reset_hidden(batch_size=batch_images.size()[0], training=False)
         input_frames = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :]
 
-        # num_refeeds = int(math.ceil((100 - (starting_point + num_input_frames + 1)) / (num_output_frames - refeed_offset)))
         num_refeeds = int(math.ceil( (100 - starting_point + num_input_frames + 1) / num_output_frames))
         for refeed_idx in range(num_refeeds):
             if refeed_idx != 0:
-                # if (refeed_offset == 0) or ((num_output_frames - refeed_offset) <= num_input_frames):
                 input_frames = output[:, -num_input_frames * channels:, :, :]
-                # else:
-                    # input_frames = output[:, -(num_input_frames + refeed_offset) * channels:-refeed_offset * channels, :, :]
-                    # prediction_counter -= refeed_offset
             for current_frame_idx in range(num_output_frames):
                 if current_frame_idx == 0:
                     if refeed_idx == 0:
@@ -280,7 +270,6 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
                     output, target = propagate_test(model, output, target, batch_images, starting_point, num_input_frames, prediction_counter, num_output_frames, current_frame_idx, channels, device)
                     # output & target size is [batches, channels * (n + 1), 128, 128]
 
-                # if (current_frame_idx < (num_output_frames - refeed_offset)):
                 for ba in range(output.size()[0]):
                     score_keeper.add(output[ba, -channels:, :, :].cpu(), target[ba, -channels:, :, :].cpu(), 
                                      prediction_counter,"pHash", "pHash2", "SSIM", "Own", "RMSE")

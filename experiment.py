@@ -36,7 +36,7 @@ nr_net = 0
 version = nr_net + 10
 num_input_frames = 5
 num_output_frames = 20
-reinsert_offset = 10
+reinsert_frequency = 10
 network_type = "7_kernel_3LSTM_debug"
 
 if 'Darwin' in platform.system():
@@ -118,9 +118,9 @@ if __name__ == "__main__":
 
         logging.info('Epoch %d' % epoch)
         train_loss = train_epoch(model, lr_scheduler, epoch, train_dataloader, val_dataloader, num_input_frames, 
-                                num_output_frames,reinsert_offset, channels, device, analyser, plot=False)
+                                num_output_frames,reinsert_frequency, channels, device, analyser, plot=False)
         analyser.save_epoch_loss(train_loss, 1)
-        validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, reinsert_offset, channels, device, plot=False)
+        validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, reinsert_frequency, channels, device, plot=False)
         analyser.save_validation_loss(validation_loss, 1)
         """
         Here we can access analyser.validation_loss to make decisions

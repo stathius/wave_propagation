@@ -15,21 +15,6 @@ from utils.io import imshow
 
 debug=True
 
-### COMMON FUNCTIONS TRAIN/VAL/TEST
-# def initial_input_old(model, batch_images, starting_point, num_input_frames, channels, device, training):
-#     """
-#     var           size
-#     batch_images  [16, 100, 128, 128]
-#     input_frames  [16, 5, 128, 128]
-#     output_frames  [16, 1, 128, 128]
-#     target_frames  [16, 1, 128, 128]
-#     """
-#     input_frames = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :].to(device)
-#     output_frames = model(input_frames, mode='initial_input', training=training)
-#     target_idx = starting_point + num_input_frames
-#     target_frames = batch_images[:, target_idx * channels:(target_idx + 1) * channels, :, :].to(device)
-#     return output_frames, target_frames, input_frames
-
 def initial_input(model, input_frames, batch_images, starting_point, num_input_frames, channels, device, training):
     """
     var           size
@@ -43,23 +28,11 @@ def initial_input(model, input_frames, batch_images, starting_point, num_input_f
     target_frames = batch_images[:, target_idx * channels:(target_idx + 1) * channels, :, :].to(device)
     return output_frames, target_frames
 
-# def reinsert(model, batch_images, starting_point, num_input_frames, num_output_frames, reinsert_frequency, output_frames, target_frames, channels, device, training):
-#     output_frames = torch.cat((output_frames, model(output_frames[:, -num_input_frames * channels:, :, :].clone(), mode="reinsert", training=training)), dim=1)
-#     target_idx = starting_point + reinsert_frequency + num_input_frames
-#     target_frames = torch.cat((target_frames, batch_images[:, target_idx * channels:(target_idx + 1) * channels, :, :].to(device)), dim=1)
-#     return output_frames, target_frames
-
 def reinsert(model, input_frames, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, channels, device, training):
     output_frames = torch.cat((output_frames, model(input_frames, mode="reinsert", training=training)), dim=1).to(device)
     target_idx = starting_point + future_frame_idx + num_input_frames
     target_frames = torch.cat((target_frames, batch_images[:, target_idx*channels:(target_idx + 1) * channels, :, :].to(device)), dim=1)
     return output_frames, target_frames
-
-# def propagate(model, batch_images, starting_point, num_input_frames, future_frame_idx, output_frames, target_frames, channels, device, training):
-#     output_frames = torch.cat((output_frames, model(torch.Tensor([0]), mode="propagate", training=training)), dim=1)
-#     target_idx = starting_point + future_frame_idx + num_input_frames
-#     target_frames = torch.cat((target_frames, batch_images[:, target_idx * channels:(target_idx + 1) * channels, :, :].to(device)), dim=1)
-#     return output_frames, target_frames
 
 def propagate(model, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, channels, device, training):
     output_frames = torch.cat((output_frames, model(torch.Tensor([0]), mode="propagate", training=training)), dim=1).to(device)
@@ -96,7 +69,8 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
         batch_images = batch["image"]
         for i, starting_point in enumerate(random_starting_points):
             model.reset_hidden(batch_size=batch_images.size()[0], training=True)
-            lr_scheduler.optimizer.zero_grad()
+            if training:
+                lr_scheduler.optimizer.zero_grad()
             for future_frame_idx in range(num_output_frames):
                 if future_frame_idx == 0:
                     input_frames = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :].clone()
@@ -111,10 +85,9 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
                 if plot and (i == 0) and (batch_num == 0):
                     plot_predictions(output_frames, target_frames, channels)
             loss = F.mse_loss(output_frames, target_frames)
-            print('train output_frames size ', output_frames.size())
-            print('train batch loss ', loss.item())
-            loss.backward()
-            lr_scheduler.optimizer.step()
+            if training:
+                loss.backward()
+                lr_scheduler.optimizer.step()
 
             mean_batch_loss += loss.item()
             if debug: break
@@ -163,7 +136,6 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
                     plot_predictions(output_frames, target_frames, channels)
             loss = F.mse_loss(output_frames, target_frames)
             batch_loss += loss.item()
-            print('val output_frames size ', output_frames.size())
             print('val batch loss ', loss.item())
             if debug: break
         overall_loss += batch_loss / (i + 1)
@@ -280,23 +252,23 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
         num_future_frames = total_frames - (starting_point + num_input_frames)
         for future_frame_idx in range(num_future_frames):
             if future_frame_idx == 0:
-                tt = 'Initial input'
+                prop_type = 'Initial input'
                 input_frames = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :].clone()
                 output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, channels, device, training)
             elif (future_frame_idx+1)%reinsert_frequency == 0:
-                tt = 'Reinsert'
+                prop_type = 'Reinsert'
                 input_frames = output_frames[:, -num_input_frames * channels:, :, :].clone()
                 output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, 
                                                                 starting_point, num_input_frames, future_frame_idx, channels, device, training)
             else:
-                tt = 'Propagate'
+                prop_type = 'Propagate'
                 output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, 
                                                               starting_point, num_input_frames, future_frame_idx,
                                                               channels, device, training)
                 # output & target_frames size is [batches, channels * (n + 1), 128, 128]
 
             if debug:
-                print('batch_num %d\tfuture_frame_idx %d\ttype %s' % (batch_num, future_frame_idx, tt))
+                print('batch_num %d\tfuture_frame_idx %d\ttype %s' % (batch_num, future_frame_idx, prop_type))
                 print(output_frames.size(), target_frames.size())
 
             for ba in range(output_frames.size()[0]):

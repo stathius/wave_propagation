@@ -9,12 +9,13 @@ import platform
 import time
 from utils.Network import Network
 from utils.Analyser import Analyser
-from utils.io import save_network, load_network, save, load
+from utils.io import save_network, load_network, save, load, make_folder_results
 from utils.WaveDataset import create_datasets
 from utils.training import train_epoch, validate, test
 
 logging.basicConfig(format='%(message)s',level=logging.INFO)
 channels=1
+num_workers=4
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 transformVar = {"Test": transforms.Compose([
@@ -65,9 +66,9 @@ else:
          data_dir+"Video_Data/", transformVar, test_fraction=0.15, validation_fraction=0.15, check_bad_data=False, channels=channels)
     all_data = {"Training data": train_dataset, "Validation data": val_dataset, "Testing data": test_dataset}
     save(all_data, filename_data)
-train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=12)
-val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=True, num_workers=12)
-test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True, num_workers=12)
+train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=num_workers)
+val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=True, num_workers=num_workers)
+test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True, num_workers=num_workers)
 
 
 # analyser
@@ -117,7 +118,7 @@ if __name__ == "__main__":
         epoch_start = time.time()
 
         logging.info('Epoch %d' % epoch)
-        train_loss = train_epoch(model, lr_scheduler, epoch, train_dataloader, val_dataloader, num_input_frames, 
+        train_loss = train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
                                 num_output_frames,reinsert_frequency, channels, device, analyser, plot=False)
         analyser.save_epoch_loss(train_loss, 1)
         validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, reinsert_frequency, channels, device, plot=False)

@@ -13,8 +13,6 @@ import logging
 import time
 from utils.io import imshow
 
-debug=True
-
 def initial_input(model, input_frames, batch_images, starting_point, num_input_frames, channels, device, training):
     """
     var           size
@@ -40,7 +38,8 @@ def propagate(model, output_frames, target_frames, batch_images, starting_point,
     target_frames = torch.cat((target_frames, batch_images[:, target_idx* channels:(target_idx+ 1) * channels, :, :].to(device)), dim=1)
     return output_frames, target_frames
 
-def plot_predictions(output_frames, target_frames, channels):
+def plot_predictions(i, output_frames, target_frames, channels):
+    logging.info('** plot predictions **')
     predicted = output_frames[i, -channels:, :, :].cpu().detach()
     des_target_frames = target_frames[i, -channels:, :, :].cpu().detach()
     fig = plt.figure(figsize=[8,8])
@@ -51,7 +50,7 @@ def plot_predictions(output_frames, target_frames, channels):
     plt.show()
 
 
-def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, num_output_frames, reinsert_frequency, channels, device, analyser, plot=False,):
+def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, num_output_frames, reinsert_frequency, channels, device, analyser, plot=False, debug=False):
     """
     Training of the network
     :param train: Training data
@@ -83,7 +82,7 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
                     output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, 
                                                              num_input_frames, future_frame_idx, channels, device, training)
                 if plot and (i == 0) and (batch_num == 0):
-                    plot_predictions(output_frames, target_frames, channels)
+                    plot_predictions(i, output_frames, target_frames, channels)
             loss = F.mse_loss(output_frames, target_frames)
             if training:
                 loss.backward()
@@ -104,7 +103,7 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
     return epoch_loss
 
 
-def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinsert_frequency, channels, device, plot=False):
+def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinsert_frequency, channels, device, plot=False, debug=False):
     """
     Validation of network (same protocol as training)
     :param val_dataloader: Data to test
@@ -132,7 +131,7 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
                     output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, 
                                                              num_input_frames, future_frame_idx, channels, device, training)
                 if plot and (i == 0) and (batch_num == 0):
-                    plot_predictions(output_frames, target_frames, channels)
+                    plot_predictions(i, coutput_frames, target_frames, channels)
             loss = F.mse_loss(output_frames, target_frames)
             batch_loss += loss.item()
             if debug: break

@@ -12,20 +12,11 @@ from utils.Analyser import Analyser
 from utils.io import save_network, load_network, save, load, make_folder_results
 from utils.WaveDataset import create_datasets, transformVar
 from utils.training import train_epoch, validate, test
+from utils.arg_parse import get_args
 
 logging.basicConfig(format='%(message)s',level=logging.INFO)
-channels=1
-num_workers=12
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
-nr_net = 0 
-
-version = nr_net + 10
-num_input_frames = 5
-num_output_frames = 20
-reinsert_frequency = 10
-network_type = "ConvAE_3LSTM_0"
+args, device = get_args()
 
 if 'Darwin' in platform.system():
     data_dir = './'
@@ -34,7 +25,7 @@ else:
 
 if not os.path.isdir("./Results"):
     os.mkdir("./Results")
-results_dir = "./Results/" + network_type + "_v%03d/" % version
+results_dir = "./Results/" + args.experiment_name 
 
 if not os.path.isdir(results_dir):
     make_folder_results(results_dir)
@@ -50,12 +41,12 @@ if os.path.isfile(filename_data):
 else:
     logging.info('Creating new datasets')
     test_dataset, val_dataset, train_dataset = create_datasets(
-         data_dir+"Video_Data/", transformVar, test_fraction=0.15, validation_fraction=0.15, check_bad_data=False, channels=channels)
+         data_dir+"Video_Data/", transformVar, test_fraction=0.15, validation_fraction=0.15, check_bad_data=False, channels=args.num_channels)
     all_data = {"Training data": train_dataset, "Validation data": val_dataset, "Testing data": test_dataset}
     save(all_data, filename_data)
-train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=num_workers)
-val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=True, num_workers=num_workers)
-test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True, num_workers=num_workers)
+train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=args.num_workers)
+val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=True, num_workers=args.num_workers)
+test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True, num_workers=args.num_workers)
 
 
 # analyser
@@ -70,10 +61,10 @@ else:
 # Model
 filename_model = results_dir + "model.pt"
 if os.path.isfile(filename_model):
-    model = Network(device, channels)
+    model = Network(device, args.num_channels)
     model = load_network(model, device, filename_model)
 else:
-    model = Network(device, channels)
+    model = Network(device, args.num_channels)
 
 # Learning Rate scheduler w. optimizer
 # Optimizer
@@ -98,17 +89,19 @@ save(meta_data_dict, filename_metadata)
 model.to(device)
 
 if __name__ == "__main__":
-    logging.info('Experiment %d' % version)
+    logging.info('Experiment %s' % args.experiment_name)
+    logging.info(args)
     logging.info('Start training')
     epochs=50
     for epoch in range(1,epochs+1):
         epoch_start = time.time()
 
         logging.info('Epoch %d' % epoch)
-        train_loss = train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
-                                num_output_frames,reinsert_frequency, channels, device, analyser, plot=False)
+        train_loss = train_epoch(model, lr_scheduler, epoch, train_dataloader, args.num_input_frames, 
+                                args.num_output_frames,args.reinsert_frequency, args.num_channels, device, analyser, plot=args.plot, debug=args.debug)
         analyser.save_epoch_loss(train_loss, epoch)
-        validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, reinsert_frequency, channels, device, plot=False)
+        validation_loss = validate(model, val_dataloader, args.num_input_frames, args.num_output_frames, args.reinsert_frequency, 
+                                    args.num_channels, device, plot=args.plot, debug=args.debug)
         analyser.save_validation_loss(validation_loss, epoch)
 
         """

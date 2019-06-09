@@ -37,7 +37,7 @@ def get_args():
     parser.add_argument('--num_channels', nargs="?", type=int, default=1, help='how many channels each frame has (gray/rgb)')
     parser.add_argument('--experiment_name', nargs="?", type=str, default="dummy", 
                                             help='Experiment name - to be used for building the experiment folder')
-    parser.add_argument('--seed_everything', type=str2bool, default=True)
+    parser.add_argument('--seed_everything', type=str2bool, default=False)
     parser.add_argument('--plot', type=str2bool, default=False)
     parser.add_argument('--debug', type=str2bool, default=False)
 

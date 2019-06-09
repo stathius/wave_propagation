@@ -6,7 +6,21 @@ from os import listdir
 import numpy as np
 import random
 from PIL import Image
+from torchvision import transforms
 
+transformVar = {"Test": transforms.Compose([
+    transforms.Resize(128),    #Already 184 x 184
+    transforms.CenterCrop(128),
+    transforms.ToTensor(),
+]),
+    "Train": transforms.Compose([
+    transforms.Resize(128),  # Already 184 x 184
+    transforms.CenterCrop(128),
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomVerticalFlip(),
+    transforms.ToTensor(),
+    ])
+}
 
 def open_image(filename, grayscale=False):
     if grayscale:

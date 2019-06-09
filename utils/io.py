@@ -43,7 +43,7 @@ def figure_save(destination, obj=None):
     
 def make_folder_results(folder_name):
     os.mkdir(folder_name)
-    os.mkdir(os.path.join(folder_name,'figures')
+    os.mkdir(os.path.join(folder_name,'figures'))
 
 def imshow(inp, title=None, smoothen=False, return_np=False, obj=None):
     """Imshow for Tensor."""

@@ -19,7 +19,7 @@ class Analyser():
         self.validation_loss = []
         self.validation_nr = []
         self.results_dir = results_dir
-        self.figures_dir = os.join.path(results_dir, 'figures')
+        self.figures_dir = os.path.join(results_dir, 'figures')
 
     def save_epoch_loss(self, loss, epoch):
         """

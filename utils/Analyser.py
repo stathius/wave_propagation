@@ -19,13 +19,14 @@ class Analyser():
         self.validation_loss = []
         self.validation_nr = []
         self.results_dir = results_dir
+        self.figures_dir = os.join.path(results_dir, 'figures')
 
-    def save_epoch_loss(self, loss, epoch_increment=1):
+    def save_epoch_loss(self, loss, epoch):
         """
         Creates two lists, one of losses and one of index of epoch
         """
         self.epoch_loss.append(loss)
-        self.epoch_nr.append(self.epoch_nr[len(self.epoch_nr) - 1] + epoch_increment) if len(self.epoch_nr) else self.epoch_nr.append(epoch_increment)
+        self.epoch_nr.append(epoch)
 
     def plot_loss(self):
         fig = plt.figure().add_axes()
@@ -35,7 +36,7 @@ class Analyser():
         data.update({"Epoch": self.epoch_nr, "Loss": self.epoch_loss})
         sns.lineplot(x="Epoch", y="Loss",
                      data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(os.path.join(self.results_dir, "Epoch_Loss"), obj=fig)
+        figure_save(os.path.join(self.figures_dir, "Epoch_Loss"), obj=fig)
         plt.show()
 
     def save_loss_batchwise(self, loss, batch_increment=1):
@@ -53,15 +54,15 @@ class Analyser():
         data.update({"Batch": self.batch_nr, "Loss": self.batch_loss})
         sns.lineplot(x="Batch", y="Loss",
                      data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(os.path.join(self.results_dir, "Batch_Loss"), obj=fig)
+        figure_save(os.path.join(self.figures_dir, "Batch_Loss"), obj=fig)
         plt.show()
 
-    def save_validation_loss(self, loss, epoch_increment=1):
+    def save_validation_loss(self, loss, epoch):
         """
         Creates two lists, one of validation losses and one of index of epoch
         """
         self.validation_loss.append(loss)
-        self.validation_nr.append(self.validation_nr[len(self.validation_nr) - 1] + epoch_increment) if len(self.validation_nr) else self.validation_nr.append(epoch_increment)
+        self.validation_nr.append(epoch)
 
     def plot_validation_loss(self):
         """
@@ -84,7 +85,7 @@ class Analyser():
         data = {}
         data.update({"Epoch": nr, "Loss": loss, "Dataset": hue})
         sns.lineplot(x="Epoch", y="Loss", hue="Dataset", data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(os.path.join(self.results_dir, "Validation_Loss"), obj=fig)
+        figure_save(os.path.join(self.figures_dir, "Validation_Loss"), obj=fig)
         plt.show()
         return data
 

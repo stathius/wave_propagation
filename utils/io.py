@@ -42,12 +42,8 @@ def figure_save(destination, obj=None):
     save(obj, destination) if obj else None
     
 def make_folder_results(folder_name):
-    if os.path.isdir(folder_name):
-        imgs = os.listdir(folder_name)
-        for img in imgs:
-            os.remove(folder_name + "/" + img)
-    else:
-        os.mkdir(folder_name)
+    os.mkdir(folder_name)
+    os.mkdir(os.path.join(folder_name,'figures')
 
 def imshow(inp, title=None, smoothen=False, return_np=False, obj=None):
     """Imshow for Tensor."""

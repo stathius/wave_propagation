@@ -114,15 +114,15 @@ if __name__ == "__main__":
     logging.info('Experiment %d' % version)
     logging.info('Start training')
     epochs=50
-    for epoch in range(epochs):
+    for epoch in range(1,epochs+1):
         epoch_start = time.time()
 
         logging.info('Epoch %d' % epoch)
         train_loss = train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
                                 num_output_frames,reinsert_frequency, channels, device, analyser, plot=False)
-        analyser.save_epoch_loss(train_loss, 1)
+        analyser.save_epoch_loss(train_loss, epoch)
         validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, reinsert_frequency, channels, device, plot=False)
-        analyser.save_validation_loss(validation_loss, 1)
+        analyser.save_validation_loss(validation_loss, epoch)
 
         """
         Here we can access analyser.validation_loss to make decisions
@@ -139,7 +139,7 @@ if __name__ == "__main__":
         save(analyser, filename_analyser)
 
         epochs_time = time.time() - epoch_start
-        logging.info('Epoch %d\tTrain Loss %.6f\tValidation loss: %.6f\tEpoch Time: %.3f' % (train_loss, validation_loss, epochs_time))
+        logging.info('Epoch %d\tTrain Loss %.6f\tValidation loss: %.6f\tEpoch Time: %.3f' % (epoch, train_loss, validation_loss, epochs_time))
 
 
 # analyser = []

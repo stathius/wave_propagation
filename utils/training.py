@@ -151,13 +151,13 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
     """
 
     def plot_predictions():
-        # if (total == 0) & (future_frame_idx == 0) & (refeed_idx == 0):
-        #     for imag in range(int(input_frames.shape[1] / channels)):
-        #         fig = plt.figure().add_axes()
-        #         sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
-        #         sns.set_context("talk")
-        #         imshow(input_frames[image_to_plot, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
-        #         figure_save(results_dir + "Input %02d" % imag)
+        if future_frame_idx == 0:
+            for imag in range(int(input_frames.shape[1] / channels)):
+                fig = plt.figure().add_axes()
+                sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
+                sns.set_context("talk")
+                imshow(input_frames[image_to_plot, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
+                figure_save(results_dir + "Input %02d" % imag)
         predicted = output_frames[image_to_plot, -channels:, :, :].cpu()
         des_target = target_frames[image_to_plot, -channels:, :, :].cpu()
         fig = plt.figure()
@@ -230,12 +230,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
 
     model.eval()
     total = 0
-    total_frames = 100
-    image_to_plot = 1 # random.randint(0, 15)
-    reinsert_frequency = 10
-
-    model.eval()
-    image_to_plot = 1 # random.randint(0, 15)
+    image_to_plot = random.randint(0, 15)
     reinsert_frequency = 10
     training = False
 

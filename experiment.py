@@ -10,7 +10,7 @@ import time
 from utils.Network import Network
 from utils.Analyser import Analyser
 from utils.io import save_network, load_network, save, load, make_folder_results
-from utils.WaveDataset import create_datasets
+from utils.WaveDataset import create_datasets, transformVar
 from utils.training import train_epoch, validate, test
 
 logging.basicConfig(format='%(message)s',level=logging.INFO)
@@ -18,19 +18,6 @@ channels=1
 num_workers=12
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-transformVar = {"Test": transforms.Compose([
-    transforms.Resize(128),    #Already 184 x 184
-    transforms.CenterCrop(128),
-    transforms.ToTensor(),
-]),
-    "Train": transforms.Compose([
-    transforms.Resize(128),  # Already 184 x 184
-    transforms.CenterCrop(128),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomVerticalFlip(),
-    transforms.ToTensor(),
-    ])
-}
 
 nr_net = 0 
 

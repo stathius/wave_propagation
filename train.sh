@@ -33,4 +33,4 @@ else
 fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
-python train.py
+python experiment.py --experiment_name "ConvAE_LSTM_2"

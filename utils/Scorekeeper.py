@@ -10,12 +10,12 @@ import imagehash
 import os
 from utils.format import hex_str2bool
 
-class Scorekeeper(results_dir):
+class Scorekeeper():
     """
     Calculates and keeps track of testing results
     SSIM/pHash/RMSE etc.
     """
-    def __init__(self):
+    def __init__(self, results_dir):
         super(Scorekeeper, self).__init__()
 
         self.intermitted = []
@@ -43,7 +43,7 @@ class Scorekeeper(results_dir):
         self.SSIM = False
         self.MSE = False
         self.results_dir = results_dir
-        self.figures_dir = os.join.path(results_dir, 'figures')
+        self.figures_dir = os.path.join(results_dir, 'figures')
 
     def add(self, predicted, target, frame_nr, *args):
         predicted = self.normalize(predicted)

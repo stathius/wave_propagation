@@ -15,7 +15,7 @@ from utils.training import train_epoch, validate, test
 
 logging.basicConfig(format='%(message)s',level=logging.INFO)
 channels=1
-num_workers=4
+num_workers=12
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 transformVar = {"Test": transforms.Compose([
@@ -38,7 +38,7 @@ version = nr_net + 10
 num_input_frames = 5
 num_output_frames = 20
 reinsert_frequency = 10
-network_type = "7_kernel_3LSTM_debug"
+network_type = "ConvAE_3LSTM_0"
 
 if 'Darwin' in platform.system():
     data_dir = './'
@@ -123,6 +123,7 @@ if __name__ == "__main__":
         analyser.save_epoch_loss(train_loss, 1)
         validation_loss = validate(model, val_dataloader, num_input_frames, num_output_frames, reinsert_frequency, channels, device, plot=False)
         analyser.save_validation_loss(validation_loss, 1)
+
         """
         Here we can access analyser.validation_loss to make decisions
         """
@@ -137,8 +138,9 @@ if __name__ == "__main__":
         save_network(model, filename_model)
         save(analyser, filename_analyser)
 
-        epoch_time = time.time() - epoch_start 
-        logging.info('Epoch time: %.1f' % epoch_time)
+        epochs_time = time.time() - epoch_start
+        logging.info('Epoch %d\tTrain Loss %.6f\tValidation loss: %.6f\tEpoch Time: %.3f' % (train_loss, validation_loss, epochs_time))
+
 
 # analyser = []
 # model =[]

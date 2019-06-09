@@ -60,7 +60,7 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
     training = True
     model.train()           # initialises training stage/functions
     mean_loss = 0
-    logging.info('Training: Ready to load batches')
+    # logging.info('Training: Ready to load batches')
     for batch_num, batch in enumerate(train_dataloader):
         batch_start = time.time()
         # logging.info('Batch: %d loaded in %.3f' %(batch_num, batch_time))
@@ -111,7 +111,6 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
     :param plot: If to plot predictions
     :return:
     """
-    val_start = time.time()
     training = False
     model.eval()
     overall_loss = 0
@@ -136,13 +135,10 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
                     plot_predictions(output_frames, target_frames, channels)
             loss = F.mse_loss(output_frames, target_frames)
             batch_loss += loss.item()
-            print('val batch loss ', loss.item())
             if debug: break
         overall_loss += batch_loss / (i + 1)
         if debug: break
     val_loss = overall_loss / (batch_num + 1)
-    val_time = time.time() - val_start
-    logging.info('Validation loss: %.6f\tTime: %.3f' % (val_loss, val_time))
     return val_loss
 
 

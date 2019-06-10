@@ -80,7 +80,7 @@ elif scheduler_type == 'plateau':
     # Reduce learning rate when a metric has stopped improving
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='min', factor=0.1, patience=7)
 
-filename_metadata = results_dir + "metadata.pickle" 
+filename_metadata = os.path.join(results_dir,"metadata.pickle" )
 meta_data_dict = {  "optimizer": optimizer_algorithm.state_dict(),
                     "scheduler_type": scheduler_type, 
                     "scheduler": lr_scheduler.state_dict()}
@@ -103,7 +103,6 @@ if __name__ == "__main__":
         validation_loss = validate(model, val_dataloader, args.num_input_frames, args.num_output_frames, args.reinsert_frequency, 
                                     args.num_channels, device, plot=args.plot, debug=args.debug)
         analyser.save_validation_loss(validation_loss, epoch)
-
         """
         Here we can access analyser.validation_loss to make decisions
         """
@@ -121,12 +120,9 @@ if __name__ == "__main__":
         epochs_time = time.time() - epoch_start
         logging.info('Epoch %d\tTrain Loss %.6f\tValidation loss: %.6f\tEpoch Time: %.3f' % (epoch, train_loss, validation_loss, epochs_time))
 
-
-# analyser = []
-# model =[]
-# lr_scheduler = []
-# scheduler_dict = []
-
-# analyser.plot_loss()
-# analyser.plot_loss_batchwise()
-# analyser.plot_validation_loss()
+logging.info("Start testing")
+score_keeper=Scorekeeper(results_dir, args.num_channels)
+figures_dir = os.path.join(results_dir,'figures')
+test(model, test_dataloader, starting_point, num_input_frames, num_output_frames, reinsert_frequency, 
+            channels, device, score_keeper, figures_dir, plot=True, debug=False)
+score_keeper.plot()

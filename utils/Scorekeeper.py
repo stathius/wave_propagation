@@ -15,7 +15,7 @@ class Scorekeeper():
     Calculates and keeps track of testing results
     SSIM/pHash/RMSE etc.
     """
-    def __init__(self, results_dir):
+    def __init__(self, results_dir, channels):
         super(Scorekeeper, self).__init__()
 
         self.intermitted = []
@@ -42,12 +42,14 @@ class Scorekeeper():
         self.phash = False
         self.SSIM = False
         self.MSE = False
+        self.phash2 = False
         self.results_dir = results_dir
         self.figures_dir = os.path.join(results_dir, 'figures')
+        self.channels = channels
 
     def add(self, predicted, target, frame_nr, *args):
-        predicted = self.normalize(predicted)
-        target = self.normalize(target)
+        predicted = self.prepro(predicted)
+        target = self.prepro(target)
 
         if "Own"in args:
             spatial_score, scale_score = self.score(predicted, target)
@@ -105,14 +107,20 @@ class Scorekeeper():
         # Out of 260
 
     def ssim(self, predicted, target):
-        return measure.compare_ssim(predicted, target, multichannel=True, gaussian_weights=True)
+        # print(predicted.size)
+        multichannel = self.channels > 1
+        return measure.compare_ssim(predicted, target, multichannel=multichannel, gaussian_weights=True)
 
-    def normalize(self, image):
-        image = image.numpy().transpose((1, 2, 0))
-        mean = np.array([0.485, 0.456, 0.406])
-        std = np.array([0.229, 0.224, 0.225])
-        image = std * image + mean
-        return np.clip(image, 0, 1)
+    def prepro(self, image):
+        if image.size()[0]==3:
+            image = image.numpy().transpose((1, 2, 0))
+        else:
+            image = image[0,:,:].numpy()
+        # mean = np.array([0.485, 0.456, 0.406])
+        # std = np.array([0.229, 0.224, 0.225])
+        # image = std * image + mean
+        # np.clip(image, 0, 1)
+        return image
 
     def score(self, predicted, target):
         predicted_mean = np.mean(predicted, axis=(0, 1))
@@ -133,7 +141,7 @@ class Scorekeeper():
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Difference", hue="Scoring Type",
-                         data=pd.DataFrame.from_dict(all_data), ax=fig)
+                         data=pd.DataFrame.from_dict(all_data), ax=fig,  ci='sd')
             figure_save(os.path.join(self.figures_dir, "Scoring_Quality"), obj=fig)
             plt.show()
 
@@ -144,8 +152,8 @@ class Scorekeeper():
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Similarity", hue="Scoring Type",
-                         data=pd.DataFrame.from_dict(all_data), ax=fig)
-            plt.ylim(0, 1)
+                         data=pd.DataFrame.from_dict(all_data), ax=fig,  ci='sd')
+            # plt.ylim(0.0, 1)
             figure_save(os.path.join(self.figures_dir, "SSIM_Quality"), obj=fig)
             plt.show()
 
@@ -156,7 +164,7 @@ class Scorekeeper():
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type",
-                         data=pd.DataFrame.from_dict(all_data), ax=fig)
+                         data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
             figure_save(os.path.join(self.figures_dir, "RMSE_Quality"), obj=fig)
             plt.show()
 
@@ -167,7 +175,7 @@ class Scorekeeper():
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Hamming Distance", hue="Scoring Type",
-                         data=pd.DataFrame.from_dict(all_data), ax=fig)
+                         data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
             figure_save(os.path.join(self.figures_dir, "Scoring_Spatial_Hamming"), obj=fig)
             plt.show()
 
@@ -178,6 +186,6 @@ class Scorekeeper():
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Jaccard Distance", hue="Scoring Type",
-                         data=pd.DataFrame.from_dict(all_data), ax=fig)
+                         data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
             figure_save(os.path.join(self.figures_dir, "Scoring_Spatial_Jaccard"), obj=fig)
             plt.show()

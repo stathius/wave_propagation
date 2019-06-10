@@ -31,7 +31,7 @@ if not os.path.isdir(results_dir):
     make_folder_results(results_dir)
 
 # Data
-filename_data = results_dir + "all_data.pickle"
+filename_data = os.path.join(results_dir,"all_data.pickle")
 if os.path.isfile(filename_data):
     logging.info('Loading datasets')
     all_data = load(filename_data)
@@ -50,7 +50,7 @@ test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True, num_work
 
 
 # analyser
-filename_analyser = results_dir + "analyser.pickle" 
+filename_analyser = os.path.join(results_dir,"analyser.pickle")
 if os.path.isfile(filename_analyser):
     logging.info('Loading analyser')
     analyser = load(filename_analyser)
@@ -59,7 +59,7 @@ else:
     analyser = Analyser(results_dir)
 
 # Model
-filename_model = results_dir + "model.pt"
+filename_model = os.path.join(results_dir,"model.pt")
 if os.path.isfile(filename_model):
     model = Network(device, args.num_channels)
     model = load_network(model, device, filename_model)

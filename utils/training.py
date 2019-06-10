@@ -11,6 +11,7 @@ from PIL import Image
 import copy
 import logging
 import time
+import os
 from utils.io import imshow
 
 def initial_input(model, input_frames, batch_images, starting_point, num_input_frames, channels, device, training):
@@ -50,7 +51,8 @@ def plot_predictions(i, output_frames, target_frames, channels):
     plt.show()
 
 
-def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, num_output_frames, reinsert_frequency, channels, device, analyser, plot=False, debug=False):
+def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, num_output_frames, 
+                    reinsert_frequency, channels, device, analyser, plot=False, debug=False):
     """
     Training of the network
     :param train: Training data
@@ -141,7 +143,8 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
     return val_loss
 
 
-def test(model, test_dataloader, starting_point, num_input_frames, num_output_frames, channels, device, score_keeper, results_dir, plot=True, debug=False):
+def test(model, test_dataloader, starting_point, num_input_frames, num_output_frames, reinsert_frequency, 
+            channels, device, score_keeper, figures_dir, plot=True, debug=False):
     """
     Testing of network
     :param test_dataloader: Data to test
@@ -156,7 +159,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
                 sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
                 sns.set_context("talk")
                 imshow(input_frames[image_to_plot, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
-                figure_save(results_dir + "Input %02d" % imag)
+                figure_save(os.path.join(figures_dir,"Input %02d" % imag))
         predicted = output_frames[image_to_plot, -channels:, :, :].cpu()
         des_target = target_frames[image_to_plot, -channels:, :, :].cpu()
         fig = plt.figure()
@@ -166,7 +169,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
         imshow(predicted, title="Predicted %02d" % future_frame_idx, smoothen=True, obj=pred)
         tar = fig.add_subplot(1, 2, 2)
         imshow(des_target, title="Target %02d" % future_frame_idx, obj=tar)
-        figure_save(results_dir + "Prediction %02d" % future_frame_idx)
+        figure_save(os.path.join(figures_dir,"Prediction %02d" % future_frame_idx))
         plt.show()
 
     def plot_cutthrough(frequently_plot=5, direction="Horizontal", location=None):
@@ -224,7 +227,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
                 tar.plot([stdmax[0], stdmax[0]], [0, np.shape(std)[0]], color="yellow")
 
             cutthrough(predicted, des_target, "Predicted", "Target")
-            figure_save(results_dir + "Cut-through %02d" % future_frame_idx, obj=fig)
+            figure_save(os.path.join(figures_dir, "Cut-through %02d" % future_frame_idx), obj=fig)
             plt.show()
 
     model.eval()
@@ -270,5 +273,5 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
                 plot_predictions()
                 plot_cutthrough()
 
-        logging.info("{:d} out of {:d}".format(batch_num + 1, len(test_dataloader)))
+        logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(test_dataloader)))
         if debug: break

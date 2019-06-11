@@ -33,4 +33,4 @@ else
 fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
-python experiment.py --experiment_name "ConvAE_LSTM_2"
+python experiment.py --experiment_name "ConvAE_LSTM_1ch_normalize"

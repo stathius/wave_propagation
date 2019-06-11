@@ -4,6 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 import scipy.ndimage as ndimage
 import numpy as np
+from utils.format import normalize_image
 
 """
 Saving and loading of figures, network state and other .pickle objects
@@ -45,32 +46,35 @@ def make_folder_results(folder_name):
     os.mkdir(folder_name)
     os.mkdir(os.path.join(folder_name,'figures'))
 
-def imshow(inp, title=None, smoothen=False, return_np=False, obj=None):
+def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
     """Imshow for Tensor."""
-    channels = inp.size()[0]
+    channels = image.size()[0]
 
     if channels == 3:
-        inp = inp.numpy().transpose((1, 2, 0))
+        image = image.numpy().transpose((1, 2, 0))
         smooth_filter = (.5, .5, 0)
     elif channels == 1:
-        inp = inp[0,:,:].numpy()
+        image = image[0,:,:].numpy()
         smooth_filter = (.5, .5)
     else:
-        raise Exception('Image size not supported ', inp.size())
+        raise Exception('Image size not supported ', image.size())
 
     if smoothen:
-        inp = ndimage.gaussian_filter(inp, sigma=smooth_filter)
+        image = ndimage.gaussian_filter(image, sigma=smooth_filter)
 
-    inp = np.clip(inp, 0, 1)
+    if normalize is not None:
+        image = normalize_image(image, normalize)
+
+    # image = np.clip(image, 0, 1)
     if obj is not None:
-        obj.imshow(inp, cmap='gray', interpolation='none')
+        obj.imshow(image, cmap='gray', interpolation='none')
         obj.axis("off")
         if title is not None:
             obj.set_title(title)
     else:
-        plt.imshow(inp, cmap='gray', interpolation='none')
+        plt.imshow(image, cmap='gray', interpolation='none')
         plt.axis("off")
         if title is not None:
             plt.title(title)
     if return_np:
-        return inp
+        return image

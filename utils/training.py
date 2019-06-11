@@ -13,6 +13,7 @@ import logging
 import time
 import os
 from utils.io import imshow
+from utils.WaveDataset import normalize
 
 def initial_input(model, input_frames, batch_images, starting_point, num_input_frames, channels, device, training):
     """
@@ -39,15 +40,15 @@ def propagate(model, output_frames, target_frames, batch_images, starting_point,
     target_frames = torch.cat((target_frames, batch_images[:, target_idx* channels:(target_idx+ 1) * channels, :, :].to(device)), dim=1)
     return output_frames, target_frames
 
-def plot_predictions(i, output_frames, target_frames, channels):
+def plot_predictions(batch, output_frames, target_frames, channels): 
     logging.info('** plot predictions **')
-    predicted = output_frames[i, -channels:, :, :].cpu().detach()
-    des_target_frames = target_frames[i, -channels:, :, :].cpu().detach()
+    predicted = output_frames[batch, -channels:, :, :].cpu().detach()
+    des_target_frames = target_frames[batch, -channels:, :, :].cpu().detach()
     fig = plt.figure(figsize=[8,8])
     pred = fig.add_subplot(1, 2, 1)
-    imshow(predicted, title="Predicted smoothened %02d" % n, smoothen=True, obj=pred)
+    imshow(predicted, title="Predicted smoothened %02d" % batch, smoothen=True, obj=pred, normalize=normalize)
     tar = fig.add_subplot(1, 2, 2)
-    imshow(des_target_frames, title="Target %02d" % n, obj=tar)
+    imshow(des_target_frames, title="Target %02d" % batch, obj=tar, normalize=normalize)
     plt.show()
 
 
@@ -83,8 +84,8 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
                 else:
                     output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, 
                                                              num_input_frames, future_frame_idx, channels, device, training)
-                if plot and (i == 0) and (batch_num == 0):
-                    plot_predictions(i, output_frames, target_frames, channels)
+            if plot and (i == 0) and (batch_num == 0):
+                plot_predictions(batch_num, output_frames, target_frames, channels)
             loss = F.mse_loss(output_frames, target_frames)
             if training:
                 loss.backward()
@@ -132,8 +133,8 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
                 else:
                     output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, 
                                                              num_input_frames, future_frame_idx, channels, device, training)
-                if plot and (i == 0) and (batch_num == 0):
-                    plot_predictions(i, coutput_frames, target_frames, channels)
+            if plot and (i == 0) and (batch_num == 0):
+                plot_predictions(batch_num, output_frames, target_frames, channels)
             loss = F.mse_loss(output_frames, target_frames)
             batch_loss += loss.item()
             if debug: break
@@ -166,9 +167,9 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
         sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
         sns.set_context("talk")
         pred = fig.add_subplot(1, 2, 1)
-        imshow(predicted, title="Predicted %02d" % future_frame_idx, smoothen=True, obj=pred)
+        imshow(predicted, title="Predicted %02d" % future_frame_idx, smoothen=True, obj=pred, normalize=normalize)
         tar = fig.add_subplot(1, 2, 2)
-        imshow(des_target, title="Target %02d" % future_frame_idx, obj=tar)
+        imshow(des_target, title="Target %02d" % future_frame_idx, obj=tar, normalize=normalize)
         figure_save(os.path.join(figures_dir,"Prediction %02d" % future_frame_idx))
         plt.show()
 
@@ -208,8 +209,8 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
             with sns.axes_style("darkgrid"):  # darkgrid, whitegrid, dark, white, and ticks
                 profile = fig.add_subplot(2, 2, (3, 4))
 
-            predicted = imshow(predicted, title="Predicted %02d" % future_frame_idx, return_np=True, obj=pre)
-            des_target = imshow(des_target, title="Target %02d" % future_frame_idx, return_np=True, obj=tar)
+            predicted = imshow(predicted, title="Predicted %02d" % future_frame_idx, return_np=True, obj=pre, normalize=normalize)
+            des_target = imshow(des_target, title="Target %02d" % future_frame_idx, return_np=True, obj=tar, normalize=normalize)
             if not location:
                 if "Horizontal" in direction:
                     std = np.std(des_target, axis=1)
@@ -243,12 +244,12 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
         
         total_frames = batch_images.size()[1]
         num_future_frames = total_frames - (starting_point + num_input_frames)
-        for future_frame_idx in range(num_future_frames):
+        for future_frame_idx in range(nm_future_frames):
             if future_frame_idx == 0:
                 prop_type = 'Initial input'
                 input_frames = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :].clone()
                 output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, channels, device, training)
-            elif (future_frame_idx+1)%reinsert_frequency == 0:
+            elif (future_frame_idx)%reinsert_frequency == 0:
                 prop_type = 'Reinsert'
                 input_frames = output_frames[:, -num_input_frames * channels:, :, :].clone()
                 output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, 

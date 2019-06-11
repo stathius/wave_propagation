@@ -8,10 +8,13 @@ import random
 from PIL import Image
 from torchvision import transforms
 
+normalize = {'mean':0.5047, 'std':0.1176}
+
 transformVar = {"Test": transforms.Compose([
     transforms.Resize(128),    #Already 184 x 184
     transforms.CenterCrop(128),
     transforms.ToTensor(),
+    transforms.Normalize(mean=[normalize['mean']], std=[normalize['std']])
 ]),
     "Train": transforms.Compose([
     transforms.Resize(128),  # Already 184 x 184
@@ -19,6 +22,7 @@ transformVar = {"Test": transforms.Compose([
     transforms.RandomHorizontalFlip(),
     transforms.RandomVerticalFlip(),
     transforms.ToTensor(),
+    transforms.Normalize(mean=[normalize['mean']], std=[normalize['std']])
     ])
 }
 

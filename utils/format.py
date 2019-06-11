@@ -1,5 +1,11 @@
 import numpy as np
 
+def normalize_image(image, normalize):
+    mean = normalize['mean']
+    std = normalize['std']
+    image = std * image + mean
+    return image
+
 def hex_str2bool(hex_string):
     """
     Converts a hex string to boolean value (for pHash/wHash)

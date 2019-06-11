@@ -8,7 +8,7 @@ from scipy.spatial import distance
 from PIL import Image
 import imagehash
 import os
-from utils.format import hex_str2bool
+from utils.format import hex_str2bool, normalize_image
 
 class Scorekeeper():
     """
@@ -111,15 +111,14 @@ class Scorekeeper():
         multichannel = self.channels > 1
         return measure.compare_ssim(predicted, target, multichannel=multichannel, gaussian_weights=True)
 
-    def prepro(self, image):
+    def prepro(self, image, normalize=None):
         if image.size()[0]==3:
             image = image.numpy().transpose((1, 2, 0))
         else:
             image = image[0,:,:].numpy()
-        # mean = np.array([0.485, 0.456, 0.406])
-        # std = np.array([0.229, 0.224, 0.225])
-        # image = std * image + mean
-        # np.clip(image, 0, 1)
+        # if normalize is not None:
+        image = normalize_image(image, normalize)
+            # np.clip(image, 0, 1)
         return image
 
     def score(self, predicted, target):
@@ -128,7 +127,7 @@ class Scorekeeper():
         pred_relative = np.abs(predicted - predicted_mean)
         target_relative = np.abs(target - target_mean)
 
-        relative_diff = np.mean(np.abs(pred_relative - target_relative))                         / (np.sum(target_relative) / np.prod(np.shape(target)))
+        relative_diff = np.mean(np.abs(pred_relative - target_relative))/ (np.sum(target_relative) / np.prod(np.shape(target)))
 
         absolute_diff = np.mean(np.abs(predicted - target)) / (np.sum(target) / np.prod(np.shape(target)))
 

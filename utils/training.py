@@ -13,7 +13,7 @@ import logging
 import time
 import os
 from utils.io import imshow
-from utils.WaveDataset import normalize
+# from utils.WaveDataset import normalize
 
 def initial_input(model, input_frames, batch_images, starting_point, num_input_frames, channels, device, training):
     """
@@ -144,8 +144,8 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
     return val_loss
 
 
-def test(model, test_dataloader, starting_point, num_input_frames, num_output_frames, reinsert_frequency, 
-            channels, device, score_keeper, figures_dir, plot=True, debug=False):
+def test(model, test_dataloader, starting_point, num_input_frames, reinsert_frequency, 
+            channels, device, score_keeper, figures_dir, plot=True, debug=False, normalize=None):
     """
     Testing of network
     :param test_dataloader: Data to test
@@ -159,7 +159,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
                 fig = plt.figure().add_axes()
                 sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
                 sns.set_context("talk")
-                imshow(input_frames[image_to_plot, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig)
+                imshow(input_frames[image_to_plot, imag * channels:(imag + 1) * channels, :, :], title="Input %01d" % imag, obj=fig, normalize=normalize)
                 figure_save(os.path.join(figures_dir,"Input %02d" % imag))
         predicted = output_frames[image_to_plot, -channels:, :, :].cpu()
         des_target = target_frames[image_to_plot, -channels:, :, :].cpu()
@@ -173,7 +173,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
         figure_save(os.path.join(figures_dir,"Prediction %02d" % future_frame_idx))
         plt.show()
 
-    def plot_cutthrough(frequently_plot=5, direction="Horizontal", location=None):
+    def plot_cutthrough(direction="Horizontal", location=None):
         def cutthrough(img1, img2,  hue1, hue2):
             intensity = []
             location = []
@@ -198,44 +198,46 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
                          data=pd.DataFrame.from_dict(data_dict), ax=profile)
             profile.set_title("Intensity Profile")
 
-        if ((future_frame_idx + 1) % frequently_plot) == 0 or (future_frame_idx == 0):
-            predicted = output_frames[image_to_plot, -channels:, :, :].cpu()
-            des_target = target_frames[image_to_plot, -channels:, :, :].cpu()
-            fig = plt.figure()
-            sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
-            with sns.axes_style("white"):
-                pre = fig.add_subplot(2, 2, 1)
-                tar = fig.add_subplot(2, 2, 2)
-            with sns.axes_style("darkgrid"):  # darkgrid, whitegrid, dark, white, and ticks
-                profile = fig.add_subplot(2, 2, (3, 4))
+        channels = 1 # override channels to plot correctly
+        predicted = output_frames[image_to_plot, -channels:, :, :].cpu()
+        des_target = target_frames[image_to_plot, -channels:, :, :].cpu()
+        fig = plt.figure()
+        sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
+        with sns.axes_style("white"):
+            pre = fig.add_subplot(2, 2, 1)
+            tar = fig.add_subplot(2, 2, 2)
+        with sns.axes_style("darkgrid"):  # darkgrid, whitegrid, dark, white, and ticks
+            profile = fig.add_subplot(2, 2, (3, 4))
 
-            predicted = imshow(predicted, title="Predicted %02d" % future_frame_idx, return_np=True, obj=pre, normalize=normalize)
-            des_target = imshow(des_target, title="Target %02d" % future_frame_idx, return_np=True, obj=tar, normalize=normalize)
-            if not location:
-                if "Horizontal" in direction:
-                    std = np.std(des_target, axis=1)
-                elif "Vertical" in direction:
-                    std = np.std(des_target, axis=0)
-                stdmax = np.where(std.max() == std)
-            else:
-                stdmax = location
-
+        predicted = imshow(predicted, title="Predicted %02d" % future_frame_idx, return_np=True, obj=pre, normalize=normalize)
+        des_target = imshow(des_target, title="Target %02d" % future_frame_idx, return_np=True, obj=tar, normalize=normalize)
+        if not location:
             if "Horizontal" in direction:
-                pre.plot([0, np.shape(std)[0]], [stdmax[0], stdmax[0]], color="yellow")
-                tar.plot([0, np.shape(std)[0]], [stdmax[0], stdmax[0]], color="yellow")
+                std = np.std(des_target, axis=1)
             elif "Vertical" in direction:
-                pre.plot([stdmax[0], stdmax[0]], [0, np.shape(std)[0]], color="yellow")
-                tar.plot([stdmax[0], stdmax[0]], [0, np.shape(std)[0]], color="yellow")
+                std = np.std(des_target, axis=0)
+            stdmax = np.where(std.max() == std)
+        else:
+            stdmax = location
 
-            cutthrough(predicted, des_target, "Predicted", "Target")
-            figure_save(os.path.join(figures_dir, "Cut-through %02d" % future_frame_idx), obj=fig)
-            plt.show()
+        if "Horizontal" in direction:
+            pre.plot([0, np.shape(std)[0]], [stdmax[0], stdmax[0]], color="yellow")
+            tar.plot([0, np.shape(std)[0]], [stdmax[0], stdmax[0]], color="yellow")
+        elif "Vertical" in direction:
+            pre.plot([stdmax[0], stdmax[0]], [0, np.shape(std)[0]], color="yellow")
+            tar.plot([stdmax[0], stdmax[0]], [0, np.shape(std)[0]], color="yellow")
+
+        # print(predicted.size())
+        cutthrough(predicted, des_target, "Predicted", "Target")
+        figure_save(os.path.join(figures_dir, "Cut-through %02d" % future_frame_idx), obj=fig)
+        plt.show()
 
     model.eval()
     total = 0
     image_to_plot = random.randint(0, 15)
     reinsert_frequency = 10
     training = False
+    plot_frequency = 5
 
     for batch_num, batch in enumerate(test_dataloader):
         batch_images = batch["image"]
@@ -244,7 +246,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
         
         total_frames = batch_images.size()[1]
         num_future_frames = total_frames - (starting_point + num_input_frames)
-        for future_frame_idx in range(nm_future_frames):
+        for future_frame_idx in range(num_future_frames):
             if future_frame_idx == 0:
                 prop_type = 'Initial input'
                 input_frames = batch_images[:, starting_point * channels:(starting_point + num_input_frames) * channels, :, :].clone()
@@ -270,7 +272,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, num_output_fr
                                  target_frames[ba, -channels:, :, :].cpu(), 
                                  future_frame_idx,"pHash", "pHash2", "SSIM", "Own", "RMSE")
 
-            if plot:
+            if plot and (((future_frame_idx + 1) % plot_frequency) == 0 or (future_frame_idx == 0)):
                 plot_predictions()
                 plot_cutthrough()
 

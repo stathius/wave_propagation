@@ -15,7 +15,7 @@ class Scorekeeper():
     Calculates and keeps track of testing results
     SSIM/pHash/RMSE etc.
     """
-    def __init__(self, results_dir, channels):
+    def __init__(self, results_dir, channels, normalize):
         super(Scorekeeper, self).__init__()
 
         self.intermitted = []
@@ -46,6 +46,7 @@ class Scorekeeper():
         self.results_dir = results_dir
         self.figures_dir = os.path.join(results_dir, 'figures')
         self.channels = channels
+        self.normalize = normalize
 
     def add(self, predicted, target, frame_nr, *args):
         predicted = self.prepro(predicted)
@@ -111,14 +112,14 @@ class Scorekeeper():
         multichannel = self.channels > 1
         return measure.compare_ssim(predicted, target, multichannel=multichannel, gaussian_weights=True)
 
-    def prepro(self, image, normalize=None):
+    def prepro(self, image):
         if image.size()[0]==3:
             image = image.numpy().transpose((1, 2, 0))
         else:
             image = image[0,:,:].numpy()
         # if normalize is not None:
-        image = normalize_image(image, normalize)
-            # np.clip(image, 0, 1)
+        image = normalize_image(image, self.normalize)
+        image = np.clip(image, 0, 1)
         return image
 
     def score(self, predicted, target):

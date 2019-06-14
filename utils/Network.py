@@ -1,14 +1,29 @@
 import torch.nn as nn
 import torch
 
-class Network (nn.Module):
+
+class _CustomDataParallel(nn.Module):
+    def __init__(self, model):
+        super(NetworkDataParallel, self).__init__()
+        self.model = nn.DataParallel(model).cuda()
+        print(type(self.model))
+
+    def forward(self, *input):
+        return self.model(*input)
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.model.module, name)
+
+class Network(nn.Module):
     """
     The network structure
     """
-    def __init__(self, device, num_channels):
+    def __init__(self, num_channels):
         super(Network, self).__init__()
         self.num_channels = num_channels
-        self.device = device
         self.encoder_conv = nn.Sequential(
             nn.Conv2d(5*num_channels, 60, kernel_size=7, stride=2, padding=1),
             nn.BatchNorm2d(num_features=60),
@@ -79,5 +94,5 @@ class Network (nn.Module):
     def reset_hidden(self, batch_size, training=False):
         # TODO
         # user random values?
-        self.h0 = torch.zeros((batch_size, 1000), requires_grad=training).to(self.device) #Requires grad replaces Variable
-        self.c0 = torch.zeros((batch_size, 1000), requires_grad=training).to(self.device)
+        self.h0 = torch.zeros((batch_size, 1000), requires_grad=training) #Requires grad replaces Variable
+        self.c0 = torch.zeros((batch_size, 1000), requires_grad=training)

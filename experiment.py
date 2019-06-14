@@ -10,9 +10,10 @@ import time
 from utils.Network import Network
 from utils.Analyser import Analyser
 from utils.io import save_network, load_network, save, load, make_folder_results
-from utils.WaveDataset import create_datasets, transformVar
+from utils.WaveDataset import create_datasets, transformVar, normalize
 from utils.training import train_epoch, validate, test
 from utils.arg_parse import get_args
+from utils.Scorekeeper import Scorekeeper
 
 logging.basicConfig(format='%(message)s',level=logging.INFO)
 
@@ -121,8 +122,8 @@ if __name__ == "__main__":
         logging.info('Epoch %d\tTrain Loss %.6f\tValidation loss: %.6f\tEpoch Time: %.3f' % (epoch, train_loss, validation_loss, epochs_time))
 
 logging.info("Start testing")
-score_keeper=Scorekeeper(results_dir, args.num_channels)
+score_keeper=Scorekeeper(results_dir, args.num_channels, normalize)
 figures_dir = os.path.join(results_dir,'figures')
-test(model, test_dataloader, starting_point, num_input_frames, num_output_frames, reinsert_frequency, 
-            channels, device, score_keeper, figures_dir, plot=True, debug=False)
+test(model, test_dataloader, args.test_starting_point, args.num_input_frames, args.num_output_frames, args.reinsert_frequency, 
+            args.channels, device, score_keeper, figures_dir, plot=True, debug=False)
 score_keeper.plot()

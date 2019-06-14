@@ -4,10 +4,11 @@ import torch
 from torchvision import transforms
 import torch.optim as optim
 from torch.utils.data import DataLoader
+import torch.nn as nn
 import os
 import platform
 import time
-from utils.Network import Network
+from utils.Network import Network, _CustomDataParallel
 from utils.Analyser import Analyser
 from utils.io import save_network, load_network, save, load, make_folder_results
 from utils.WaveDataset import create_datasets, transformVar, normalize
@@ -62,13 +63,17 @@ else:
 # Model
 filename_model = os.path.join(results_dir,"model.pt")
 if os.path.isfile(filename_model):
-    model = Network(device, args.num_channels)
-    model = load_network(model, device, filename_model)
+    model = Network(args.num_channels)
+    model = load_network(model, filename_model)
 else:
-    model = Network(device, args.num_channels)
+    model = Network(args.num_channels)
 
-# Learning Rate scheduler w. optimizer
-# Optimizer
+if torch.cuda.device_count() > 1:
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
+    # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+    model = _CustomDataParallel(model)
+model.to(device)
+
 optimizer_algorithm = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4)
 # Add learning rate schedulers
 # Decay LR by a factor of gamma every step_size epochs
@@ -81,18 +86,14 @@ elif scheduler_type == 'plateau':
     # Reduce learning rate when a metric has stopped improving
     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='min', factor=0.1, patience=7)
 
+# Save metadata
 filename_metadata = os.path.join(results_dir,"metadata.pickle" )
-meta_data_dict = {  "optimizer": optimizer_algorithm.state_dict(),
+meta_data_dict = {  "args": args,
+                    "optimizer": optimizer_algorithm.state_dict(),
                     "scheduler_type": scheduler_type, 
                     "scheduler": lr_scheduler.state_dict()}
 save(meta_data_dict, filename_metadata)
 
-
-if torch.cuda.device_count() > 1:
-  print("Let's use", torch.cuda.device_count(), "GPUs!")
-  # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-  model = nn.DataParallel(model)
-model.to(device)
 
 if __name__ == "__main__":
     logging.info('Experiment %s' % args.experiment_name)

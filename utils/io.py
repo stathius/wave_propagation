@@ -18,13 +18,12 @@ def save_network(model, filename):
     torch.save(network_dict, filename)
 
 
-def load_network(model, device, filename):
+def load_network(model, filename):
     dct = torch.load(filename, map_location='cpu')
     try:
         model.load_state_dict(dct)
     except:
         raise Warning('model and dictionary mismatch')
-    model.to(device)
     return model
 
 def save(obj, filename):

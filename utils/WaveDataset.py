@@ -37,12 +37,12 @@ class WaveDataset(Dataset):
     """
     Creates a data-loader for the wave prop data
     """
-    def __init__(self, root_directory, transform=None, check_bad_data=True, channels=3):
+    def __init__(self, root_directory, transform=None, check_bad_data=True, num_channels=3):
         self.root_dir = root_directory[0]
         self.classes = root_directory[1]
         self.imagesets = root_directory[2]
         self.transform = transform
-        self.channels=channels
+        self.num_channels=num_channels
 
 
     def __len__(self):
@@ -64,9 +64,9 @@ class WaveDataset(Dataset):
         Concatenated image tensor with all images having the same random transforms applied
         """
         for i, image in enumerate(im_list):
-            if self.channels == 1:
+            if self.num_channels == 1:
                 img = open_image(self.root_dir + img_path + "/" + image, grayscale=True)
-            elif self.channels == 3:
+            elif self.num_channels == 3:
                 img = open_image(self.root_dir + img_path + "/" + image, grayscale=False)
             if i == 0:
                 if self.transform:
@@ -102,7 +102,7 @@ class WaveDataset(Dataset):
         return Concat_Img
 
 
-def create_datasets(root_directory, transform=None, test_fraction=0., validation_fraction=0., check_bad_data=True, channels=3):
+def create_datasets(root_directory, transform=None, test_fraction=0., validation_fraction=0., check_bad_data=True, num_channels=3):
     """
     Splits data into fractional parts (data does not overlap!!) and creates data-loaders for each fraction.
     :param root_directory: Directory of data
@@ -112,12 +112,12 @@ def create_datasets(root_directory, transform=None, test_fraction=0., validation
     :param check_bad_data: Option to evaluate and filter out corrupted data/images
     :return:
     """
-    def filter_bad_data(img_path, channels):
+    def filter_bad_data(img_path, num_channels):
         img = open_image(img_path, grayscale=True)
         good = False
-        if (len(np.shape(img)) == 2) and (channels == 1):
+        if (len(np.shape(img)) == 2) and (num_channels == 1):
             good = True
-        elif (len(np.shape(img)) == 3) and (channels == np.shape(img)[-1]):
+        elif (len(np.shape(img)) == 3) and (num_channels == np.shape(img)[-1]):
             good = True
         return good
 
@@ -133,7 +133,7 @@ def create_datasets(root_directory, transform=None, test_fraction=0., validation
             else:
                 Good = True
                 for im in im_list:
-                    Good = Good and filter_bad_data(root_directory + cla + "/" + im, channels)
+                    Good = Good and filter_bad_data(root_directory + cla + "/" + im, num_channels)
                 if Good:
                     imagesets.append((im_list, cla))
                     good_images += 1
@@ -149,7 +149,7 @@ def create_datasets(root_directory, transform=None, test_fraction=0., validation
                 imagesets.remove(item)
 
             Send = [root_directory, classes, test]
-            Test = WaveDataset(Send, transform["Test"], channels=channels)
+            Test = WaveDataset(Send, transform["Test"], num_channels=num_channels)
 #             yield Test
 
         if validation_fraction > 0:
@@ -158,13 +158,13 @@ def create_datasets(root_directory, transform=None, test_fraction=0., validation
                 imagesets.remove(item)
 
             Send = [root_directory, classes, validate]
-            Validate = WaveDataset(Send, transform["Test"], channels=channels)
+            Validate = WaveDataset(Send, transform["Test"], num_channels=num_channels)
 #             yield Validate
 
         Send = [root_directory, classes, imagesets]
-        Train = WaveDataset(Send, transform["Train"], channels=channels)
+        Train = WaveDataset(Send, transform["Train"], num_channels=num_channels)
 #         yield Train
         return Test, Validate, Train
     else:
-        Data = WaveDataset(root_directory, transform, check_bad_data=check_bad_data, channels=channels)
+        Data = WaveDataset(root_directory, transform, check_bad_data=check_bad_data, num_channels=num_channels)
         return Data

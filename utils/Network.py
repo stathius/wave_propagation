@@ -5,12 +5,12 @@ class Network (nn.Module):
     """
     The network structure
     """
-    def __init__(self, device, channels):
+    def __init__(self, device, num_channels):
         super(Network, self).__init__()
-        self.channels = channels
+        self.num_channels = num_channels
         self.device = device
         self.encoder_conv = nn.Sequential(
-            nn.Conv2d(5*channels, 60, kernel_size=7, stride=2, padding=1),
+            nn.Conv2d(5*num_channels, 60, kernel_size=7, stride=2, padding=1),
             nn.BatchNorm2d(num_features=60),
             nn.Tanh(),
             nn.Conv2d(60, 120, kernel_size=3, stride=2, padding=1),
@@ -48,7 +48,7 @@ class Network (nn.Module):
             nn.BatchNorm2d(num_features=60),
             nn.Tanh(),
             nn.Dropout2d(0.25),
-            nn.ConvTranspose2d(60, channels, kernel_size=3, stride=2, padding=1, output_padding=1)
+            nn.ConvTranspose2d(60, num_channels, kernel_size=3, stride=2, padding=1, output_padding=1)
         )
 
         self.LSTM_initial_input = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)

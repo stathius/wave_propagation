@@ -48,12 +48,12 @@ def make_folder_results(folder_name):
 
 def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
     """Imshow for Tensor."""
-    channels = image.size()[0]
+    num_channels = image.size()[0]
 
-    if channels == 3:
+    if num_channels == 3:
         image = image.numpy().transpose((1, 2, 0))
         smooth_filter = (.5, .5, 0)
-    elif channels == 1:
+    elif num_channels == 1:
         image = image[0,:,:].numpy()
         smooth_filter = (.5, .5)
     else:

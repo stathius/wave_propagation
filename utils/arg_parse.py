@@ -24,11 +24,11 @@ def get_args():
     parser.add_argument('--num_input_frames', nargs="?", type=int, default=5)
     parser.add_argument('--num_output_frames', nargs="?", type=int, default=20)
     parser.add_argument('--reinsert_frequency', nargs="?", type=int, default=10)
-    parser.add_argument('--num_channels', nargs="?", type=int, default=1, help='how many channels each frame has (gray/rgb)')
+    parser.add_argument('--num_channels', nargs="?", type=int, default=1, help='how many num_channels each frame has (gray/rgb)')
     parser.add_argument('--test_starting_point', nargs="?", type=int, default=15, help='which frame to start the test')
     parser.add_argument('--experiment_name', nargs="?", type=str, default="dummy", 
                                             help='Experiment name - to be used for building the experiment folder')
-    parser.add_argument('--seed_everything', type=str2bool, default=False)
+    parser.add_argument('--seed_everything', type=str2bool, default=True)
     parser.add_argument('--plot', type=str2bool, default=False)
     parser.add_argument('--debug', type=str2bool, default=False)
 

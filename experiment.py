@@ -45,9 +45,9 @@ else:
          data_dir+"Video_Data/", transformVar, test_fraction=0.15, validation_fraction=0.15, check_bad_data=False, num_channels=args.num_channels)
     all_data = {"Training data": train_dataset, "Validation data": val_dataset, "Testing data": test_dataset}
     save(all_data, filename_data)
-train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=args.num_workers)
-val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=True, num_workers=args.num_workers)
-test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True, num_workers=args.num_workers)
+train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
 
 # analyser

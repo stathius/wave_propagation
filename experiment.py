@@ -8,7 +8,7 @@ import torch.nn as nn
 import os
 import platform
 import time
-from utils.Network import Network, _CustomDataParallel
+from utils.Network import Network, MyDataParallel
 from utils.Analyser import Analyser
 from utils.io import save_network, load_network, save, load, make_folder_results
 from utils.WaveDataset import create_datasets, transformVar, normalize
@@ -71,7 +71,7 @@ else:
 if torch.cuda.device_count() > 1:
     print("Let's use", torch.cuda.device_count(), "GPUs!")
     # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-    model = _CustomDataParallel(model)
+    model = MyDataParallel(model)
 model.to(device)
 
 optimizer_algorithm = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4)

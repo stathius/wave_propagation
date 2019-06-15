@@ -2,20 +2,19 @@ import torch.nn as nn
 import torch
 
 
-class _CustomDataParallel(nn.Module):
-    def __init__(self, model):
-        super(_CustomDataParallel, self).__init__()
-        self.model = nn.DataParallel(model).cuda()
-        print(type(self.model))
 
-    def forward(self, *input):
-        return self.model(*input)
+class MyDataParallel(nn.DataParallel):
+    # def __init__(self, model):
+        # super(MyDataParallel, self).__init__()
 
     def __getattr__(self, name):
         try:
             return super().__getattr__(name)
         except AttributeError:
-            return getattr(self.model.module, name)
+            return getattr(self.module, name)
+    
+    # def __getattr__(self, name):
+        # return getattr(self.module, name)
 
 class Network(nn.Module):
     """

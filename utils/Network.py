@@ -2,20 +2,6 @@ import torch.nn as nn
 import torch
 
 
-
-class MyDataParallel(nn.DataParallel):
-    # def __init__(self, model):
-        # super(MyDataParallel, self).__init__()
-
-    def __getattr__(self, name):
-        try:
-            return super().__getattr__(name)
-        except AttributeError:
-            return getattr(self.module, name)
-    
-    # def __getattr__(self, name):
-        # return getattr(self.module, name)
-
 class Network(nn.Module):
     """
     The network structure

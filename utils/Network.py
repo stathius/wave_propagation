@@ -4,7 +4,7 @@ import torch
 
 class _CustomDataParallel(nn.Module):
     def __init__(self, model):
-        super(NetworkDataParallel, self).__init__()
+        super(_CustomDataParallel, self).__init__()
         self.model = nn.DataParallel(model).cuda()
         print(type(self.model))
 

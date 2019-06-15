@@ -8,7 +8,7 @@ import torch.nn as nn
 import os
 import platform
 import time
-from utils.Network import Network, MyDataParallel
+from utils.Network import Network
 from utils.Analyser import Analyser
 from utils.io import save_network, load_network, save, load, make_folder_results
 from utils.WaveDataset import create_datasets, transformVar, normalize

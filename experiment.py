@@ -68,10 +68,6 @@ if os.path.isfile(filename_model):
 else:
     model = Network(args.num_channels)
 
-if torch.cuda.device_count() > 1:
-    print("Let's use", torch.cuda.device_count(), "GPUs!")
-    # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-    model = MyDataParallel(model)
 model.to(device)
 
 optimizer_algorithm = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4)

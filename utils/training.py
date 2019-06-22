@@ -15,7 +15,9 @@ import os
 from utils.io import imshow
 # from utils.WaveDataset import normalize
 
-def initial_input(model, input_frames, batch_images, starting_point, num_input_frames, num_channels, device, training):
+NUM_CHANNELS = 1
+
+def initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training):
     """
     var           size
     batch_images  [16, 100, 128, 128]
@@ -25,25 +27,25 @@ def initial_input(model, input_frames, batch_images, starting_point, num_input_f
     """
     output_frames = model(input_frames.to(device), mode='initial_input', training=training)
     target_idx = starting_point + num_input_frames
-    target_frames = batch_images[:, target_idx * num_channels:(target_idx + 1) * num_channels, :, :].to(device)
+    target_frames = batch_images[:, target_idx:(target_idx + 1), :, :].to(device)
     return output_frames, target_frames
 
-def reinsert(model, input_frames, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, num_channels, device, training):
+def reinsert(model, input_frames, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, device, training):
     output_frames = torch.cat((output_frames, model(input_frames, mode="reinsert", training=training)), dim=1).to(device)
     target_idx = starting_point + future_frame_idx + num_input_frames
-    target_frames = torch.cat((target_frames, batch_images[:, target_idx*num_channels:(target_idx + 1) * num_channels, :, :].to(device)), dim=1)
+    target_frames = torch.cat((target_frames, batch_images[:, target_idx:(target_idx + 1), :, :].to(device)), dim=1)
     return output_frames, target_frames
 
-def propagate(model, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, num_channels, device, training):
+def propagate(model, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, device, training):
     output_frames = torch.cat((output_frames, model(torch.Tensor([0]), mode="propagate", training=training)), dim=1).to(device)
     target_idx = starting_point + future_frame_idx + num_input_frames
-    target_frames = torch.cat((target_frames, batch_images[:, target_idx* num_channels:(target_idx+ 1) * num_channels, :, :].to(device)), dim=1)
+    target_frames = torch.cat((target_frames, batch_images[:, target_idx:(target_idx+ 1), :, :].to(device)), dim=1)
     return output_frames, target_frames
 
-def plot_predictions(batch, output_frames, target_frames, num_channels, show_plots): 
+def plot_predictions(batch, output_frames, target_frames, show_plots): 
     logging.info('** plot predictions **')
-    predicted = output_frames[batch, -num_channels:, :, :].cpu().detach()
-    des_target_frames = target_frames[batch, -num_channels:, :, :].cpu().detach()
+    predicted = output_frames[batch, NUM_CHANNELS:, :, :].cpu().detach()
+    des_target_frames = target_frames[batch, NUM_CHANNELS:, :, :].cpu().detach()
     fig = plt.figure(figsize=[8,8])
     pred = fig.add_subplot(1, 2, 1)
     imshow(predicted, title="Predicted smoothened %02d" % batch, smoothen=True, obj=pred, normalize=normalize)
@@ -54,7 +56,7 @@ def plot_predictions(batch, output_frames, target_frames, num_channels, show_plo
 
 
 def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, num_output_frames, 
-                    reinsert_frequency, num_channels, device, analyser, show_plots=False, debug=False):
+                    reinsert_frequency, device, analyser, show_plots=False, debug=False):
     """
     Training of the network
     :param train: Training data
@@ -76,17 +78,17 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
             for future_frame_idx in range(num_output_frames):
                 if future_frame_idx == 0:
                     # Take the first 5 frames of the batch starting from the random starting_point
-                    input_frames = batch_images[:, starting_point * num_channels:(starting_point + num_input_frames) * num_channels, :, :].clone()
-                    output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, num_channels, device, training) 
+                    input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
+                    output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training) 
                 elif future_frame_idx == reinsert_frequency:
                     # It will insert the last 5 predictions as an input
-                    input_frames = output_frames[:, -num_input_frames * num_channels:, :, :].clone()
+                    input_frames = output_frames[:, -num_input_frames:, :, :].clone()
                     output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, 
-                                                            starting_point, num_input_frames, future_frame_idx, num_channels, device, training)
+                                                            starting_point, num_input_frames, future_frame_idx, device, training)
                 else:
                     # This doesn't take any input, just propagates the LSTM internal state once
                     output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, 
-                                                             num_input_frames, future_frame_idx, num_channels, device, training)
+                                                             num_input_frames, future_frame_idx, device, training)
             loss = F.mse_loss(output_frames, target_frames)
             if training:
                 loss.backward()
@@ -104,11 +106,11 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
 
         if debug: break
     epoch_loss = mean_loss / (batch_num + 1)
-    # plot_predictions(batch_num, output_frames, target_frames, num_channels, show_plots)
+    # plot_predictions(batch_num, output_frames, target_frames, show_plots)
     return epoch_loss
 
 
-def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinsert_frequency, num_channels, device, show_plots=False, debug=False):
+def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinsert_frequency, device, show_plots=False, debug=False):
     """
     Validation of network (same protocol as training)
     :param val_dataloader: Data to test
@@ -125,27 +127,27 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
             model.reset_hidden(batch_size=batch_images.size()[0], training=False)
             for future_frame_idx in range(num_output_frames):
                 if future_frame_idx == 0:
-                    input_frames = batch_images[:, starting_point * num_channels:(starting_point + num_input_frames) * num_channels, :, :].clone()
-                    output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, num_channels, device, training) 
+                    input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
+                    output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training) 
                 elif future_frame_idx == reinsert_frequency:
-                    input_frames = output_frames[:, -num_input_frames * num_channels:, :, :].clone()
+                    input_frames = output_frames[:, -num_input_frames:, :, :].clone()
                     output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, 
-                                                            starting_point, num_input_frames, future_frame_idx, num_channels, device, training)
+                                                            starting_point, num_input_frames, future_frame_idx, device, training)
                 else:
                     output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, 
-                                                             num_input_frames, future_frame_idx, num_channels, device, training)
+                                                             num_input_frames, future_frame_idx, device, training)
             loss = F.mse_loss(output_frames, target_frames)
             batch_loss += loss.item()
             if debug: break
         overall_loss += batch_loss / (i + 1)
         if debug: break
     val_loss = overall_loss / (batch_num + 1)
-    # plot_predictions(batch_num, output_frames, target_frames, num_channels, show_plots)
+    # plot_predictions(batch_num, output_frames, target_frames, show_plots)
     return val_loss
 
 
 def test(model, test_dataloader, starting_point, num_input_frames, reinsert_frequency, 
-            num_channels, device, score_keeper, figures_dir, show_plots=False, debug=False, normalize=None):
+            device, score_keeper, figures_dir, show_plots=False, debug=False, normalize=None):
     """
     Testing of network
     :param test_dataloader: Data to test
@@ -155,14 +157,14 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
 
     def plot_predictions(show_plots=False):
         if future_frame_idx == 0:
-            for imag in range(int(input_frames.shape[1] / num_channels)):
+            for imag in range(int(input_frames.shape[1])):
                 fig = plt.figure().add_axes()
                 sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
                 sns.set_context("talk")
-                imshow(input_frames[image_to_plot, imag * num_channels:(imag + 1) * num_channels, :, :], title="Input %01d" % imag, obj=fig, normalize=normalize)
+                imshow(input_frames[image_to_plot, imag:(imag + 1), :, :], title="Input %01d" % imag, obj=fig, normalize=normalize)
                 figure_save(os.path.join(figures_dir,"Input %02d" % imag))
-        predicted = output_frames[image_to_plot, -num_channels:, :, :].cpu()
-        des_target = target_frames[image_to_plot, -num_channels:, :, :].cpu()
+        predicted = output_frames[image_to_plot, NUM_CHANNELS:, :, :].cpu()
+        des_target = target_frames[image_to_plot, NUM_CHANNELS:, :, :].cpu()
         fig = plt.figure()
         sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
         sns.set_context("talk")
@@ -197,9 +199,8 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
                          data=pd.DataFrame.from_dict(data_dict), ax=profile)
             profile.set_title("Intensity Profile")
 
-        num_channels = 1 # override num_channels to plot correctly
-        predicted = output_frames[image_to_plot, -num_channels:, :, :].cpu()
-        des_target = target_frames[image_to_plot, -num_channels:, :, :].cpu()
+        predicted = output_frames[image_to_plot, NUM_CHANNELS:, :, :].cpu()
+        des_target = target_frames[image_to_plot, NUM_CHANNELS:, :, :].cpu()
         fig = plt.figure()
         sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
         with sns.axes_style("white"):
@@ -248,26 +249,25 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
         for future_frame_idx in range(num_future_frames):
             if future_frame_idx == 0:
                 prop_type = 'Initial input'
-                input_frames = batch_images[:, starting_point * num_channels:(starting_point + num_input_frames) * num_channels, :, :].clone()
-                output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, num_channels, device, training)
+                input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
+                output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training)
                 prop_type = 'Reinsert'
-                input_frames = output_frames[:, -num_input_frames * num_channels:, :, :].clone()
+                input_frames = output_frames[:, -num_input_frames:, :, :].clone()
                 output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, 
-                                                                starting_point, num_input_frames, future_frame_idx, num_channels, device, training)
+                                                                starting_point, num_input_frames, future_frame_idx, device, training)
             else:
                 prop_type = 'Propagate'
-                output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, 
-                                                              starting_point, num_input_frames, future_frame_idx,
-                                                              num_channels, device, training)
-                # output & target_frames size is [batches, num_channels * (n + 1), 128, 128]
+                output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, num_input_frames, 
+                                                        future_frame_idx, device, training)
+                # output & target_frames size is [batches, * (n + 1), 128, 128]
 
             if debug:
                 print('batch_num %d\tfuture_frame_idx %d\ttype %s' % (batch_num, future_frame_idx, prop_type))
                 # print(output_frames.size(), target_frames.size())
 
             for ba in range(output_frames.size()[0]):
-                score_keeper.add(output_frames[ba, -num_channels:, :, :].cpu(), 
-                                 target_frames[ba, -num_channels:, :, :].cpu(), 
+                score_keeper.add(output_frames[ba, NUM_CHANNELS:, :, :].cpu(), 
+                                 target_frames[ba, NUM_CHANNELS:, :, :].cpu(), 
                                  future_frame_idx,"pHash", "pHash2", "SSIM", "Own", "RMSE")
 
             # if  batch_num == 1 and (((future_frame_idx + 1) % plot_frequency) == 0 or (future_frame_idx == 0)):

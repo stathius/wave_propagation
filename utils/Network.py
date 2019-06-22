@@ -6,7 +6,11 @@ class Network(nn.Module):
     """
     The network structure
     """
+<<<<<<< HEAD
     def __init__(self, num_channels, device):
+=======
+    def __init__(self, num_channels, device):s
+>>>>>>> 3da68bc64a2f62ff4875b3ac65d44a04857ef707
         super(Network, self).__init__()
         self.num_channels = num_channels
         self.device=device

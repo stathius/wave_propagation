@@ -35,8 +35,7 @@ results_dir = create_results_folder(base_folder=base_folder, experiment_name=arg
 
 logging.info('Creating new datasets')
 test_dataset, val_dataset, train_dataset = create_datasets(os.path.join(base_folder,"Video_Data/"), transformVar, 
-                                                            test_fraction=0.15, validation_fraction=0.15, check_bad_data=False, 
-                                                            num_channels=args.num_channels)
+                                                            test_fraction=0.15, validation_fraction=0.15)
 train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
@@ -83,7 +82,6 @@ if __name__ == "__main__":
         validation_loss = validate(model, val_dataloader, args.num_input_frames, args.num_output_frames, args.reinsert_frequency, 
                                     args.num_channels, device, show_plots=args.show_plots, debug=args.debug)
         analyser.save_validation_loss(validation_loss, epoch)
-        # perform pateau scheduler step dependent on validation loss
         validation_loss = analyser.validation_loss[-1]
         lr_scheduler.step(validation_loss)
         save_network(model, filename_model)

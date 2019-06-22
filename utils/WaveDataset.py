@@ -37,12 +37,11 @@ class WaveDataset(Dataset):
     """
     Creates a data-loader for the wave prop data
     """
-    def __init__(self, root_directory, transform=None, check_bad_data=True, num_channels=3):
+    def __init__(self, root_directory, transform=None, check_bad_data=True):
         self.root_dir = root_directory[0]
         self.classes = root_directory[1]
         self.imagesets = root_directory[2]
         self.transform = transform
-        self.num_channels=num_channels
 
 
     def __len__(self):
@@ -55,19 +54,15 @@ class WaveDataset(Dataset):
 
         Concat_Img = self.concatenate_data(img_path, im_list)
 
-        sample = {"image": Concat_Img,
-                  "target": torch.LongTensor([self.classes.index(str(img_path))])}
-        return sample
+        return Concat_Img
 
     def concatenate_data(self, img_path, im_list):
         """
         Concatenated image tensor with all images having the same random transforms applied
         """
         for i, image in enumerate(im_list):
-            if self.num_channels == 1:
-                img = open_image(self.root_dir + img_path + "/" + image, grayscale=True)
-            elif self.num_channels == 3:
-                img = open_image(self.root_dir + img_path + "/" + image, grayscale=False)
+            img = open_image(self.root_dir + img_path + "/" + image, grayscale=True)
+
             if i == 0:
                 if self.transform:
                     for t in self.transform.transforms:
@@ -102,7 +97,7 @@ class WaveDataset(Dataset):
         return Concat_Img
 
 
-def create_datasets(root_directory, transform=None, test_fraction=0., validation_fraction=0., check_bad_data=True, num_channels=3):
+def create_datasets(root_directory, transform, test_fraction, validation_fraction):
     """
     Splits data into fractional parts (data does not overlap!!) and creates data-loaders for each fraction.
     :param root_directory: Directory of data
@@ -112,59 +107,31 @@ def create_datasets(root_directory, transform=None, test_fraction=0., validation
     :param check_bad_data: Option to evaluate and filter out corrupted data/images
     :return:
     """
-    def filter_bad_data(img_path, num_channels):
-        img = open_image(img_path, grayscale=True)
-        good = False
-        if (len(np.shape(img)) == 2) and (num_channels == 1):
-            good = True
-        elif (len(np.shape(img)) == 3) and (num_channels == np.shape(img)[-1]):
-            good = True
-        return good
+    classes = listdir(root_directory)
+    imagesets = []
+    for cla in classes:
+        im_list = sorted(listdir(root_directory + cla))
+        imagesets.append((im_list, cla))
 
-    if (test_fraction > 0) or (validation_fraction > 0):
-        bad_images = 0 
-        good_images = 0
-        classes = listdir(root_directory)
-        imagesets = []
-        for cla in classes:
-            im_list = sorted(listdir(root_directory + cla))
-            if not check_bad_data:
-                imagesets.append((im_list, cla))
-            else:
-                Good = True
-                for im in im_list:
-                    Good = Good and filter_bad_data(root_directory + cla + "/" + im, num_channels)
-                if Good:
-                    imagesets.append((im_list, cla))
-                    good_images += 1
-                else:
-                    bad_images += 1
-        if check_bad_data:
-            print('Loaded %d folders. Could not load %d folders' % (good_images, bad_images))
 
-        full_size = len(imagesets)
-        if test_fraction > 0:
-            test = random.sample(imagesets, int(full_size * test_fraction)) # All images i list of t0s
-            for item in test:
-                imagesets.remove(item)
+    full_size = len(imagesets)
 
-            Send = [root_directory, classes, test]
-            Test = WaveDataset(Send, transform["Test"], num_channels=num_channels)
-#             yield Test
+    test = random.sample(imagesets, int(full_size * test_fraction)) # All images i list of t0s
+    for item in test:
+        imagesets.remove(item)
 
-        if validation_fraction > 0:
-            validate = random.sample(imagesets, int(full_size * validation_fraction))  # All images i list of t0s
-            for item in validate:
-                imagesets.remove(item)
+    Send = [root_directory, classes, test]
+    Test = WaveDataset(Send, transform["Test"])
 
-            Send = [root_directory, classes, validate]
-            Validate = WaveDataset(Send, transform["Test"], num_channels=num_channels)
-#             yield Validate
+    validate = random.sample(imagesets, int(full_size * validation_fraction))  # All images i list of t0s
+    for item in validate:
+        imagesets.remove(item)
 
-        Send = [root_directory, classes, imagesets]
-        Train = WaveDataset(Send, transform["Train"], num_channels=num_channels)
-#         yield Train
-        return Test, Validate, Train
-    else:
-        Data = WaveDataset(root_directory, transform, check_bad_data=check_bad_data, num_channels=num_channels)
-        return Data
+    Send = [root_directory, classes, validate]
+    Validate = WaveDataset(Send, transform["Test"])
+
+
+    Send = [root_directory, classes, imagesets]
+    Train = WaveDataset(Send, transform["Train"])
+
+    return Test, Validate, Train

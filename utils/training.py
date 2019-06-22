@@ -64,12 +64,11 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
     model.train()           # initialises training stage/functions
     mean_loss = 0
     # logging.info('Training: Ready to load batches')
-    for batch_num, batch in enumerate(train_dataloader):
+    for batch_num, batch_images in enumerate(train_dataloader):
         batch_start = time.time()
         # logging.info('Batch: %d loaded in %.3f' %(batch_num, batch_time))
         mean_batch_loss = 0
         random_starting_points = random.sample(range(100 - num_input_frames - num_output_frames - 1), 10)
-        batch_images = batch["image"]
         for i, starting_point in enumerate(random_starting_points):
             model.reset_hidden(batch_size=batch_images.size()[0], training=True)
             if training:
@@ -119,9 +118,8 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
     training = False
     model.eval()
     overall_loss = 0
-    for batch_num, batch in enumerate(val_dataloader):
+    for batch_num, batch_images in enumerate(val_dataloader):
         random_starting_points = random.sample(range(100 - num_input_frames - num_output_frames - 1), 10)
-        batch_images = batch["image"]
         batch_loss = 0
         for i, starting_point in enumerate(random_starting_points):
             model.reset_hidden(batch_size=batch_images.size()[0], training=False)
@@ -241,8 +239,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
     training = False
     # plot_frequency = 5
 
-    for batch_num, batch in enumerate(test_dataloader):
-        batch_images = batch["image"]
+    for batch_num, batch_images in enumerate(test_dataloader):
         batch_size = batch_images.size()[0]
         model.reset_hidden(batch_size=batch_images.size()[0], training=False)
         

@@ -28,14 +28,17 @@ def get_args():
 
     # parser.add_argument('--model', type=str, help='Network architecture for training')
     parser.add_argument('--num_epochs', type=int, default=50, help='The experiment\'s epoch budget')
-    parser.add_argument('--num_input_frames', type=int, default=5)
-    parser.add_argument('--num_output_frames', type=int, default=20)
+    parser.add_argument('--num_input_frames', type=int, default=5, help='LSTM. How many frames to insert initially')
+    parser.add_argument('--num_output_frames', type=int, default=20, help='LSTM. How many framres to predict in the future"')
+    parser.add_argument('--seq_start', type = int, default = 5, help = "ConvLSTM. How many frames to insert initially")
+    parser.add_argument('--seq_length', type = int, default = 25, help = "ConvLSTM. Input frames plus prediction in the future")
     parser.add_argument('--reinsert_frequency', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--num_channels', type=int, default=1, help='how many num_channels each frame has (gray/rgb)')
     parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
     parser.add_argument('--experiment_name', type=str, default="dummy", 
                                             help='Experiment name - to be used for building the experiment folder')
+    parser.add_argument('--num_workers', type=int, default=12, 'how many workers for the dataloader')
     parser.add_argument('--seed', type=int, default=12345, help='Seed to use for random number generator for experiment')
     parser.add_argument('--seed_everything', type=str2bool, default=True)
     parser.add_argument('--plot', type=str2bool, default=False)
@@ -51,8 +54,6 @@ def get_args():
     if args.seed_everything:
         seed_everything(args.seed)
  
-    args.num_workers=12
-
     args.use_cuda = torch.cuda.is_available()
     if torch.cuda.is_available():  # checks whether a cuda gpu is available and whether the gpu flag is True
         device = torch.cuda.current_device()

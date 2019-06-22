@@ -2,7 +2,7 @@
 #SBATCH -N 1	  # nodes requested
 #SBATCH -n 1	  # tasks requested
 #SBATCH --partition=General_Usage
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
 #SBATCH --time=0-24:00:00
 hostname
@@ -33,4 +33,4 @@ else
 fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
-python experiment.py --experiment_name "ConvAE_LSTM_1ch_normalize_2_GPU"
+python experiment.py --experiment_name "ConvAE_LSTM_1ch_normalize"

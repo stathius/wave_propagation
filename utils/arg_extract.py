@@ -1,7 +1,6 @@
 import argparse
 import torch
 import logging
-from utils.various import seed_everything
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -11,6 +10,15 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+def seed_everything(seed):
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 def get_args():
     """
     Returns a namedtuple with arguments extracted from the command line.
@@ -19,19 +27,24 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # parser.add_argument('--model', type=str, help='Network architecture for training')
-    parser.add_argument('--num_epochs', nargs="?", type=int, default=50, help='The experiment\'s epoch budget')
-    parser.add_argument('--num_input_frames', nargs="?", type=int, default=5)
-    parser.add_argument('--num_output_frames', nargs="?", type=int, default=20)
-    parser.add_argument('--reinsert_frequency', nargs="?", type=int, default=10)
+    parser.add_argument('--num_epochs', type=int, default=50, help='The experiment\'s epoch budget')
+    parser.add_argument('--num_input_frames', type=int, default=5)
+    parser.add_argument('--num_output_frames', type=int, default=20)
+    parser.add_argument('--reinsert_frequency', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--num_channels', nargs="?", type=int, default=1, help='how many num_channels each frame has (gray/rgb)')
-    parser.add_argument('--test_starting_point', nargs="?", type=int, default=15, help='which frame to start the test')
-    parser.add_argument('--experiment_name', nargs="?", type=str, default="dummy", 
+    parser.add_argument('--num_channels', type=int, default=1, help='how many num_channels each frame has (gray/rgb)')
+    parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
+    parser.add_argument('--experiment_name', type=str, default="dummy", 
                                             help='Experiment name - to be used for building the experiment folder')
-    parser.add_argument('--seed', nargs="?", type=int, default=12345, help='Seed to use for random number generator for experiment')
+    parser.add_argument('--seed', type=int, default=12345, help='Seed to use for random number generator for experiment')
     parser.add_argument('--seed_everything', type=str2bool, default=True)
     parser.add_argument('--plot', type=str2bool, default=False)
     parser.add_argument('--debug', type=str2bool, default=False)
+    parser.add_argument('--weight_decay_coefficient', type=float, default=1e-05, help='Weight decay to use for Adam')
+    parser.add_argument('--learning_rate', type=float, default=1e-03, help='learning rate to use for Adam')
+    parser.add_argument('--toy', type=str2bool, default=False,
+                         help='flag that indicates on whether or not to use a small toy dataset for testing/debugging')
+    parser.add_argument('--continue_experiment', nargs="?", type=str2bool, default=True, help='Whether the experiment should continue from the last epoch')
 
     args = parser.parse_args()
 

@@ -89,9 +89,4 @@ class Analyser():
         plt.show()
         return data
 
-        # df_1['region'] = 'A'
-        # df_2['region'] = 'B'
-        # df_3['region'] = 'C'
-        # df = pd.concat([df_1,df_2,df_3])
-        # sns.pointplot(ax=ax,x=x_col,y=y_col,data=df,hue='region')
-
+ 

@@ -75,13 +75,16 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
                 lr_scheduler.optimizer.zero_grad()
             for future_frame_idx in range(num_output_frames):
                 if future_frame_idx == 0:
+                    # Take the first 5 frames of the batch starting from the random starting_point
                     input_frames = batch_images[:, starting_point * num_channels:(starting_point + num_input_frames) * num_channels, :, :].clone()
                     output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, num_channels, device, training) 
                 elif future_frame_idx == reinsert_frequency:
+                    # It will insert the last 5 predictions as an input
                     input_frames = output_frames[:, -num_input_frames * num_channels:, :, :].clone()
                     output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, 
                                                             starting_point, num_input_frames, future_frame_idx, num_channels, device, training)
                 else:
+                    # This doesn't take any input, just propagates the LSTM internal state once
                     output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, 
                                                              num_input_frames, future_frame_idx, num_channels, device, training)
             if plot and (i == 0) and (batch_num == 0):

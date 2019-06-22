@@ -13,7 +13,7 @@ from utils.Analyser import Analyser
 from utils.io import save_network, load_network, save, load, make_folder_results
 from utils.WaveDataset import create_datasets, transformVar, normalize
 from utils.training import train_epoch, validate, test
-from utils.arg_parse import get_args
+from utils.arg_extract import get_args
 from utils.Scorekeeper import Scorekeeper
 
 logging.basicConfig(format='%(message)s',level=logging.INFO)

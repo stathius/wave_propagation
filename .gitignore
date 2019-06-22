@@ -1,3 +1,4 @@
+experiments_results/
 *.tar.gz
 *.pt
 .DS_Store

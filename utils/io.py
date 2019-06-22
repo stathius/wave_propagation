@@ -10,6 +10,14 @@ from utils.format import normalize_image
 Saving and loading of figures, network state and other .pickle objects
 """
 
+def load_experiment():
+    filename_data = os.path.join(results_dir,"all_data.pickle")
+    logging.info('Loading datasets')
+    all_data = load(filename_data)
+    train_dataset = all_data["Training data"]
+    val_dataset = all_data["Validation data"]
+    test_dataset = all_data["Testing data"]
+
 def save_network(model, filename):
     if hasattr(model, 'module'):
         network_dict = model.module.state_dict()
@@ -41,9 +49,17 @@ def figure_save(destination, obj=None):
     plt.savefig(destination + ".svg", format="svg")
     save(obj, destination) if obj else None
     
-def make_folder_results(folder_name):
-    os.mkdir(folder_name)
-    os.mkdir(os.path.join(folder_name,'figures'))
+def create_results_folder(base_folder, experiment_name):
+    exp_folder=os.path.join(base_folder, "experiments_results/")
+    if not os.path.isdir(exp_folder):
+        os.mkdir(exp_folder)
+    results_dir = os.path.join(exp_folder, experiment_name)
+    if not os.path.isdir(results_dir):
+        os.mkdir(results_dir)
+    figures_dir = os.path.join(results_dir,'figures/')
+    if not os.path.isdir(figures_dir):
+        os.mkdir(figures_dir)
+    return results_dir
 
 def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
     """Imshow for Tensor."""

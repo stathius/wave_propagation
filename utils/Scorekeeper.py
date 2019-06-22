@@ -134,7 +134,7 @@ class Scorekeeper():
 
         return relative_diff, absolute_diff
 
-    def plot(self):
+    def plot(self, show_plots):
         if self.own:
             all_data = {}
             all_data.update({"Time-steps Ahead": self.frame, "Difference": self.intermitted, "Scoring Type": self.hue})
@@ -143,7 +143,8 @@ class Scorekeeper():
             sns.lineplot(x="Time-steps Ahead", y="Difference", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig,  ci='sd')
             figure_save(os.path.join(self.figures_dir, "Scoring_Quality"), obj=fig)
-            plt.show()
+            if show_plots:
+                plt.show()
 
         if self.SSIM:
             all_data = {}
@@ -155,7 +156,8 @@ class Scorekeeper():
                          data=pd.DataFrame.from_dict(all_data), ax=fig,  ci='sd')
             # plt.ylim(0.0, 1)
             figure_save(os.path.join(self.figures_dir, "SSIM_Quality"), obj=fig)
-            plt.show()
+            if show_plots:
+                plt.show()
 
         if self.MSE:
             all_data = {}
@@ -166,7 +168,8 @@ class Scorekeeper():
             sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
             figure_save(os.path.join(self.figures_dir, "RMSE_Quality"), obj=fig)
-            plt.show()
+            if show_plots:
+                plt.show()
 
         if self.phash:
             all_data = {}
@@ -177,7 +180,8 @@ class Scorekeeper():
             sns.lineplot(x="Time-steps Ahead", y="Hamming Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
             figure_save(os.path.join(self.figures_dir, "Scoring_Spatial_Hamming"), obj=fig)
-            plt.show()
+            if show_plots:
+                plt.show()
 
         if self.phash2:
             all_data = {}
@@ -188,4 +192,5 @@ class Scorekeeper():
             sns.lineplot(x="Time-steps Ahead", y="Jaccard Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
             figure_save(os.path.join(self.figures_dir, "Scoring_Spatial_Jaccard"), obj=fig)
-            plt.show()
+            if show_plots:
+                plt.show()

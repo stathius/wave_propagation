@@ -15,6 +15,11 @@ from utils.WaveDataset import create_datasets, transformVar, normalize
 from utils.training import train_epoch, validate, test
 from utils.arg_extract import get_args
 from utils.Scorekeeper import Scorekeeper
+# import matplotlib
+# matplotlib.use('Agg') # don't allow showing plots
+import matplotlib.pyplot as plt
+plt.ioff()
+
 
 logging.basicConfig(format='%(message)s',level=logging.INFO)
 
@@ -105,10 +110,10 @@ if __name__ == "__main__":
 
         logging.info('Epoch %d' % epoch)
         train_loss = train_epoch(model, lr_scheduler, epoch, train_dataloader, args.num_input_frames, 
-                                args.num_output_frames,args.reinsert_frequency, args.num_channels, device, analyser, plot=args.plot, debug=args.debug)
+                                args.num_output_frames,args.reinsert_frequency, args.num_channels, device, analyser, show_plots=args.show_plots, debug=args.debug)
         analyser.save_epoch_loss(train_loss, epoch)
         validation_loss = validate(model, val_dataloader, args.num_input_frames, args.num_output_frames, args.reinsert_frequency, 
-                                    args.num_channels, device, plot=args.plot, debug=args.debug)
+                                    args.num_channels, device, show_plots=args.show_plots, debug=args.debug)
         analyser.save_validation_loss(validation_loss, epoch)
         """
         Here we can access analyser.validation_loss to make decisions
@@ -131,6 +136,5 @@ logging.info("Start testing")
 score_keeper=Scorekeeper(results_dir, args.num_channels, normalize)
 figures_dir = os.path.join(results_dir,'figures')
 test(model, test_dataloader, args.test_starting_point, args.num_input_frames, args.reinsert_frequency, 
-            args.num_channels, device, score_keeper, figures_dir, plot=True, debug=args.debug, normalize=normalize)
-
-score_keeper.plot()
+            args.num_channels, device, score_keeper, figures_dir, show_plots=args.show_plots, debug=args.debug, normalize=normalize)
+score_keeper.plot(args.show_plots)

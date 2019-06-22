@@ -44,7 +44,7 @@ def get_args():
     parser.add_argument('--learning_rate', type=float, default=1e-03, help='learning rate to use for Adam')
     parser.add_argument('--toy', type=str2bool, default=False,
                          help='flag that indicates on whether or not to use a small toy dataset for testing/debugging')
-    parser.add_argument('--continue_experiment', nargs="?", type=str2bool, default=True, help='Whether the experiment should continue from the last epoch')
+    parser.add_argument('--continue_experiment', type=str2bool, default=True, help='Whether the experiment should continue from the last epoch')
 
     args = parser.parse_args()
 

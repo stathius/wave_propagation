@@ -52,7 +52,7 @@ analyser = Analyser(results_dir)
 
 # Model
 filename_model = os.path.join(results_dir,"model.pt")
-model = Network(args.num_channels)
+model = Network(args.num_channels, device)
 model.to(device)
 
 optimizer_algorithm = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4)

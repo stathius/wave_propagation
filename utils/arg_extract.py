@@ -18,7 +18,6 @@ def get_args():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--seed', nargs="?", type=int, default=12345, help='Seed to use for random number generator for experiment')
     # parser.add_argument('--model', type=str, help='Network architecture for training')
     parser.add_argument('--num_epochs', nargs="?", type=int, default=50, help='The experiment\'s epoch budget')
     parser.add_argument('--num_input_frames', nargs="?", type=int, default=5)
@@ -29,6 +28,7 @@ def get_args():
     parser.add_argument('--test_starting_point', nargs="?", type=int, default=15, help='which frame to start the test')
     parser.add_argument('--experiment_name', nargs="?", type=str, default="dummy", 
                                             help='Experiment name - to be used for building the experiment folder')
+    parser.add_argument('--seed', nargs="?", type=int, default=12345, help='Seed to use for random number generator for experiment')
     parser.add_argument('--seed_everything', type=str2bool, default=True)
     parser.add_argument('--plot', type=str2bool, default=False)
     parser.add_argument('--debug', type=str2bool, default=False)

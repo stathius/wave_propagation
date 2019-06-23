@@ -11,7 +11,7 @@ import time
 from utils.Network import Network
 from utils.Analyser import Analyser
 from utils.io import save_network, load_network, save, load, create_results_folder
-from utils.WaveDataset import create_datasets, transformVar
+from utils.WaveDataset import create_datasets, transformVar, normalize
 from utils.training import train_epoch, validate, test
 from utils.arg_extract import get_args
 from utils.Scorekeeper import Scorekeeper
@@ -19,8 +19,6 @@ from utils.Scorekeeper import Scorekeeper
 # matplotlib.use('Agg') # don't allow showing plots
 import matplotlib.pyplot as plt
 plt.ioff()
-
-normalize = {'mean':0.0, 'std':1.0}
 
 logging.basicConfig(format='%(message)s',level=logging.INFO)
 

@@ -33,8 +33,6 @@ def get_args():
     parser.add_argument('--num_epochs', type=int, default=50, help='The experiment\'s epoch budget')
     parser.add_argument('--num_input_frames', type=int, default=5, help='LSTM. How many frames to insert initially')
     parser.add_argument('--num_output_frames', type=int, default=20, help='LSTM. How many framres to predict in the future"')
-    parser.add_argument('--seq_start', type = int, default = 5, help = "ConvLSTM. How many frames to insert initially")
-    parser.add_argument('--seq_length', type = int, default = 25, help = "ConvLSTM. Input frames plus prediction in the future")
     parser.add_argument('--reinsert_frequency', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--num_channels', type=int, default=1, help='how many num_channels each frame has (gray/rgb)')

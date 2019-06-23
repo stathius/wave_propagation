@@ -9,6 +9,8 @@ from PIL import Image
 from torchvision import transforms
 
 normalize = {'mean':0.5047, 'std':0.1176}
+# normalize = {'mean':0, 'std':1}
+
 
 transformVar = {"Test": transforms.Compose([
     transforms.Resize(128),    #Already 184 x 184

@@ -14,20 +14,6 @@ from utils.storage import save_statistics
 class ExperimentBuilder(nn.Module):
     def __init__(self, network_model, optimizer, experiment_name, num_epochs, train_data, val_data,
                  test_data, device, continue_from_epoch=-1):
-        """
-        Initializes an ExperimentBuilder object. Such an object takes care of running training and evaluation of a deep net
-        on a given dataset. It also takes care of saving per epoch models and automatically inferring the best val model
-        to be used for evaluating the test set metrics.
-        :param network_model: A pytorch nn.Module which implements a network architecture.
-        :param experiment_name: The name of the experiment. This is used mainly for keeping track of the experiment and creating and directory structure that will be used to save logs, model parameters and other.
-        :param num_epochs: Total number of epochs to run the experiment
-        :param train_data: An object of the DataProvider type. Contains the training set.
-        :param val_data: An object of the DataProvider type. Contains the val set.
-        :param test_data: An object of the DataProvider type. Contains the test set.
-        :param weight_decay_coefficient: A float indicating the weight decay to use with the adam optimizer.
-        :param use_gpu: A boolean indicating whether to use a GPU or not.
-        :param continue_from_epoch: An int indicating whether we'll start from scrach (-1) or whether we'll reload a previously saved model of epoch 'continue_from_epoch' and continue training from there.
-        """
         super(ExperimentBuilder, self).__init__()
 
         self.experiment_name = experiment_name
@@ -95,26 +81,12 @@ class ExperimentBuilder(nn.Module):
         return total_num_params
 
     def run_train_iter(self, x, y):
-        """
-        Receives the inputs and targets for the model and runs a training iteration. Returns loss and accuracy metrics.
-        :param x: The inputs to the model. A numpy array of shape batch_size, channels, height, width
-        :param y: The targets for the model. A numpy array of shape batch_size, num_classes
-        :return: the loss and accuracy for this batch
-        """
         self.train()  # sets model to training mode (in case batch normalization or other methods have different procedures for training and evaluation)
-
-        if type(x) is np.ndarray:
-            x, y = torch.Tensor(x).float().to(device=self.device), torch.Tensor(y).float().to(
-            device=self.device)  # send data to device as torch tensors
 
         x = x.to(self.device)
         y = y.to(self.device)
 
-        # if self.model.input_dim == 'SBCHW':
-        #     x = helper.convert_BSHW_to_SBCHW(x)
-
         out = self.model.forward(x)  # forward the data in the model
-        loss = 0        
         se = torch.sum((out - y)**2,(2,3)) # MSE error per frame
         loss = torch.mean(se)
         # loss = torch.sqrt(self.criterion(out,y))
@@ -125,22 +97,12 @@ class ExperimentBuilder(nn.Module):
         return loss.data.detach().cpu().numpy()
 
     def run_evaluation_iter(self, x, y):
-        """
-        Receives the inputs and targets for the model and runs an evaluation iterations. Returns loss and accuracy metrics.
-        :param x: The inputs to the model. A numpy array of shape batch_size, channels, height, width
-        :param y: The targets for the model. A numpy array of shape batch_size, num_classes
-        :return: the loss and accuracy for this batch
-        """
+
         self.eval()  # sets the system to validation mode
-        if type(x) is np.ndarray:
-            x, y = torch.Tensor(x).float().to(device=self.device), torch.Tensor(y).float().to(
-            device=self.device)  # convert data to pytorch tensors and send to the computation device
 
         x = x.to(self.device)
         y = y.to(self.device)
 
-        # if self.model.input_dim == 'SBCHW':
-        #     x = helper.convert_BSHW_to_SBCHW(x)
 
         out = self.model.forward(x)  # forward the data in the model
         loss = 0
@@ -177,12 +139,6 @@ class ExperimentBuilder(nn.Module):
 
 
     def run_experiment(self):
-        """
-        Runs experiment train and evaluation iterations, saving the model and best val model and val model accuracy after each epoch
-        :return: The summary current_epoch_losses from starting epoch to total_epochs.
-        """
-        # total_losses = {"train_acc": [], "train_loss": [], "val_acc": [],
-        #                 "val_loss": [], "curr_epoch": []}  # initialize a dict to keep the per-epoch metrics
         total_losses = {"train_loss": [],"val_loss": [], "curr_epoch": []}  # initialize a dict to keep the per-epoch metrics
         for i, epoch_idx in enumerate(range(self.starting_epoch, self.num_epochs)):
             epoch_start_time = time.time()

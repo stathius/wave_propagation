@@ -11,7 +11,7 @@ from utils.arg_extract import get_args
 from utils.ExperimentBuilder import ExperimentBuilder
 from utils.WaveDataset import create_datasets, transformVar, normalize
 plt.ioff()
-logging.basicConfig(format='%(message)s' level=logging.INFO)
+logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 args, device = get_args()  # get arguments from command line
 

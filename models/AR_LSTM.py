@@ -128,7 +128,7 @@ def propagate(model, output_frames, target_frames, batch_images, starting_point,
     target_frames = torch.cat((target_frames, batch_images[:, target_idx:(target_idx+ 1), :, :].to(device)), dim=1)
     return output_frames, target_frames
 
-def plot_predictions(batch, output_frames, target_frames, show_plots): 
+def plot_predictions(batch, output_frames, target_frames, show_plots):
     logging.info('** plot predictions **')
     predicted = output_frames[batch, NUM_CHANNELS:, :, :].cpu().detach()
     des_target_frames = target_frames[batch, NUM_CHANNELS:, :, :].cpu().detach()
@@ -141,7 +141,7 @@ def plot_predictions(batch, output_frames, target_frames, show_plots):
         plt.show()
 
 
-def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, num_output_frames, 
+def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, num_output_frames,
                     reinsert_frequency, device, analyser, show_plots=False, debug=False):
     """
     Training of the network
@@ -165,16 +165,14 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
                 if future_frame_idx == 0:
                     # Take the first 5 frames of the batch starting from the random starting_point
                     input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
-                    output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training) 
+                    output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training)
                 elif future_frame_idx == reinsert_frequency:
                     # It will insert the last 5 predictions as an input
                     input_frames = output_frames[:, -num_input_frames:, :, :].clone()
-                    output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, 
-                                                            starting_point, num_input_frames, future_frame_idx, device, training)
+                    output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, device, training)
                 else:
                     # This doesn't take any input, just propagates the LSTM internal state once
-                    output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, 
-                                                             num_input_frames, future_frame_idx, device, training)
+                    output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, device, training)
             loss = F.mse_loss(output_frames, target_frames)
             if training:
                 loss.backward()
@@ -188,7 +186,7 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
 
         batch_time = time.time() - batch_start
         logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1,
-                   len(train_dataloader), 100. * (batch_num + 1) / len(train_dataloader), loss.item(), batch_time ) )        
+                   len(train_dataloader), 100. * (batch_num + 1) / len(train_dataloader), loss.item(), batch_time ) )
 
         if debug: break
     epoch_loss = mean_loss / (batch_num + 1)
@@ -214,13 +212,13 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
             for future_frame_idx in range(num_output_frames):
                 if future_frame_idx == 0:
                     input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
-                    output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training) 
+                    output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training)
                 elif future_frame_idx == reinsert_frequency:
                     input_frames = output_frames[:, -num_input_frames:, :, :].clone()
-                    output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, 
+                    output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images,
                                                             starting_point, num_input_frames, future_frame_idx, device, training)
                 else:
-                    output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, 
+                    output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point,
                                                              num_input_frames, future_frame_idx, device, training)
             loss = F.mse_loss(output_frames, target_frames)
             batch_loss += loss.item()
@@ -232,7 +230,7 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
     return val_loss
 
 
-def test(model, test_dataloader, starting_point, num_input_frames, reinsert_frequency, 
+def test(model, test_dataloader, starting_point, num_input_frames, reinsert_frequency,
             device, score_keeper, figures_dir, show_plots=False, debug=False, normalize=None):
     """
     Testing of network
@@ -329,7 +327,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
     for batch_num, batch_images in enumerate(test_dataloader):
         batch_size = batch_images.size()[0]
         model.reset_hidden(batch_size=batch_images.size()[0], training=False)
-        
+
         total_frames = batch_images.size()[1]
         num_future_frames = total_frames - (starting_point + num_input_frames)
         for future_frame_idx in range(num_future_frames):
@@ -339,11 +337,11 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
                 output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training)
                 prop_type = 'Reinsert'
                 input_frames = output_frames[:, -num_input_frames:, :, :].clone()
-                output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, 
+                output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images,
                                                                 starting_point, num_input_frames, future_frame_idx, device, training)
             else:
                 prop_type = 'Propagate'
-                output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, num_input_frames, 
+                output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, num_input_frames,
                                                         future_frame_idx, device, training)
                 # output & target_frames size is [batches, * (n + 1), 128, 128]
 
@@ -352,8 +350,8 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
                 # print(output_frames.size(), target_frames.size())
 
             for ba in range(output_frames.size()[0]):
-                score_keeper.add(output_frames[ba, NUM_CHANNELS:, :, :].cpu(), 
-                                 target_frames[ba, NUM_CHANNELS:, :, :].cpu(), 
+                score_keeper.add(output_frames[ba, NUM_CHANNELS:, :, :].cpu(),
+                                 target_frames[ba, NUM_CHANNELS:, :, :].cpu(),
                                  future_frame_idx,"pHash", "pHash2", "SSIM", "Own", "RMSE")
 
             # if  batch_num == 1 and (((future_frame_idx + 1) % plot_frequency) == 0 or (future_frame_idx == 0)):

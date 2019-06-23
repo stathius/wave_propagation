@@ -22,37 +22,37 @@ batch_size = args.batch_size
 ###### Define encoder #####
 encoder_architecture = [
     [ #in_channels, out_channels, kernel_size, stride, padding
-        OrderedDict({'conv1_leaky_1': [1, 8, 4, 2, 1]}),
-        OrderedDict({'conv2_leaky_1': [64, 192, 4, 2, 1]}),
+        OrderedDict({'conv1_leaky_1': [1, 8, 3, 2, 1]}),
+        OrderedDict({'conv2_leaky_1': [64, 192, 3, 2, 1]}),
         OrderedDict({'conv3_leaky_1': [192, 192, 3, 2, 1]}),
     ],
 
     [
-        ConvLSTMCell(input_channel=8, num_filter=64, b_h_w=(batch_size, 50, 50),
+        ConvLSTMCell(input_channel=8, num_filter=64, b_h_w=(batch_size, 64, 64),
                  kernel_size=3, stride=1, padding=1,device=device,seq_len=args.seq_input),
-        ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 25, 25),
+        ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 32, 32),
                  kernel_size=3, stride=1, padding=1,device=device,seq_len=args.seq_input),
-        ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 13, 13),
+        ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 16, 16),
                  kernel_size=3, stride=1, padding=1,device=device,seq_len=args.seq_input),
     ]
 ]
 forecaster_architecture = [
     [
         OrderedDict({'deconv1_leaky_1': [192, 192, 3, 2, 1]}),
-        OrderedDict({'deconv2_leaky_1': [192, 64, 4, 2, 1]}),
+        OrderedDict({'deconv2_leaky_1': [192, 64, 3, 2, 1]}),
         OrderedDict({
-            'deconv3_leaky_1': [64, 8, 4, 2, 1],
+            'deconv3_leaky_1': [64, 8, 3, 2, 1],
             'conv3_leaky_2': [8, 8, 3, 1, 1],
             'conv3_3': [8, 1, 1, 1, 0]
         }),
     ],
 
     [
-        ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 13, 13),
+        ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 16, 16),
                  kernel_size=3, stride=1, padding=1,device=device,seq_len=args.seq_output),
-        ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 25, 25),
+        ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 32, 32),
                  kernel_size=3, stride=1, padding=1,device=device,seq_len=args.seq_output),
-        ConvLSTMCell(input_channel=64, num_filter=64, b_h_w=(batch_size, 50, 50),
+        ConvLSTMCell(input_channel=64, num_filter=64, b_h_w=(batch_size, 64, 64),
                  kernel_size=3, stride=1, padding=1,device=device,seq_len=args.seq_output),
     ]
 ]

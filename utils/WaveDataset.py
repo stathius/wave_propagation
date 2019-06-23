@@ -1,32 +1,29 @@
 import torch
-import pickle
 from torch.utils.data import Dataset
 from torchvision.transforms import functional as FF
 from os import listdir
-import numpy as np
 import random
 from PIL import Image
 from torchvision import transforms
 
-normalize = {'mean':0.5047, 'std':0.1176}
+normalize = {'mean': 0.5047, 'std': 0.1176}
 # normalize = {'mean':0, 'std':1}
 
 
 transformVar = {"Test": transforms.Compose([
-    transforms.Resize(128),    #Already 184 x 184
+    transforms.Resize(128),  # Already 184 x 184
     transforms.CenterCrop(128),
     transforms.ToTensor(),
     transforms.Normalize(mean=[normalize['mean']], std=[normalize['std']])
-]),
-    "Train": transforms.Compose([
+]), "Train": transforms.Compose([
     transforms.Resize(128),  # Already 184 x 184
     transforms.CenterCrop(128),
     transforms.RandomHorizontalFlip(),
     transforms.RandomVerticalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[normalize['mean']], std=[normalize['std']])
-    ])
+    transforms.Normalize(mean=[normalize['mean']], std=[normalize['std']])])
 }
+
 
 def open_image(filename, grayscale=False):
     if grayscale:
@@ -34,6 +31,7 @@ def open_image(filename, grayscale=False):
     else:
         image = Image.open(filename)
     return image
+
 
 class WaveDataset(Dataset):
     """
@@ -45,18 +43,17 @@ class WaveDataset(Dataset):
         self.imagesets = root_directory[2]
         self.transform = transform
 
-
     def __len__(self):
         return len(self.imagesets)
 
     def __getitem__(self, idx):
-#         logging.info('Get item')
+        # logging.info('Get item')
         img_path = self.imagesets[idx][1]
         im_list = sorted(listdir(self.root_dir + img_path))
 
         Concat_Img = self.concatenate_data(img_path, im_list)
 
-        return Concat_Img
+        return Concat_Img, torch.Tensor()
 
     def concatenate_data(self, img_path, im_list):
         """
@@ -115,10 +112,9 @@ def create_datasets(root_directory, transform, test_fraction, validation_fractio
         im_list = sorted(listdir(root_directory + cla))
         imagesets.append((im_list, cla))
 
-
     full_size = len(imagesets)
 
-    test = random.sample(imagesets, int(full_size * test_fraction)) # All images i list of t0s
+    test = random.sample(imagesets, int(full_size * test_fraction))  # All images i list of t0s
     for item in test:
         imagesets.remove(item)
 
@@ -131,7 +127,6 @@ def create_datasets(root_directory, transform, test_fraction, validation_fractio
 
     Send = [root_directory, classes, validate]
     Validate = WaveDataset(Send, transform["Test"])
-
 
     Send = [root_directory, classes, imagesets]
     Train = WaveDataset(Send, transform["Train"])

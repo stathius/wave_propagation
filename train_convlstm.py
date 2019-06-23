@@ -89,5 +89,5 @@ experiment = ExperimentBuilder(network_model=model, optimizer=optimizer,
                                 experiment_name=args.experiment_name,
                                 num_epochs=args.num_epochs,
                                 device=device,
-                                train_data=train_dataloader, val_data=train_dataloader, test_data=train_dataloader)
+                                train_data=train_dataloader, val_data=val_dataloader, test_data=test_dataloader)
 experiment_metrics, test_metrics = experiment.run_experiment()

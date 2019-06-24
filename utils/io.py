@@ -58,9 +58,9 @@ def create_results_folder(base_folder, experiment_name):
     if not os.path.isdir(results_dir):
         os.mkdir(results_dir)
 
-    csv_dir = os.path.join(results_dir, 'csv/')
-    if not os.path.isdir(csv_dir):
-        os.mkdir(csv_dir)
+    log_dir = os.path.join(results_dir, 'logs/')
+    if not os.path.isdir(log_dir):
+        os.mkdir(log_dir)
 
     pickle_dir = os.path.join(results_dir, 'pickles/')
     if not os.path.isdir(pickle_dir):
@@ -78,7 +78,7 @@ def create_results_folder(base_folder, experiment_name):
     if not os.path.isdir(charts_dir):
         os.mkdir(charts_dir)
 
-    return results_dir, csv_dir, pickle_dir, models_dir, predictions_dir, charts_dir
+    return results_dir, log_dir, pickle_dir, models_dir, predictions_dir, charts_dir
 
 def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
     """Imshow for Tensor."""

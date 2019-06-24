@@ -32,7 +32,7 @@ else:
     data_dir = '/disk/scratch/s1680171/wave_propagation/'
 
 
-results_dir, csv_dir, pickle_dir, models_dir, predictions_dir, charts_dir = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
+results_dir, log_dir, pickle_dir, models_dir, predictions_dir, charts_dir = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
 
 logging.info('Creating new datasets')
 test_dataset, val_dataset, train_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformVar, test_fraction=0.15, validation_fraction=0.15)

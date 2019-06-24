@@ -1,6 +1,7 @@
 from torch import nn
 import torch
 from collections import OrderedDict
+import random
 from utils.helper_functions import convert_SBCHW_to_BSHW, convert_BSHW_to_SBCHW
 # code modified from https://github.com/Hzzone/Precipitation-Nowcasting
 
@@ -135,14 +136,18 @@ class EncoderForecaster(nn.Module):
         self.forecaster = forecaster
         self.input_dim = 'SBCHW'  # indicates the model expects inputs in the form S*B*C*H*W
 
-    # def run_train_iter(self, batch):
-
     def forward(self, input):
         print(input.size())
         input = convert_BSHW_to_SBCHW(input)
         state = self.encoder(input)
         output = self.forecaster(state)
         return convert_SBCHW_to_BSHW(output)
+
+    def get_num_input_frames(self):
+        return self.encoder.rnn1.seq_len
+
+    def get_num_output_frames(self):
+        return self.forecaster.rnn3.seq_len
 
 
 def make_layers(block):

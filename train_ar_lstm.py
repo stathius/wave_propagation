@@ -30,12 +30,12 @@ if 'Darwin' in platform.system():
 else:
     base_folder = '/home/s1680171/wave_propagation/'
     data_dir = '/disk/scratch/s1680171/wave_propagation/'
-    
+
 
 results_dir = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
 
 logging.info('Creating new datasets')
-test_dataset, val_dataset, train_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformVar, 
+test_dataset, val_dataset, train_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformVar,
                                                             test_fraction=0.15, validation_fraction=0.15)
 train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     logging.info('Experiment %s' % args.experiment_name)
     logging.info(args)
     logging.info('Start training')
-    
+
     if args.debug:
         epochs=1
     else:
@@ -77,10 +77,10 @@ if __name__ == "__main__":
         epoch_start = time.time()
 
         logging.info('Epoch %d' % epoch)
-        train_loss = train_epoch(model, lr_scheduler, epoch, train_dataloader, args.num_input_frames, 
+        train_loss = train_epoch(model, lr_scheduler, epoch, train_dataloader, args.num_input_frames,
                                 args.num_output_frames,args.reinsert_frequency, device, analyser, show_plots=args.show_plots, debug=args.debug)
         analyser.save_epoch_loss(train_loss, epoch)
-        validation_loss = validate(model, val_dataloader, args.num_input_frames, args.num_output_frames, args.reinsert_frequency, 
+        validation_loss = validate(model, val_dataloader, args.num_input_frames, args.num_output_frames, args.reinsert_frequency,
                                    device, show_plots=args.show_plots, debug=args.debug)
         analyser.save_validation_loss(validation_loss, epoch)
         validation_loss = analyser.validation_loss[-1]
@@ -94,6 +94,6 @@ if __name__ == "__main__":
 logging.info("Start testing")
 score_keeper=Scorekeeper(results_dir, args.num_channels, normalize)
 figures_dir = os.path.join(results_dir,'figures')
-test(model, test_dataloader, args.test_starting_point, args.num_input_frames, args.reinsert_frequency, 
+test(model, test_dataloader, args.test_starting_point, args.num_input_frames, args.reinsert_frequency,
             device, score_keeper, figures_dir, show_plots=args.show_plots, debug=args.debug, normalize=normalize)
 score_keeper.plot(args.show_plots)

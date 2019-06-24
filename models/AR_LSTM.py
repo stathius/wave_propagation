@@ -5,20 +5,15 @@ import seaborn as sns
 import pandas as pd
 from utils.io import figure_save
 import random
-import math
 import numpy as np
-from PIL import Image
-import copy
 import logging
 import time
 import os
 from utils.io import imshow
+import torch.nn as nn
 # from utils.WaveDataset import normalize
 
 NUM_CHANNELS = 1
-
-import torch.nn as nn
-import torch
 
 
 class AR_LSTM(nn.Module):
@@ -28,9 +23,9 @@ class AR_LSTM(nn.Module):
     def __init__(self, num_channels, device):
         super(AR_LSTM, self).__init__()
         self.num_channels = num_channels
-        self.device=device
+        self.device = device
         self.encoder_conv = nn.Sequential(
-            nn.Conv2d(5*num_channels, 60, kernel_size=7, stride=2, padding=1),
+            nn.Conv2d(5 * num_channels, 60, kernel_size=7, stride=2, padding=1),
             nn.BatchNorm2d(num_features=60),
             nn.Tanh(),
             nn.Conv2d(60, 120, kernel_size=3, stride=2, padding=1),
@@ -75,8 +70,7 @@ class AR_LSTM(nn.Module):
         self.LSTM_propagation = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
         self.LSTM_reinsert = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
 
-
-    def forward(self, x, mode="initial_input", training=False): #"initial_input", "new_initial_input", "internal"
+    def forward(self, x, mode="initial_input", training=False):  # "initial_input", "new_initial_input", "internal"
         x.requires_grad_(training)
         with torch.set_grad_enabled(training):
             if "initial_input" in mode:
@@ -97,8 +91,7 @@ class AR_LSTM(nn.Module):
             return x
 
     def reset_hidden(self, batch_size, training=False):
-        # TODO
-        # user random values?
+        # TODO user random values?
         self.h0 = torch.zeros((batch_size, 1000), requires_grad=training).to(self.device)
         self.c0 = torch.zeros((batch_size, 1000), requires_grad=training).to(self.device)
 
@@ -116,23 +109,26 @@ def initial_input(model, input_frames, batch_images, starting_point, num_input_f
     target_frames = batch_images[:, target_idx:(target_idx + 1), :, :].to(device)
     return output_frames, target_frames
 
+
 def reinsert(model, input_frames, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, device, training):
     output_frames = torch.cat((output_frames, model(input_frames, mode="reinsert", training=training)), dim=1).to(device)
     target_idx = starting_point + future_frame_idx + num_input_frames
     target_frames = torch.cat((target_frames, batch_images[:, target_idx:(target_idx + 1), :, :].to(device)), dim=1)
     return output_frames, target_frames
 
+
 def propagate(model, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, device, training):
     output_frames = torch.cat((output_frames, model(torch.Tensor([0]), mode="propagate", training=training)), dim=1).to(device)
     target_idx = starting_point + future_frame_idx + num_input_frames
-    target_frames = torch.cat((target_frames, batch_images[:, target_idx:(target_idx+ 1), :, :].to(device)), dim=1)
+    target_frames = torch.cat((target_frames, batch_images[:, target_idx:(target_idx + 1), :, :].to(device)), dim=1)
     return output_frames, target_frames
+
 
 def plot_predictions(batch, output_frames, target_frames, show_plots):
     logging.info('** plot predictions **')
     predicted = output_frames[batch, NUM_CHANNELS:, :, :].cpu().detach()
     des_target_frames = target_frames[batch, NUM_CHANNELS:, :, :].cpu().detach()
-    fig = plt.figure(figsize=[8,8])
+    fig = plt.figure(figsize=[8, 8])
     pred = fig.add_subplot(1, 2, 1)
     imshow(predicted, title="Predicted smoothened %02d" % batch, smoothen=True, obj=pred, normalize=normalize)
     tar = fig.add_subplot(1, 2, 2)
@@ -142,7 +138,7 @@ def plot_predictions(batch, output_frames, target_frames, show_plots):
 
 
 def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, num_output_frames,
-                    reinsert_frequency, device, analyser, show_plots=False, debug=False):
+                reinsert_frequency, device, analyser, show_plots=False, debug=False):
     """
     Training of the network
     :param train: Training data
@@ -179,22 +175,25 @@ def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, 
                 lr_scheduler.optimizer.step()
 
             mean_batch_loss += loss.item()
-            if debug: break
+            if debug:
+                break
 
         analyser.save_loss_batchwise(mean_batch_loss / (i + 1), batch_increment=1)
         mean_loss += loss.item()
 
         batch_time = time.time() - batch_start
         logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1,
-                   len(train_dataloader), 100. * (batch_num + 1) / len(train_dataloader), loss.item(), batch_time ) )
+                     len(train_dataloader), 100. * (batch_num + 1) / len(train_dataloader), loss.item(), batch_time))
 
-        if debug: break
+        if debug:
+            break
     epoch_loss = mean_loss / (batch_num + 1)
     # plot_predictions(batch_num, output_frames, target_frames, show_plots)
     return epoch_loss
 
 
-def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinsert_frequency, device, show_plots=False, debug=False):
+def validate(model, val_dataloader, num_input_frames, num_output_frames, reinsert_frequency,
+             device, show_plots=False, debug=False):
     """
     Validation of network (same protocol as training)
     :param val_dataloader: Data to test
@@ -231,7 +230,7 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames ,reinser
 
 
 def test(model, test_dataloader, starting_point, num_input_frames, reinsert_frequency,
-            device, score_keeper, figures_dir, show_plots=False, debug=False, normalize=None):
+         device, score_keeper, figures_dir, show_plots=False, debug=False, normalize=None):
     """
     Testing of network
     :param test_dataloader: Data to test
@@ -261,18 +260,18 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
             plt.show()
 
     def plot_cutthrough(direction="Horizontal", location=None, show_plots=False):
-        def cutthrough(img1, img2,  hue1, hue2):
+        def cutthrough(img1, img2, hue1, hue2):
             intensity = []
             location = []
             hue = []
             if "Horizontal" in direction:
-                intensity = np.append(img1[stdmax[0],:], img2[stdmax[0],:])
+                intensity = np.append(img1[stdmax[0], :], img2[stdmax[0], :])
                 length1 = img1.shape[1]
                 length2 = img2.shape[1]
                 location = list(range(length1)) + list(range(length2))
                 hue = [hue1] * length1 + [hue2] * length2
             elif "Vertical" in direction:
-                intensity = np.append(img1[:,stdmax[0]], img2[:,stdmax[0]])
+                intensity = np.append(img1[:, stdmax[0]], img2[:, stdmax[0]])
                 width1 = img1.shape[0]
                 width2 = img2.shape[0]
                 location = list(range(width1)) + list(range(width2))
@@ -318,7 +317,6 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
             plt.show()
 
     model.eval()
-    total = 0
     image_to_plot = random.randint(0, 15)
     reinsert_frequency = 10
     training = False

@@ -24,7 +24,7 @@ else:
     data_dir = '/disk/scratch/s1680171/wave_propagation/'
 
 results_dir = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
-
+logging.info('Results dir: %s' % results_dir)
 logging.info('Creating new datasets')
 test_dataset, val_dataset, train_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformVar,
                                                            test_fraction=0.15, validation_fraction=0.15)
@@ -56,10 +56,10 @@ encoder_architecture = [
 ]
 forecaster_architecture = [
     [
-        OrderedDict({'deconv1_leaky_1': [192, 192, 3, 2, 1]}),
-        OrderedDict({'deconv2_leaky_1': [192, 64, 3, 2, 1]}),
+        OrderedDict({'deconv1_leaky_1': [192, 192, 4, 2, 1]}),
+        OrderedDict({'deconv2_leaky_1': [192, 64, 4, 2, 1]}),
         OrderedDict({
-            'deconv3_leaky_1': [64, 8, 3, 2, 1],
+            'deconv3_leaky_1': [64, 8, 4, 2, 1],
             'conv3_leaky_2': [8, 8, 3, 1, 1],
             'conv3_3': [8, 1, 1, 1, 0]
         }),
@@ -71,7 +71,7 @@ forecaster_architecture = [
         ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(args.batch_size, 32, 32),
                      kernel_size=3, stride=1, padding=1, device=device, seq_len=args.num_output_frames),
         ConvLSTMCell(input_channel=64, num_filter=64, b_h_w=(args.batch_size, 64, 64),
-                     kernel_size=3, stride=1, padding=1, device=device, sseq_len=args.num_output_frames),
+                     kernel_size=3, stride=1, padding=1, device=device, seq_len=args.num_output_frames),
     ]
 ]
 
@@ -80,8 +80,9 @@ forecaster = Forecaster(forecaster_architecture[0], forecaster_architecture[1], 
 model = EncoderForecaster(encoder, forecaster)
 
 optimizer = optim.Adam(model.parameters(), amsgrad=False, lr=args.learning_rate, weight_decay=args.weight_decay_coefficient)
+lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=7)
 
-experiment = ExperimentBuilder(network_model=model, optimizer=optimizer,
+experiment = ExperimentBuilder(model=model, lr_scheduler=lr_scheduler,
                                experiment_name=args.experiment_name,
                                num_epochs=args.num_epochs,
                                device=device,

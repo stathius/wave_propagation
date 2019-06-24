@@ -32,7 +32,7 @@ else:
     data_dir = '/disk/scratch/s1680171/wave_propagation/'
 
 
-results_dir = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
+results_dir, csv_dir, pickle_dir, models_dir, predictions_dir, charts_dir = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
 
 logging.info('Creating new datasets')
 test_dataset, val_dataset, train_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformVar, test_fraction=0.15, validation_fraction=0.15)
@@ -40,18 +40,18 @@ train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle
 val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-filename_data = os.path.join(results_dir,"all_data.pickle")
+filename_data = os.path.join(pickle_dir, "all_data.pickle")
 all_data = {"Training data": train_dataset, "Validation data": val_dataset, "Testing data": test_dataset}
 save(all_data, filename_data)
 
 
 # analyser
-filename_analyser = os.path.join(results_dir,"analyser.pickle")
+filename_analyser = os.path.join(pickle_dir, "analyser.pickle")
 logging.info('Creating analyser')
 analyser = Analyser(results_dir)
 
 # Model
-filename_model = os.path.join(results_dir,"model.pt")
+filename_model = os.path.join(models_dir, "model.pt")
 model = AR_LSTM(args.num_channels, device)
 model.to(device)
 
@@ -59,7 +59,7 @@ optimizer_algorithm = optim.Adam(filter(lambda p: p.requires_grad, model.paramet
 lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='min', factor=0.1, patience=7)
 
 # Save metadata
-filename_metadata = os.path.join(results_dir,"metadata.pickle" )
+filename_metadata = os.path.join(pickle_dir, "metadata.pickle" )
 meta_data_dict = {  "args": args, "optimizer": optimizer_algorithm.state_dict(), "scheduler": lr_scheduler.state_dict()}
 save(meta_data_dict, filename_metadata)
 
@@ -91,8 +91,8 @@ if __name__ == "__main__":
         logging.info('Epoch %d\tTrain Loss %.6f\tValidation loss: %.6f\tEpoch Time: %.3f' % (epoch, train_loss, validation_loss, epochs_time))
 
 logging.info("Start testing")
-score_keeper=Scorekeeper(results_dir, args.num_channels, normalize)
-figures_dir = os.path.join(results_dir,'figures')
+score_keeper=Scorekeeper(charts_dir, normalize)
+figures_dir = os.path.join(results_dir,'test_charts')
 test(model, test_dataloader, args.test_starting_point, args.num_input_frames, args.reinsert_frequency,
-            device, score_keeper, figures_dir, show_plots=args.show_plots, debug=args.debug, normalize=normalize)
+            device, score_keeper, predictions_dir, show_plots=args.show_plots, debug=args.debug, normalize=normalize)
 score_keeper.plot(args.show_plots)

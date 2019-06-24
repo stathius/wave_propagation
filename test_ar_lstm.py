@@ -71,7 +71,7 @@ debug=False
 
 # from utils.Scorekeeper import Scorekeeper
 score_keeper=Scorekeeper(results_dir, normalize)
-figures_dir = os.path.join(results_dir,'figures')
+figures_dir = os.path.join(results_dir,'test_charts')
 test(model, test_dataloader, test_starting_point, num_input_frames, reinsert_frequency,
             device, score_keeper, figures_dir, show_plots=show_plots, debug=debug, normalize=normalize)
 score_keeper.plot(show_plots=show_plots)

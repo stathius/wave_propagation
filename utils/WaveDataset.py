@@ -53,7 +53,7 @@ class WaveDataset(Dataset):
 
         Concat_Img = self.concatenate_data(img_path, im_list)
 
-        return Concat_Img, torch.Tensor()
+        return Concat_Img
 
     def concatenate_data(self, img_path, im_list):
         """

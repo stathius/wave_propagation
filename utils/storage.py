@@ -2,6 +2,22 @@ import pickle
 import os
 import csv
 
+def save_stuff_json(experiment_log_dir, filename, stuff):
+    """
+    Saves stuff
+    """
+    import json
+    filename = os.path.join(experiment_log_dir, filename)
+    with open(filename, 'w') as f:
+        f.write("%s" % json.dumps(stuff))
+    f.close()
+
+def read_stats(folder):
+    df = pd.read_csv(os.path.join(folder,"summary.csv"))
+    dicc = {}
+    for c in df.columns:
+        dicc[c] = df[c].values
+    return dicc
 
 def save_to_stats_pkl_file(experiment_log_filepath, filename, stats_dict):
     summary_filename = os.path.join(experiment_log_filepath, filename)

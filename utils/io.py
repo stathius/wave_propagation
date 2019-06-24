@@ -1,6 +1,6 @@
 import pickle
 import os
-import torch 
+import torch
 import matplotlib.pyplot as plt
 import scipy.ndimage as ndimage
 import numpy as np
@@ -48,18 +48,37 @@ def figure_save(destination, obj=None):
     plt.savefig(destination)
     plt.savefig(destination + ".svg", format="svg")
     save(obj, destination) if obj else None
-    
+
 def create_results_folder(base_folder, experiment_name):
     exp_folder=os.path.join(base_folder, "experiments_results/")
     if not os.path.isdir(exp_folder):
         os.mkdir(exp_folder)
+
     results_dir = os.path.join(exp_folder, experiment_name)
     if not os.path.isdir(results_dir):
         os.mkdir(results_dir)
-    figures_dir = os.path.join(results_dir,'figures/')
-    if not os.path.isdir(figures_dir):
-        os.mkdir(figures_dir)
-    return results_dir
+
+    csv_dir = os.path.join(results_dir, 'csv/')
+    if not os.path.isdir(csv_dir):
+        os.mkdir(csv_dir)
+
+    pickle_dir = os.path.join(results_dir, 'pickles/')
+    if not os.path.isdir(pickle_dir):
+        os.mkdir(pickle_dir)
+
+    models_dir = os.path.join(results_dir, 'saved_models/')
+    if not os.path.isdir(models_dir):
+        os.mkdir(models_dir)
+
+    predictions_dir = os.path.join(results_dir, 'predicted_frames/')
+    if not os.path.isdir(predictions_dir):
+        os.mkdir(predictions_dir)
+
+    charts_dir = os.path.join(results_dir, 'charts_dir/')
+    if not os.path.isdir(charts_dir):
+        os.mkdir(charts_dir)
+
+    return results_dir, csv_dir, pickle_dir, models_dir, predictions_dir, charts_dir
 
 def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
     """Imshow for Tensor."""

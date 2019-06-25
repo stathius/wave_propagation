@@ -3,15 +3,14 @@ import logging
 import torch
 from torchvision import transforms
 import torch.optim as optim
-from torch.utils.data import DataLoader
 import torch.nn as nn
 import os
 import platform
 import time
 from models.AR_LSTM import AR_LSTM, train_epoch, validate, test
 from utils.Analyser import Analyser
-from utils.io import save_network, load_network, save, load, create_results_folder
-from utils.WaveDataset import create_datasets, transformVar, normalize
+from utils.io import save_network, save, create_results_folder, save_datasets_to_file
+from utils.WaveDataset import create_datasets, transformVar, normalize, create_dataloaders
 from utils.arg_extract import get_args
 from utils.Scorekeeper import Scorekeeper
 # import matplotlib
@@ -34,16 +33,12 @@ else:
 
 dirs = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
 
-logging.info('Creating new datasets')
-test_dataset, val_dataset, train_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformVar, test_fraction=0.15, validation_fraction=0.15)
-train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+logging.info('Creating datasets')
+train_dataset, val_dataset, test_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformVar, test_fraction=0.15, validation_fraction=0.15)
+filename_data = os.path.join(dirs['results'], "all_data.pickle")
+save_datasets_to_file(train_dataset, val_dataset, test_dataset, filename_data)
 
-filename_data = os.path.join(dirs['pickles'], "all_data.pickle")
-all_data = {"Training data": train_dataset, "Validation data": val_dataset, "Testing data": test_dataset}
-save(all_data, filename_data)
-
+train_dataloader, val_dataloader, test_dataloader = create_dataloaders(train_dataset, val_dataset, test_dataset, args.batch_size, args.num_workers)
 
 # analyser
 filename_analyser = os.path.join(dirs['pickles'], "analyser.pickle")
@@ -60,12 +55,12 @@ lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='m
 
 # Save metadata
 filename_metadata = os.path.join(dirs['pickles'], "metadata.pickle" )
-meta_data_dict = {  "args": args, "optimizer": optimizer_algorithm.state_dict(), "scheduler": lr_scheduler.state_dict()}
+meta_data_dict = {  "args": args, "optimizer": optimizer_algorithm.state_dict(), "scheduler": lr_scheduler.state_dict(), "model": "%s" % model}
 save(meta_data_dict, filename_metadata)
 
 if __name__ == "__main__":
     logging.info('Experiment %s' % args.experiment_name)
-    logging.info(args)
+    logging.info(meta_data_dict)
     logging.info('Start training')
 
     if args.debug:

@@ -84,7 +84,7 @@ def convert_SBCHW_to_BSHW(x):
     """
     assert len(x.shape) == 5
 
-    x = x.squeeze()
+    x = x.squeeze(2) #only remove the second dimension to avoid squeezing batches of size 1
     x = x.permute(1,0,2,3)
 
     return x

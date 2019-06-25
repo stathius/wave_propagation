@@ -8,52 +8,41 @@ import numpy as np
 import time
 import logging
 import utils.helper_functions as helper
-from utils.storage import save_statistics
+from utils.io import save_network, save_as_json
 
 
 class ExperimentBuilder(nn.Module):
-    def __init__(self, model, lr_scheduler, experiment_name, num_epochs, train_data, val_data, test_data, device, continue_from_epoch=-1):
+    def __init__(self, model, lr_scheduler, experiment_name, num_epochs, samples_per_sequence,
+                 train_data, val_data, test_data, device, dirs, continue_from_epoch, debug):
         super(ExperimentBuilder, self).__init__()
 
-        self.random_points_per_batch = 10
+        self.samples_per_sequence = samples_per_sequence
         self.experiment_name = experiment_name
         self.model = model
         self.device = device
+        self.debug = debug
+        self.dirs = dirs
 
         self.num_input_frames = self.model.get_num_input_frames()
         self.num_output_frames = self.model.get_num_output_frames()
 
-        if torch.cuda.device_count() > 1:
-            self.model.to(self.device)
-            self.model = nn.DataParallel(module=self.model)
-        else:
-            self.model.to(self.device)  # sends the model from the cpu to the gpu
+        # if torch.cuda.device_count() > 1:
+        #     self.model.to(self.device)
+        #     self.model = nn.DataParallel(module=self.model)
+        # else:
+        self.model.to(self.device)  # sends the model from the cpu to the gpu
+
+        # self.self.dirs = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
+
+        self.lr_scheduler = lr_scheduler
+
+        # Generate the directory names
+        self.best_val_model_loss = np.Inf
+        self.num_epochs = num_epochs
 
         self.train_data = train_data
         self.val_data = val_data
         self.test_data = test_data
-        self.lr_scheduler = lr_scheduler
-
-        # Generate the directory names
-        self.experiment_folder = os.path.abspath("experiments_results/"+experiment_name)
-        self.experiment_logs = os.path.abspath(os.path.join(self.experiment_folder, "result_outputs"))
-        self.experiment_saved_models = os.path.abspath(os.path.join(self.experiment_folder, "saved_models"))
-        print(self.experiment_folder, self.experiment_logs)
-        # Set best models to be at 0 since we are just starting
-        self.best_val_model_loss = np.Inf
-
-        if not os.path.exists(self.experiment_folder):  # If experiment directory does not exist
-            os.mkdir(self.experiment_folder)  # create the experiment directory
-
-        if not os.path.exists(self.experiment_logs):
-            os.mkdir(self.experiment_logs)  # create the experiment log directory
-
-        if not os.path.exists(self.experiment_saved_models):
-            os.mkdir(self.experiment_saved_models)  # create the experiment saved models directory
-
-        self.num_epochs = num_epochs
-        #self.criterion = nn.CrossEntropyLoss().to(self.device)  # send the loss computation to the GPU
-        # self.criterion = nn.MSELoss().to(self.device)
 
         if continue_from_epoch == -2:
             try:
@@ -94,27 +83,26 @@ class ExperimentBuilder(nn.Module):
 
         batch_images = batch_images.to(self.device)
         video_length = batch_images.size(1)
-        random_starting_points = random.sample(range(video_length - self.num_input_frames - self.num_output_frames - 1), self.random_points_per_batch)
+        random_starting_points = random.sample(range(video_length - self.num_input_frames - self.num_output_frames - 1), self.samples_per_sequence)
 
         batch_loss = 0
         for i, starting_point in enumerate(random_starting_points):
             # logging.info('Starting point: %d' %i)
 
             input_end_point = starting_point + self.num_input_frames
-            input_frames = batch_images[:, starting_point:input_end_point, :, :].clone() #.clone().detach()
+            input_frames = batch_images[:, starting_point:input_end_point, :, :].clone()
             predicted_frames = self.model.forward(input_frames) # TODO REMOVE THIS
             target_frames = batch_images[:, input_end_point:(input_end_point + self.num_output_frames), :, :]
             loss = F.mse_loss(predicted_frames, target_frames)
 
             if train:
-                self.lr_scheduler.optimizer.zero_grad()  # set all weight grads from previous training iters to 0
-                loss.backward()  # backpropagate to compute gradients for current iter loss
-                self.lr_scheduler.optimizer.step()  # do a sdg step
+                self.lr_scheduler.optimizer.zero_grad()
+                loss.backward()
+                self.lr_scheduler.optimizer.step()
 
             batch_loss += loss.item()
 
-        # print('batch loss ', batch_loss)
-        return batch_loss / self.random_points_per_batch  # mean batch loss
+        return batch_loss / self.samples_per_sequence  # mean batch loss
 
     def save_model(self, model_save_dir, model_save_name, model_idx, state):
         state['network'] = self.state_dict()  # save network parameter and other variables.
@@ -130,25 +118,31 @@ class ExperimentBuilder(nn.Module):
     def run_experiment(self):
         # total_losses = {"train_loss": [], "val_loss": [], "curr_epoch": []}  # initialize a dict to keep the per-epoch metrics
         for i, epoch_idx in enumerate(range(self.starting_epoch, self.num_epochs)):
-            # epoch_start_time = time.time()
-            # current_epoch_losses = {"train_acc": [], "train_loss": [], "val_acc": [], "val_loss": []}
-            # current_epoch_losses = {"train_loss": [], "val_loss": []}
+            logging.info('Epoch: %d' % i)
+            epoch_start_time = time.time()
+            current_epoch_losses = {"train_loss": [], "val_loss": []}
             with tqdm.tqdm(total=len(self.train_data)) as pbar_train:  # create a progress bar for training
                 for batch_num, batch_images in enumerate(self.train_data):
                     # logging.info('BATCH: %d' % batch_num )
                     batch_start_time = time.time()
                     loss = self.run_batch_iter(batch_images, train=True)
-                    # current_epoch_losses["train_loss"].append(loss)
+                    current_epoch_losses["train_loss"].append(loss)
                     batch_time = time.time() - batch_start_time
                     pbar_train.update(1)
                     pbar_train.set_description("loss: {:.4f} time: {:.1f}s".format(loss, batch_time))
+                    if self.debug:
+                        break
             with tqdm.tqdm(total=len(self.val_data)) as pbar_val:  #
                 for batch_images in self.val_data:
                     with torch.no_grad():
                         loss = self.run_batch_iter(batch_images, train=False)
-                    # current_epoch_losses["val_loss"].append(loss)  # add current iter loss to val loss list.
+                    current_epoch_losses["val_loss"].append(loss)  # add current iter loss to val loss list.
                     pbar_val.update(1)  # add 1 step to the progress bar
                     pbar_val.set_description("loss: {:.4f}".format(loss))
+                    if self.debug:
+                        break
+            save_as_json(current_epoch_losses, os.path.join(self.dirs['logs'], 'train_val_loss.json'))
+            save_network(self.model, os.path.join(self.dirs['models'], 'model.pt'))
             # val_mean_loss = np.mean(current_epoch_losses['val_loss'])
             # if val_mean_loss < self.best_val_model_loss:  # if current epoch's mean val acc is greater than the saved best val acc then
                 # self.best_val_model_loss = val_mean_loss  # set the best val model acc to be current epoch's val accuracy

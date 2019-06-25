@@ -6,10 +6,10 @@ import platform
 import logging
 from collections import OrderedDict
 from models.ConvLSTM import EncoderForecaster, Encoder, Forecaster, ConvLSTMCell
-from utils.io import save_network, load_network, save, load, create_results_folder
+from utils.io import save_network, save, create_results_folder, save_datasets_to_file
 from utils.arg_extract import get_args
 from utils.ExperimentBuilder import ExperimentBuilder
-from utils.WaveDataset import create_datasets, transformVar, normalize
+from utils.WaveDataset import create_datasets, transformVar, normalize, create_dataloaders
 plt.ioff()
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
@@ -23,18 +23,14 @@ else:
     base_folder = '/home/s1680171/wave_propagation/'
     data_dir = '/disk/scratch/s1680171/wave_propagation/'
 
-results_dir = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
-logging.info('Results dir: %s' % results_dir)
-logging.info('Creating new datasets')
-test_dataset, val_dataset, train_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformVar,
-                                                           test_fraction=0.15, validation_fraction=0.15)
-train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+dirs = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
 
-filename_data = os.path.join(results_dir, "all_data.pickle")
-all_data = {"Training data": train_dataset, "Validation data": val_dataset, "Testing data": test_dataset}
-save(all_data, filename_data)
+logging.info('Creating datasets')
+train_dataset, val_dataset, test_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformVar, test_fraction=0.15, validation_fraction=0.15)
+filename_data = os.path.join(dirs['pickles'], "all_data.pickle")
+save_datasets_to_file(train_dataset, val_dataset, test_dataset, filename_data)
+
+train_dataloader, val_dataloader, test_dataloader = create_dataloaders(train_dataset, val_dataset, test_dataset, args.batch_size, args.num_workers)
 
 
 # Define encoder #
@@ -85,6 +81,12 @@ lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', facto
 experiment = ExperimentBuilder(model=model, lr_scheduler=lr_scheduler,
                                experiment_name=args.experiment_name,
                                num_epochs=args.num_epochs,
+                               samples_per_sequence=args.samples_per_sequence,
                                device=device,
-                               train_data=train_dataloader, val_data=val_dataloader, test_data=test_dataloader)
-experiment_metrics, test_metrics = experiment.run_experiment()
+                               train_data=train_dataloader,
+                               val_data=val_dataloader,
+                               test_data=test_dataloader,
+                               dirs=dirs,
+                               continue_from_epoch=-1,
+                               debug=args.debug)
+experiment.run_experiment()

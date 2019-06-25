@@ -34,4 +34,4 @@ fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 cd /disk/scratch/s1680171/wave_propagation
-python train_ar_lstm.py --experiment_name "ConvAE_LSTM_1ch_normalize_2"
+python train_convlstm.py --experiment_name "ConvLSTM_5in_20out_0"

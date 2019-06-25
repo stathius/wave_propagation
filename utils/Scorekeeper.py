@@ -8,7 +8,7 @@ from scipy.spatial import distance
 from PIL import Image
 import imagehash
 import os
-from utils.format import hex_str2bool, normalize_image
+from utils.helper_functions import hex_str2bool, normalize_image
 
 class Scorekeeper():
     """

@@ -39,7 +39,7 @@ def get_args():
     parser.add_argument('--reinsert_frequency', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--num_channels', type=int, default=1, help='how many num_channels each frame has (gray/rgb)')
-    parser.add_argument('--samples_per_sequence', type=int, default=15, help='which frame to start the test')
+    parser.add_argument('--samples_per_sequence', type=int, default=10, help='how may training points to generate from a video sequence')
 
     parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
     parser.add_argument('--experiment_name', type=str, default="dummy",

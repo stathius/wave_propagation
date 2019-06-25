@@ -5,6 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
 #SBATCH --time=1-06:00:00
+#SBATCH --exclude=marax # 980 with 4gb
 hostname
 nvidia-smi
 export CUDA_HOME=/opt/cuda-9.0.176.1/

@@ -116,7 +116,7 @@ class ExperimentBuilder(nn.Module):
         return state['best_val_model_idx'], state['best_val_model_loss'], state
 
     def run_experiment(self):
-        # total_losses = {"train_loss": [], "val_loss": [], "curr_epoch": []}  # initialize a dict to keep the per-epoch metrics
+        total_losses = {"train_loss": [], "val_loss": [], "curr_epoch": []} =
         for i, epoch_idx in enumerate(range(self.starting_epoch, self.num_epochs)):
             logging.info('Epoch: %d' % i)
             epoch_start_time = time.time()
@@ -141,17 +141,18 @@ class ExperimentBuilder(nn.Module):
                     pbar_val.set_description("loss: {:.4f}".format(loss))
                     if self.debug:
                         break
-            save_as_json(current_epoch_losses, os.path.join(self.dirs['logs'], 'train_val_loss.json'))
-            save_network(self.model, os.path.join(self.dirs['models'], 'model.pt'))
+
             # val_mean_loss = np.mean(current_epoch_losses['val_loss'])
             # if val_mean_loss < self.best_val_model_loss:  # if current epoch's mean val acc is greater than the saved best val acc then
                 # self.best_val_model_loss = val_mean_loss  # set the best val model acc to be current epoch's val accuracy
                 # self.best_val_model_idx = epoch_idx  # set the experiment-wise best val idx to be the current epoch's idx
 
-            # for key, value in current_epoch_losses.items():
-                # total_losses[key].append(np.mean(value))  # get mean of all metrics of current epoch metrics dict, to get them ready for storage and output on the terminal.
+            for key, value in current_epoch_losses.items():
+                total_losses[key].append(np.mean(value))  # get mean of all metrics of current epoch metrics dict, to get them ready for storage and output on the terminal.
+            total_losses['curr_epoch'].append(epoch_idx)
+            save_as_json(total_losses, os.path.join(self.dirs['logs'], 'train_val_loss.json'))
+            save_network(self.model, os.path.join(self.dirs['models'], 'model.pt'))
 
-            # total_losses['curr_epoch'].append(epoch_idx)
             # save_statistics(experiment_log_dir=self.experiment_logs, filename='summary.csv',
             #                 stats_dict=total_losses, current_epoch=i,
             #                 continue_from_mode=True if (self.starting_epoch != 0 or i > 0) else False) # save statistics to stats file.

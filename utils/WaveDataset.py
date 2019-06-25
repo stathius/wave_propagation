@@ -5,10 +5,10 @@ from os import listdir
 import random
 from PIL import Image
 from torchvision import transforms
+from torch.utils.data import DataLoader
 
 normalize = {'mean': 0.5047, 'std': 0.1176}
 # normalize = {'mean':0, 'std':1}
-
 
 transformVar = {"Test": transforms.Compose([
     transforms.Resize(128),  # Already 184 x 184
@@ -37,10 +37,10 @@ class WaveDataset(Dataset):
     """
     Creates a data-loader for the wave prop data
     """
-    def __init__(self, root_directory, transform=None, check_bad_data=True):
-        self.root_dir = root_directory[0]
-        self.classes = root_directory[1]
-        self.imagesets = root_directory[2]
+    def __init__(self, data_directory, transform=None, check_bad_data=True):
+        self.root_dir = data_directory[0]
+        self.classes = data_directory[1]
+        self.imagesets = data_directory[2]
         self.transform = transform
 
     def __len__(self):
@@ -96,20 +96,20 @@ class WaveDataset(Dataset):
         return Concat_Img
 
 
-def create_datasets(root_directory, transform, test_fraction, validation_fraction):
+def create_datasets(data_directory, transform, test_fraction, validation_fraction):
     """
     Splits data into fractional parts (data does not overlap!!) and creates data-loaders for each fraction.
-    :param root_directory: Directory of data
+    :param data_directory: Directory of data
     :param transform: transforms to apply for each data set. Must contain "Train" and "Test" dict
     :param test_fraction: Fraction of data to go to test-set
     :param validation_fraction: Fraction of data to go to validation-set
     :param check_bad_data: Option to evaluate and filter out corrupted data/images
     :return:
     """
-    classes = listdir(root_directory)
+    classes = listdir(data_directory)
     imagesets = []
     for cla in classes:
-        im_list = sorted(listdir(root_directory + cla))
+        im_list = sorted(listdir(data_directory + cla))
         imagesets.append((im_list, cla))
 
     full_size = len(imagesets)
@@ -118,17 +118,24 @@ def create_datasets(root_directory, transform, test_fraction, validation_fractio
     for item in test:
         imagesets.remove(item)
 
-    Send = [root_directory, classes, test]
+    Send = [data_directory, classes, test]
     Test = WaveDataset(Send, transform["Test"])
 
     validate = random.sample(imagesets, int(full_size * validation_fraction))  # All images i list of t0s
     for item in validate:
         imagesets.remove(item)
 
-    Send = [root_directory, classes, validate]
+    Send = [data_directory, classes, validate]
     Validate = WaveDataset(Send, transform["Test"])
 
-    Send = [root_directory, classes, imagesets]
+    Send = [data_directory, classes, imagesets]
     Train = WaveDataset(Send, transform["Train"])
 
-    return Test, Validate, Train
+    return Train, Validate, Test
+
+
+def create_dataloaders(train_dataset, val_dataset, test_dataset, batch_size, num_workers):
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    return train_dataloader, val_dataloader, test_dataloader

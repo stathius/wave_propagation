@@ -11,7 +11,7 @@ Saving and loading of figures, network state and other .pickle objects
 """
 
 def load_experiment():
-    filename_data = os.path.join(results_dir,"all_data.pickle")
+    filename_data = os.path.join(dirs['results'],"all_data.pickle")
     logging.info('Loading datasets')
     all_data = load(filename_data)
     train_dataset = all_data["Training data"]
@@ -50,35 +50,20 @@ def figure_save(destination, obj=None):
     save(obj, destination) if obj else None
 
 def create_results_folder(base_folder, experiment_name):
+    dirs = {'base': base_folder}
     exp_folder=os.path.join(base_folder, "experiments_results/")
     if not os.path.isdir(exp_folder):
         os.mkdir(exp_folder)
 
-    results_dir = os.path.join(exp_folder, experiment_name)
-    if not os.path.isdir(results_dir):
-        os.mkdir(results_dir)
+    dirs['results'] = os.path.join(exp_folder, experiment_name)
+    if not os.path.isdir(dirs['results']):
+        os.mkdir(dirs['results'])
 
-    log_dir = os.path.join(results_dir, 'logs/')
-    if not os.path.isdir(log_dir):
-        os.mkdir(log_dir)
-
-    pickle_dir = os.path.join(results_dir, 'pickles/')
-    if not os.path.isdir(pickle_dir):
-        os.mkdir(pickle_dir)
-
-    models_dir = os.path.join(results_dir, 'saved_models/')
-    if not os.path.isdir(models_dir):
-        os.mkdir(models_dir)
-
-    predictions_dir = os.path.join(results_dir, 'predicted_frames/')
-    if not os.path.isdir(predictions_dir):
-        os.mkdir(predictions_dir)
-
-    charts_dir = os.path.join(results_dir, 'charts_dir/')
-    if not os.path.isdir(charts_dir):
-        os.mkdir(charts_dir)
-
-    return results_dir, log_dir, pickle_dir, models_dir, predictions_dir, charts_dir
+    for d in ['logs', 'pickles', 'models', 'predictions', 'charts']:
+        dirs[d] = os.path.join(dirs['results'], '%s/' % d)
+        if not os.path.isdir(dirs[d]):
+            os.mkdir(dirs[d])
+    return dirs
 
 def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
     """Imshow for Tensor."""

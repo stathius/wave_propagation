@@ -116,7 +116,7 @@ class ExperimentBuilder(nn.Module):
         return state['best_val_model_idx'], state['best_val_model_loss'], state
 
     def run_experiment(self):
-        total_losses = {"train_loss": [], "val_loss": [], "curr_epoch": []} =
+        total_losses = {"train_loss": [], "val_loss": [], "curr_epoch": []}
         for i, epoch_idx in enumerate(range(self.starting_epoch, self.num_epochs)):
             logging.info('Epoch: %d' % i)
             epoch_start_time = time.time()

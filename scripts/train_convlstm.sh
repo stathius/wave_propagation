@@ -4,7 +4,7 @@
 #SBATCH --partition=General_Usage
 #SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
-#SBATCH --time=0-24:00:00
+#SBATCH --time=1-06:00:00
 hostname
 nvidia-smi
 export CUDA_HOME=/opt/cuda-9.0.176.1/
@@ -33,5 +33,5 @@ else
 fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
-cd /disk/scratch/s1680171/wave_propagation
-python train_convlstm.py --experiment_name "ConvLSTM_5in_20out_0"
+cd /home/s1680171/wave_propagation/
+python train_convlstm.py --experiment_name "ConvLSTM_batch6_samples5_epoch25" --batch_size 6 --num_epochs 25 --samples_per_sequence 5

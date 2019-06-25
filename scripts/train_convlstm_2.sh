@@ -4,7 +4,7 @@
 #SBATCH --partition=General_Usage
 #SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
-#SBATCH --time=0-24:00:00
+#SBATCH --time=1-06:00:00
 hostname
 nvidia-smi
 export CUDA_HOME=/opt/cuda-9.0.176.1/
@@ -34,4 +34,4 @@ fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 cd /home/s1680171/wave_propagation/
-python train_ar_lstm.py --experiment_name "ConvAE_LSTM_1ch_normalize_2"
+python train_convlstm.py --experiment_name "ConvLSTM_batch6_samples10_epoch12" --batch_size 6 --num_epochs 12 --samples_per_sequence 10

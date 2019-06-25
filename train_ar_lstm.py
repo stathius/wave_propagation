@@ -47,7 +47,7 @@ analyser = Analyser(dirs['results'])
 
 # Model
 filename_model = os.path.join(dirs['models'], "model.pt")
-model = AR_LSTM(args.num_channels, device)
+model = AR_LSTM(args.num_input_frames, args.num_output_frames, device)
 model.to(device)
 
 optimizer_algorithm = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4)

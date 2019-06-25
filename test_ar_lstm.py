@@ -58,8 +58,7 @@ if torch.cuda.is_available():
 else:
     device = 'cpu'
 
-num_channels=1
-model = AR_LSTM(num_channels=num_channels, device=device)
+model = AR_LSTM(num_input_frames=5, num_output_frames=1, device=device)
 model = load_network(model, results_dir+"/model.pt")
 model.to(device)
 

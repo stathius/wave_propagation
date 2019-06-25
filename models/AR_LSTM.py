@@ -20,12 +20,13 @@ class AR_LSTM(nn.Module):
     """
     The network structure
     """
-    def __init__(self, num_channels, device):
+    def __init__(self, num_input_frames, num_output_frames, device):
         super(AR_LSTM, self).__init__()
-        self.num_channels = num_channels
+        self.num_input_frames = num_input_frames
+        self.num_output_frames = num_output_frames
         self.device = device
         self.encoder_conv = nn.Sequential(
-            nn.Conv2d(5 * num_channels, 60, kernel_size=7, stride=2, padding=1),
+            nn.Conv2d(self.num_input_frames , 60, kernel_size=7, stride=2, padding=1),
             nn.BatchNorm2d(num_features=60),
             nn.Tanh(),
             nn.Conv2d(60, 120, kernel_size=3, stride=2, padding=1),
@@ -63,7 +64,7 @@ class AR_LSTM(nn.Module):
             nn.BatchNorm2d(num_features=60),
             nn.Tanh(),
             nn.Dropout2d(0.25),
-            nn.ConvTranspose2d(60, num_channels, kernel_size=3, stride=2, padding=1, output_padding=1)
+            nn.ConvTranspose2d(60, self.num_output_frames , kernel_size=3, stride=2, padding=1, output_padding=1)
         )
 
         self.LSTM_initial_input = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)

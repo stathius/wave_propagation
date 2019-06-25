@@ -78,6 +78,12 @@ model = EncoderForecaster(encoder, forecaster)
 optimizer = optim.Adam(model.parameters(), amsgrad=False, lr=args.learning_rate, weight_decay=args.weight_decay_coefficient)
 lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=7)
 
+# Save metadata
+filename_metadata = os.path.join(dirs['pickles'], "metadata.pickle")
+meta_data_dict = {"args": args, "optimizer": optimizer.state_dict(), "scheduler": lr_scheduler.state_dict(), "model": "%s" % model}
+save(meta_data_dict, filename_metadata)
+logging.info(meta_data_dict)
+
 experiment = ExperimentBuilder(model=model, lr_scheduler=lr_scheduler,
                                experiment_name=args.experiment_name,
                                num_epochs=args.num_epochs,

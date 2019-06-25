@@ -137,7 +137,6 @@ class EncoderForecaster(nn.Module):
         self.input_dim = 'SBCHW'  # indicates the model expects inputs in the form S*B*C*H*W
 
     def forward(self, input):
-        print(input.size())
         input = convert_BSHW_to_SBCHW(input)
         state = self.encoder(input)
         output = self.forecaster(state)

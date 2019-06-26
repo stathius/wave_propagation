@@ -104,17 +104,6 @@ class ExperimentBuilder(nn.Module):
 
         return batch_loss / self.samples_per_sequence  # mean batch loss
 
-    def save_model(self, model_save_dir, model_save_name, model_idx, state):
-        state['network'] = self.state_dict()  # save network parameter and other variables.
-        torch.save(state, f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(
-            model_idx))))  # save state at prespecified filepath
-
-    def load_model(self, model_save_dir, model_save_name, model_idx):
-        state = torch.load(f=os.path.join(model_save_dir, "{}_{}".format(model_save_name, str(model_idx))))
-        self.load_state_dict(state_dict=state['network'])
-        # return state['best_val_model_idx'], state['best_val_model_acc'], state
-        return state['best_val_model_idx'], state['best_val_model_loss'], state
-
     def run_experiment(self):
         total_losses = {"train_loss": [], "val_loss": [], "curr_epoch": []}
         for i, epoch_idx in enumerate(range(self.starting_epoch, self.num_epochs)):
@@ -142,45 +131,26 @@ class ExperimentBuilder(nn.Module):
                     if self.debug:
                         break
 
-            # val_mean_loss = np.mean(current_epoch_losses['val_loss'])
-            # if val_mean_loss < self.best_val_model_loss:  # if current epoch's mean val acc is greater than the saved best val acc then
-                # self.best_val_model_loss = val_mean_loss  # set the best val model acc to be current epoch's val accuracy
-                # self.best_val_model_idx = epoch_idx  # set the experiment-wise best val idx to be the current epoch's idx
-
+            #  get mean of all metrics of current epoch metrics dict, to get them ready for storage and output on the terminal.
             for key, value in current_epoch_losses.items():
-                total_losses[key].append(np.mean(value))  # get mean of all metrics of current epoch metrics dict, to get them ready for storage and output on the terminal.
+                total_losses[key].append(np.mean(value))  #
             total_losses['curr_epoch'].append(epoch_idx)
             save_as_json(total_losses, os.path.join(self.dirs['logs'], 'train_val_loss.json'))
-            save_network(self.model, os.path.join(self.dirs['models'], 'model.pt'))
+            save_network(self.model, os.path.join(self.dirs['models'], 'model_latest.pt'))
 
-            # save_statistics(experiment_log_dir=self.experiment_logs, filename='summary.csv',
-            #                 stats_dict=total_losses, current_epoch=i,
-            #                 continue_from_mode=True if (self.starting_epoch != 0 or i > 0) else False) # save statistics to stats file.
+            loss_string = "Train loss: {:.4f} | Validation loss: {:.4f}".format(total_losses['train_loss'][-1], total_losses['val_loss'][-1])
+            epoch_elapsed_time = "{:.4f}".format(time.time() - epoch_start_time)
 
-            # load_statistics(experiment_log_dir=self.experiment_logs, filename='summary.csv') # How to load a csv file if you need to
+            logging.info("Epoch {}:\t{}\tTime elapsed {}s".format(epoch_idx, loss_string, epoch_elapsed_time))
 
-            # out_string = "_".join(
-            #     ["{}_{:.4f}".format(key, np.mean(value)) for key, value in current_epoch_losses.items()])
-            # create a string to use to report our epoch metrics
-            # epoch_elapsed_time = time.time() - epoch_start_time  # calculate time taken for epoch
-            # epoch_elapsed_time = "{:.4f}".format(epoch_elapsed_time)
-
-            # logging.info("Epoch {}:".format(epoch_idx), out_string, "epoch time", epoch_elapsed_time, "seconds")
-            # self.state['current_epoch_idx'] = epoch_idx
-            # self.state['best_val_model_loss'] = self.best_val_model_loss
-            # self.state['best_val_model_idx'] = self.best_val_model_idx
-            # self.save_model(model_save_dir=self.experiment_saved_models,
-            #                 # save model and best val idx and best val acc, using the model dir, model name and model idx
-            #                 model_save_name="train_model", model_idx=epoch_idx, state=self.state)
-            # self.save_model(model_save_dir=self.experiment_saved_models,
-            #                 # save model and best val idx and best val acc, using the model dir, model name and model idx
-            #                 model_save_name="train_model", model_idx='latest', state=self.state)
+            # Save if best model so far
+            val_mean_loss = np.mean(current_epoch_losses['val_loss'])
+            if val_mean_loss < self.best_val_model_loss:
+                logging.info('Saving a better model. Previous loss: %.4f New loss: %.4f' % (self.best_val_model_loss, val_mean_loss))
+                self.best_val_model_loss = val_mean_loss
+                save_network(self.model, os.path.join(self.dirs['models'], 'model_best.pt'))
 
         # print("Generating test set evaluation metrics")
-        # self.load_model(model_save_dir=self.experiment_saved_models, model_idx=self.best_val_model_idx,
-        #                 # load best validation model
-        #                 model_save_name="train_model")
-        # current_epoch_losses = {"test_loss": []}  # initialize a statistics dict
         # with tqdm.tqdm(total=len(self.test_data)) as pbar_test:  # ini a progress bar
         #     for x, y in self.test_data:  # sample batch
         #         loss = self.run_evaluation_iter(x=x, y=y)  # compute loss and accuracy by running an evaluation step

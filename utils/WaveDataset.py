@@ -8,25 +8,25 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 
-normalizers = {'none': {'mean': 0.0, 'std': 1.0},  # leave as is
-               'normal': {'mean': 0.5047, 'std': 0.1176},  # mean 0 std 1
-               'm1to1': {'mean': 0.5, 'std': 0.5}  # makes it -1, 1
-               }
+def get_transforms(normalizer):
+    normalizers = {'none': {'mean': 0.0, 'std': 1.0},  # leave as is
+                   'normal': {'mean': 0.5047, 'std': 0.1176},  # mean 0 std 1
+                   'm1to1': {'mean': 0.5, 'std': 0.5}  # makes it -1, 1
+                   }
+    normalizer = normalizers[normalizer]
 
-
-def get_transform(normalize):
     trans = {"Test": transforms.Compose([
         transforms.Resize(128),  # Already 184 x 184
         transforms.CenterCrop(128),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[normalize['mean']], std=[normalize['std']])
+        transforms.Normalize(mean=[normalizer['mean']], std=[normalizer['std']])
     ]), "Train": transforms.Compose([
         transforms.Resize(128),  # Already 184 x 184
         transforms.CenterCrop(128),
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[normalize['mean']], std=[normalize['std']])])}
+        transforms.Normalize(mean=[normalizer['mean']], std=[normalizer['std']])])}
     return trans
 
 

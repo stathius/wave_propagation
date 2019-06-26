@@ -27,7 +27,7 @@ def get_transforms(normalizer):
         transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[normalizer['mean']], std=[normalizer['std']])])}
-    return trans
+    return trans, normalizer
 
 
 def open_image(filename, grayscale=False):
@@ -140,7 +140,8 @@ def create_datasets(data_directory, transform, test_fraction, validation_fractio
 
 
 def create_dataloaders(train_dataset, val_dataset, test_dataset, batch_size, num_workers):
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    return train_dataloader, val_dataloader, test_dataloader
+    dataloaders = {}
+    dataloaders['train'] = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    dataloaders['val'] = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    dataloaders['test'] = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    return dataloaders

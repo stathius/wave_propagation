@@ -11,10 +11,8 @@ import time
 import os
 from utils.io import imshow
 import torch.nn as nn
-from utils.WaveDataset import normalize
 
 NUM_CHANNELS = 1
-
 
 class AR_LSTM(nn.Module):
     """
@@ -23,7 +21,7 @@ class AR_LSTM(nn.Module):
     def __init__(self, num_input_frames, num_output_frames, device):
         super(AR_LSTM, self).__init__()
         self.num_input_frames = num_input_frames
-+       self.num_output_frames = 1 # num_output_frames # It should be set to 1
+        self.num_output_frames = 1 # num_output_frames # It should be set to 1
         self.device = device
         self.encoder_conv = nn.Sequential(
             nn.Conv2d(self.num_input_frames , 60, kernel_size=7, stride=2, padding=1),

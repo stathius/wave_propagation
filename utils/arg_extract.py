@@ -54,6 +54,14 @@ def get_args():
 
     args = parser.parse_args()
 
+    if args.debug:
+        args.num_input_frames = 2
+        args.num_output_frames = 2
+        args.batch_size = 2
+        args.num_workers = 1
+        args.samples_per_sequence = 1
+        args.num_epochs = 3
+
     if args.seed_everything:
         seed_everything(args.seed)
 

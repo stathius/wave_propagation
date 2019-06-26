@@ -7,14 +7,46 @@ import os
 import numpy as np
 import time
 import logging
-import utils.helper_functions as helper
-from utils.io import save_network, save_as_json
+from utils.io import save_network, save_as_json, save, save_datasets_to_file
+from utils.WaveDataset import create_datasets, create_dataloaders, get_transforms
+from utils.helper_functions import create_results_folder
+
+def experiment_setup(args, model):
+    if 'Darwin' in platform.system():
+        base_folder = '/Users/stathis/Code/thesis/wave_propagation/'
+        data_dir = base_folder
+    else:
+        base_folder = '/home/s1680171/wave_propagation/'
+        data_dir = '/disk/scratch/s1680171/wave_propagation/'
+
+    # Create folders
+    dirs = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
+
+    # Datasets and data loaders
+    transformations = get_transforms(args.normalizer)
+    logging.info('Creating datasets')
+    train_dataset, val_dataset, test_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformations, test_fraction=0.15, validation_fraction=0.15)
+    filename_data = os.path.join(dirs['results'], "all_data.pickle")
+    save_datasets_to_file(train_dataset, val_dataset, test_dataset, filename_data)
+
+    data_loaders = create_dataloaders(train_dataset, val_dataset, test_dataset, args.batch_size, args.num_workers)
+
+    # Optimizer and scheduler
+    optimizer_algorithm = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='min', factor=0.1, patience=7)
+
+    # Save metadata
+    filename_metadata = os.path.join(dirs['pickles'], "metadata.pickle" )
+    meta_data_dict = {  "args": args, "optimizer": optimizer_algorithm.state_dict(), "scheduler": lr_scheduler.state_dict(), "model": "%s" % model}
+    save(meta_data_dict, filename_metadata)
+
+    return dirs, data_loaders, lr_scheduler
 
 
-class ExperimentBuilder(nn.Module):
+class ExperimentRunner(nn.Module):
     def __init__(self, model, lr_scheduler, experiment_name, num_epochs, samples_per_sequence,
                  train_data, val_data, test_data, device, dirs, continue_from_epoch, debug):
-        super(ExperimentBuilder, self).__init__()
+        super(ExperimentRunner, self).__init__()
 
         self.samples_per_sequence = samples_per_sequence
         self.experiment_name = experiment_name

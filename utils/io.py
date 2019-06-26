@@ -5,7 +5,7 @@ import torch
 import json
 import matplotlib.pyplot as plt
 import scipy.ndimage as ndimage
-from utils.format import normalize_image
+from utils.helper_functions import normalize_image
 
 
 def save_datasets_to_file(train_dataset, val_dataset, test_dataset, filename):

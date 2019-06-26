@@ -39,7 +39,7 @@ def get_args():
     parser.add_argument('--reinsert_frequency', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--samples_per_sequence', type=int, default=10, help='how may training points to generate from a video sequence')
-
+    parser.add_argument('--normalizer', type=str, default='normal', help='how to normalize the images [normal, m1to1, none]')
     parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
     parser.add_argument('--experiment_name', type=str, default="dummy",
                         help='Experiment name - to be used for building the experiment folder')
@@ -59,18 +59,11 @@ def get_args():
         args.num_output_frames = 2
         args.batch_size = 2
         args.num_workers = 1
-        args.samples_per_sequence = 1
+        args.samples_per_sequence = 2
         args.num_epochs = 3
+        args.test_starting_point = 70
 
     if args.seed_everything:
         seed_everything(args.seed)
 
-    args.use_cuda = torch.cuda.is_available()
-    if torch.cuda.is_available():  # checks whether a cuda gpu is available and whether the gpu flag is True
-        device = torch.cuda.current_device()
-        logging.info("use {} GPU(s)".format(torch.cuda.device_count()))
-    else:
-        logging.info("use CPU")
-        device = torch.device('cpu')  # sets the device to be CPU
-
-    return args, device
+    return args

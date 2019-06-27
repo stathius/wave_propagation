@@ -9,44 +9,6 @@ from torch.utils.data import DataLoader
 from utils.io import save, load
 
 
-def create_datasets(data_directory, transform, test_fraction, validation_fraction):
-    """
-    Splits data into fractional parts (data does not overlap!!) and creates data-loaders for each fraction.
-    :param data_directory: Directory of data
-    :param transform: transforms to apply for each data set. Must contain "Train" and "Test" dict
-    :param test_fraction: Fraction of data to go to test-set
-    :param validation_fraction: Fraction of data to go to validation-set
-    :param check_bad_data: Option to evaluate and filter out corrupted data/images
-    :return:
-    """
-    classes = os.listdir(data_directory)
-    imagesets = []
-    for cla in classes:
-        im_list = sorted(os.listdir(data_directory + cla))
-        imagesets.append((im_list, cla))
-
-    full_size = len(imagesets)
-
-    test = random.sample(imagesets, int(full_size * test_fraction))  # All images i list of t0s
-    for item in test:
-        imagesets.remove(item)
-
-    Send = [data_directory, classes, test]
-    Test = WaveDataset(Send, transform["Test"])
-
-    validate = random.sample(imagesets, int(full_size * validation_fraction))  # All images i list of t0s
-    for item in validate:
-        imagesets.remove(item)
-
-    Send = [data_directory, classes, validate]
-    Validate = WaveDataset(Send, transform["Test"])
-
-    Send = [data_directory, classes, imagesets]
-    Train = WaveDataset(Send, transform["Train"])
-
-    return Train, Validate, Test
-
-
 def get_normalizer(normalizer):
     normalizers = {'none': {'mean': 0.0, 'std': 1.0},  # leave as is
                    'normal': {'mean': 0.5047, 'std': 0.1176},  # mean 0 std 1
@@ -71,10 +33,37 @@ def get_transforms(normalizer):
     return trans, normalizer
 
 
-def create_new_datasets(data_dir, normalizer):
+def create_new_datasets(base_dir, normalizer):
     logging.info('Creating new datasets')
-    transformations, normalizer = get_transforms(normalizer)
-    train_dataset, val_dataset, test_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformations, test_fraction=0.15, validation_fraction=0.15)
+    data_directory = os.path.join(base_dir, "Video_Data/")
+    test_fraction = 0.15
+    validation_fraction = 0.15
+    transform, normalizer = get_transforms(normalizer)
+
+    classes = os.listdir(data_directory)
+    imagesets = []
+    for cla in classes:
+        im_list = sorted(os.listdir(data_directory + cla))
+        imagesets.append((im_list, cla))
+
+    full_size = len(imagesets)
+
+    test = random.sample(imagesets, int(full_size * test_fraction))  # All images i list of t0s
+    for item in test:
+        imagesets.remove(item)
+
+    Send = [data_directory, classes, test]
+    test_dataset = WaveDataset(Send, transform["Test"])
+
+    validate = random.sample(imagesets, int(full_size * validation_fraction))  # All images i list of t0s
+    for item in validate:
+        imagesets.remove(item)
+
+    Send = [data_directory, classes, validate]
+    val_dataset = WaveDataset(Send, transform["Test"])
+
+    Send = [data_directory, classes, imagesets]
+    train_dataset = WaveDataset(Send, transform["Train"])
 
     datasets = {"Training data": train_dataset,
                 "Validation data": val_dataset,

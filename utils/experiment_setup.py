@@ -9,7 +9,7 @@ from utils.WaveDataset import get_transforms, create_dataloaders, create_dataset
 class ExperimentSetup():
     def __init__(self, args):
         self.args = args
-        # self.dirs = self._get_dirs()
+        logging.info('Experiment %s' % args.experiment_name)
 
     def get_dirs(self):
         logging.info('Creating directories')

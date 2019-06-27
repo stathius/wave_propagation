@@ -25,7 +25,7 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def get_args():
+def get_args_train():
     """
     Returns a namedtuple with arguments extracted from the command line.
     :return: A namedtuple with arguments
@@ -63,6 +63,34 @@ def get_args():
         args.num_epochs = 3
         args.test_starting_point = 70
         args.normalizer = 'none'
+
+    if args.seed_everything:
+        seed_everything(args.seed)
+
+    return args
+
+
+def get_args_test():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--reinsert_frequency', type=int, default=10)
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
+    parser.add_argument('--experiment_name', type=str, default="dummy",
+                        help='Experiment name - to be used for building the experiment folder')
+    parser.add_argument('--num_workers', type=int, default=12, help='how many workers for the dataloader')
+    parser.add_argument('--seed', type=int, default=12345, help='Seed to use for random number generator for experiment')
+    parser.add_argument('--seed_everything', type=str2bool, default=True)
+    parser.add_argument('--show_plots', type=str2bool, default=False)
+    parser.add_argument('--debug', type=str2bool, default=False)
+
+    args = parser.parse_args()
+
+    if args.debug:
+        args.batch_size = 2
+        args.num_workers = 1
+        args.samples_per_sequence = 5
+        args.test_starting_point = 70
 
     if args.seed_everything:
         seed_everything(args.seed)

@@ -13,47 +13,6 @@ from utils.WaveDataset import create_datasets, create_dataloaders, get_transform
 from utils.io import create_results_folder
 import platform
 
-def experiment_setup(args, model):
-    if 'Darwin' in platform.system():
-        base_folder = '/Users/stathis/Code/thesis/wave_propagation/'
-        data_dir = base_folder
-    else:
-        base_folder = '/home/s1680171/wave_propagation/'
-        data_dir = '/disk/scratch/s1680171/wave_propagation/'
-
-    # Create folders
-    dirs = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
-
-    # Datasets and data loaders
-    transformations, normalizer = get_transforms(args.normalizer)
-    logging.info('Creating datasets')
-    train_dataset, val_dataset, test_dataset = create_datasets(os.path.join(data_dir, "Video_Data/"), transformations, test_fraction=0.15, validation_fraction=0.15)
-    filename_data = os.path.join(dirs['results'], "all_data.pickle")
-    save_datasets_to_file(train_dataset, val_dataset, test_dataset, filename_data)
-
-    data_loaders = create_dataloaders(train_dataset, val_dataset, test_dataset, args.batch_size, args.num_workers)
-
-    # Optimizer and scheduler
-    optimizer_algorithm = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
-    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer_algorithm, mode='min', factor=0.1, patience=7)
-
-    # Save metadata
-    filename_metadata = os.path.join(dirs['pickles'], "metadata.pickle" )
-    meta_data_dict = {  "args": args, "optimizer": optimizer_algorithm.state_dict(), "scheduler": lr_scheduler.state_dict(), "model": "%s" % model}
-    save(meta_data_dict, filename_metadata)
-
-    logging.info('Experiment %s' % args.experiment_name)
-    logging.info(meta_data_dict)
-
-    if torch.cuda.is_available():
-        device = torch.cuda.current_device()
-        logging.info("use {} GPU(s)".format(torch.cuda.device_count()))
-    else:
-        logging.info("use CPU")
-        device = torch.device('cpu')  # sets the device to be CPU
-
-    return dirs, data_loaders, normalizer, lr_scheduler, device
-
 
 class ExperimentRunner(nn.Module):
     def __init__(self, model, lr_scheduler, experiment_name, num_epochs, samples_per_sequence,

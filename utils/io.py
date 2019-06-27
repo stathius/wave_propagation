@@ -8,13 +8,6 @@ import scipy.ndimage as ndimage
 from utils.helper_functions import normalize_image
 
 
-def save_datasets_to_file(train_dataset, val_dataset, test_dataset, filename):
-    all_data = {"Training data": train_dataset,
-                "Validation data": val_dataset,
-                "Testing data": test_dataset}
-    save(all_data, filename)
-
-
 def load_datasets_from_file(filename_data):
     all_data = load(filename_data)
     train_dataset = all_data["Training data"]
@@ -22,13 +15,13 @@ def load_datasets_from_file(filename_data):
     test_dataset = all_data["Testing data"]
     return train_dataset, val_dataset, test_dataset
 
+
 def save_network(model, filename):
     if hasattr(model, 'module'):
         network_dict = model.module.state_dict()
     else:
         network_dict = model.state_dict()
     torch.save(network_dict, filename)
-
 
 def load_network(model, filename):
     dct = torch.load(filename, map_location='cpu')
@@ -53,21 +46,6 @@ def figure_save(destination, obj=None):
     plt.savefig(destination + ".svg", format="svg")
     save(obj, destination) if obj else None
 
-def create_results_folder(base_folder, experiment_name):
-    dirs = {'base': base_folder}
-    exp_folder=os.path.join(base_folder, "experiments_results/")
-    if not os.path.isdir(exp_folder):
-        os.mkdir(exp_folder)
-
-    dirs['results'] = os.path.join(exp_folder, experiment_name)
-    if not os.path.isdir(dirs['results']):
-        os.mkdir(dirs['results'])
-
-    for d in ['logs', 'pickles', 'models', 'predictions', 'charts']:
-        dirs[d] = os.path.join(dirs['results'], '%s/' % d)
-        if not os.path.isdir(dirs[d]):
-            os.mkdir(dirs[d])
-    return dirs
 
 def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
     """Imshow for Tensor."""
@@ -84,9 +62,6 @@ def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normali
 
     if smoothen:
         image = ndimage.gaussian_filter(image, sigma=smooth_filter)
-
-    if normalize is not None:
-        image = normalize_image(image, normalize)
 
     # image = np.clip(image, 0, 1)
     if obj is not None:

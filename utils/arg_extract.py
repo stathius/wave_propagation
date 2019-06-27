@@ -59,9 +59,10 @@ def get_args():
         args.num_output_frames = 2
         args.batch_size = 2
         args.num_workers = 1
-        args.samples_per_sequence = 2
+        args.samples_per_sequence = 5
         args.num_epochs = 3
         args.test_starting_point = 70
+        args.normalizer = 'none'
 
     if args.seed_everything:
         seed_everything(args.seed)

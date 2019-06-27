@@ -4,30 +4,6 @@ from torchvision.transforms import functional as FF
 from os import listdir
 import random
 from PIL import Image
-from torchvision import transforms
-from torch.utils.data import DataLoader
-
-
-def get_transforms(normalizer):
-    normalizers = {'none': {'mean': 0.0, 'std': 1.0},  # leave as is
-                   'normal': {'mean': 0.5047, 'std': 0.1176},  # mean 0 std 1
-                   'm1to1': {'mean': 0.5, 'std': 0.5}  # makes it -1, 1
-                   }
-    normalizer = normalizers[normalizer]
-
-    trans = {"Test": transforms.Compose([
-        transforms.Resize(128),  # Already 184 x 184
-        transforms.CenterCrop(128),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[normalizer['mean']], std=[normalizer['std']])
-    ]), "Train": transforms.Compose([
-        transforms.Resize(128),  # Already 184 x 184
-        transforms.CenterCrop(128),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[normalizer['mean']], std=[normalizer['std']])])}
-    return trans, normalizer
 
 
 def open_image(filename, grayscale=False):
@@ -137,11 +113,3 @@ def create_datasets(data_directory, transform, test_fraction, validation_fractio
     Train = WaveDataset(Send, transform["Train"])
 
     return Train, Validate, Test
-
-
-def create_dataloaders(train_dataset, val_dataset, test_dataset, batch_size, num_workers):
-    dataloaders = {}
-    dataloaders['train'] = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    dataloaders['val'] = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    dataloaders['test'] = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    return dataloaders

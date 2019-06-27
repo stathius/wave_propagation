@@ -3,18 +3,21 @@ import matplotlib.pyplot as plt
 import logging
 from collections import OrderedDict
 from models.ConvLSTM import EncoderForecaster, Encoder, Forecaster, ConvLSTMCell
-from utils.arg_extract import get_args
+from utils.arg_extract import get_args_train
 from utils.experiment_runner import ExperimentRunner
-from utils.experiment_setup import ExperimentSetup
+from utils.experiment_setup import ExperimentSetup, get_normalizer, create_new_datasets, create_dataloaders, get_device, save_metadata
+from utils.io import save
 
 plt.ioff()
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
-args = get_args()
-setup = ExperimentSetup(args)
-dirs = setup.get_dirs()
-data_loaders, normalizer = setup.get_dataloaders()
-device = setup.get_device()
+args = get_args_train()
+setup = ExperimentSetup(args.experiment_name)
+normalizer = get_normalizer(args.normalizer)
+datasets = create_new_datasets(setup.dirs['data'], normalizer)
+save(datasets, setup.files['dataset'])
+data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
+device = get_device()
 
 
 # Define encoder #
@@ -62,6 +65,8 @@ model = EncoderForecaster(encoder, forecaster)
 optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
 lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=7)
 
+save_metadata(setup.files['metadata'], args, model, optimizer, lr_scheduler, device)
+
 experiment = ExperimentRunner(model=model, lr_scheduler=lr_scheduler,
                              experiment_name=args.experiment_name,
                              num_epochs=args.num_epochs,
@@ -70,7 +75,7 @@ experiment = ExperimentRunner(model=model, lr_scheduler=lr_scheduler,
                              train_data=data_loaders['train'],
                              val_data=data_loaders['val'],
                              test_data=data_loaders['test'],
-                             dirs=dirs,
+                             dirs=setup.dirs,
                              continue_from_epoch=-1,
                              debug=args.debug)
 experiment.run_experiment()

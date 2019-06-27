@@ -30,7 +30,6 @@ model.to(device)
 optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
 lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=7)
 
-print(setup.files)
 save_metadata(setup.files['metadata'], args, model, optimizer, lr_scheduler, device)
 
 logging.info('Start training')

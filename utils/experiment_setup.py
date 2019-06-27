@@ -2,10 +2,49 @@ import platform
 import logging
 import torch
 import os
-from utils.WaveDataset import create_datasets
+import random
+from utils.WaveDataset import WaveDataset
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.io import save, load
+
+
+def create_datasets(data_directory, transform, test_fraction, validation_fraction):
+    """
+    Splits data into fractional parts (data does not overlap!!) and creates data-loaders for each fraction.
+    :param data_directory: Directory of data
+    :param transform: transforms to apply for each data set. Must contain "Train" and "Test" dict
+    :param test_fraction: Fraction of data to go to test-set
+    :param validation_fraction: Fraction of data to go to validation-set
+    :param check_bad_data: Option to evaluate and filter out corrupted data/images
+    :return:
+    """
+    classes = os.listdir(data_directory)
+    imagesets = []
+    for cla in classes:
+        im_list = sorted(os.listdir(data_directory + cla))
+        imagesets.append((im_list, cla))
+
+    full_size = len(imagesets)
+
+    test = random.sample(imagesets, int(full_size * test_fraction))  # All images i list of t0s
+    for item in test:
+        imagesets.remove(item)
+
+    Send = [data_directory, classes, test]
+    Test = WaveDataset(Send, transform["Test"])
+
+    validate = random.sample(imagesets, int(full_size * validation_fraction))  # All images i list of t0s
+    for item in validate:
+        imagesets.remove(item)
+
+    Send = [data_directory, classes, validate]
+    Validate = WaveDataset(Send, transform["Test"])
+
+    Send = [data_directory, classes, imagesets]
+    Train = WaveDataset(Send, transform["Train"])
+
+    return Train, Validate, Test
 
 
 def get_normalizer(normalizer):
@@ -57,7 +96,7 @@ def create_dataloaders(datasets, batch_size, num_workers):
     train_dataset = datasets["Training data"]
     val_dataset = datasets["Validation data"]
     test_dataset = datasets["Testing data"]
-    dataloaders= {}
+    dataloaders = {}
     dataloaders['train'] = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     dataloaders['val'] = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     dataloaders['test'] = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
@@ -124,12 +163,4 @@ class ExperimentSetup():
         for d in self.sub_folders:
             dirs[d] = os.path.join(dirs['results'], '%s/' % d)
         return dirs
-
-
-
-
-
-
-
-
 

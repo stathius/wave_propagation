@@ -15,8 +15,6 @@ plt.ioff()
 logging.basicConfig(format='%(message)s',level=logging.INFO)
 
 args = get_args()
-logging.info('Experiment %s' % args.experiment_name)
-
 setup = ExperimentSetup(args)
 dirs = setup.get_dirs()
 data_loaders, normalizer = setup.get_dataloaders()
@@ -29,15 +27,13 @@ filename_model = os.path.join(dirs['models'], "model.pt")
 
 model = AR_LSTM(args.num_input_frames, args.num_output_frames, device)
 model.to(device)
-logging.info('Start training')
 
-# Optimizer and scheduler
 optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
 lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=7)
 
-# Saving metadata of experiment
 setup.save_metadata(model, optimizer, lr_scheduler, device)
 
+logging.info('Start training')
 for epoch in range(1, args.num_epochs+1):
     epoch_start = time.time()
 

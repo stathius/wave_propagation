@@ -127,6 +127,16 @@ def load_network(model, filename):
     return model
 
 
+def save_experiment():
+    # TODO save and resume an experiment
+    torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': loss,
+            }, PATH)
+
+
 class ExperimentSetup():
     def __init__(self, experiment_name, new=True):
         logging.info('Experiment %s' % experiment_name)

@@ -9,7 +9,14 @@ plt.ioff()
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
-args = get_args_test()€datasets = load_datasets(setup.files['datasets'])
+args = get_args_test()
+print(args)
+setup = ExperimentSetup(args.experiment_name)
+metadata = load_metadata(setup.files['metadata'])
+print(metadata)
+# if metadata['args'].normalizer
+normalizer = get_normalizer(args.normalizer)
+datasets = load_datasets(setup.files['datasets'])
 datasets['Testing data'].root_dir = setup.dirs['video_data']
 data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 device = get_device()

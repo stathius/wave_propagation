@@ -1,5 +1,6 @@
 from __future__ import print_function
 import logging
+import torch
 from models.AR_LSTM import AR_LSTM, test
 from utils.arg_extract import get_args_test
 from utils.Scorekeeper import Scorekeeper
@@ -27,5 +28,6 @@ model.to(device)
 
 score_keeper = Scorekeeper(setup.dirs['charts'], normalizer)
 
-test(model, data_loaders['test'], args.test_starting_point, args.num_input_frames, args.reinsert_frequency, device, score_keeper, setup.dirs['predictions'], show_plots=args.show_plots, debug=args.debug, normalize=normalizer)
+with torch.no_grad():
+    test(model, data_loaders['test'], args.test_starting_point, args.num_input_frames, args.reinsert_frequency, device, score_keeper, setup.dirs['predictions'], show_plots=args.show_plots, debug=args.debug, normalize=normalizer)
 score_keeper.plot(show_plots=args.show_plots)

@@ -2,6 +2,7 @@ from __future__ import print_function
 import logging
 import os
 import time
+import torch
 import torch.optim as optim
 from models.AR_LSTM import AR_LSTM, train_epoch, validate, test
 from utils.Analyser import Analyser
@@ -39,7 +40,8 @@ for epoch in range(1, args.num_epochs+1):
     logging.info('Epoch %d' % epoch)
     train_loss = train_epoch(model, lr_scheduler, epoch, data_loaders['train'], args.num_input_frames, args.num_output_frames,args.reinsert_frequency, device, analyser, show_plots=args.show_plots, debug=args.debug)
     analyser.save_epoch_loss(train_loss, epoch)
-    validation_loss = validate(model, data_loaders['val'], args.num_input_frames, args.num_output_frames, args.reinsert_frequency, device, show_plots=args.show_plots, debug=args.debug)
+    with torch.no_grad():
+        validation_loss = validate(model, data_loaders['val'], args.num_input_frames, args.num_output_frames, args.reinsert_frequency, device, show_plots=args.show_plots, debug=args.debug)
     analyser.save_validation_loss(validation_loss, epoch)
     validation_loss = analyser.validation_loss[-1]
     lr_scheduler.step(validation_loss)

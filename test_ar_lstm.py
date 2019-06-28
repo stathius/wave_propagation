@@ -1,11 +1,10 @@
-from __future__ import print_function
 import logging
 import torch
+import matplotlib.pyplot as plt
 from models.AR_LSTM import AR_LSTM, test
 from utils.arg_extract import get_args_test
 from utils.Scorekeeper import Scorekeeper
 from utils.experiment_setup import ExperimentSetup, get_device, load_metadata, load_datasets, load_network, create_dataloaders, get_normalizer
-import matplotlib.pyplot as plt
 plt.ioff()
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)

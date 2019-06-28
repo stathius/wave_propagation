@@ -131,7 +131,7 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
             for future_frame_idx in range(num_output_frames):
                 target_idx = starting_point + future_frame_idx + num_input_frames
                 if future_frame_idx == 0:
-                    input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
+                    input_frames = batch_images[:, starting_point:target_idx, :, :].clone()
                     output_frames, target_frames = initial_input(model, input_frames, batch_images, target_idx, device, training)
                 elif future_frame_idx == reinsert_frequency:
                     input_frames = output_frames[:, -num_input_frames:, :, :].clone()
@@ -177,7 +177,7 @@ def test_ar_lstm(model, dataloader, starting_point, num_input_frames, reinsert_f
         for future_frame_idx in range(num_future_frames):
             target_idx = starting_point + future_frame_idx + num_input_frames
             if future_frame_idx == 0:
-                input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
+                input_frames = batch_images[:, starting_point:target_idx, :, :].clone()
                 output_frames, target_frames = initial_input(model, input_frames, batch_images, target_idx, device, training)
             elif future_frame_idx % reinsert_frequency == 0:
                 input_frames = output_frames[:, -num_input_frames:, :, :].clone()

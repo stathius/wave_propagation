@@ -137,96 +137,55 @@ def plot_predictions(batch, output_frames, target_frames, normalize, show_plots)
         plt.show()
 
 
-def train_epoch(model, lr_scheduler, epoch, train_dataloader, num_input_frames, num_output_frames,
-                reinsert_frequency, device, analyser, show_plots=False, debug=False):
-    """
-    Training of the network
-    :param train: Training data
-    :return:
-    """
-    training = True
-    model.train()           # initialises training stage/functions
-    mean_loss = 0
-    for batch_num, batch_images in enumerate(train_dataloader):
+def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_output_frames, reinsert_frequency, device, analyser, training, show_plots=False, debug=False):
+    if training:
+        model.train()
+    else:
+        model.eval()           # initialises training stage/functions
+    total_loss = 0
+    for batch_num, batch_images in enumerate(dataloader):
         batch_start = time.time()
-        mean_batch_loss = 0
-        random_starting_points = random.sample(range(100 - num_input_frames - num_output_frames - 1), 10)
-        for i, starting_point in enumerate(random_starting_points):
+        batch_loss = 0
+        sequence_length = batch_images.size(1)
+        samples_per_sequence = 10
+        random_starting_points = random.sample(range(sequence_length - num_input_frames - num_output_frames - 1), samples_per_sequence)
+        for sp_idx, starting_point in enumerate(random_starting_points):
             model.reset_hidden(batch_size=batch_images.size()[0], training=True)
             if training:
                 lr_scheduler.optimizer.zero_grad()
             for future_frame_idx in range(num_output_frames):
                 if future_frame_idx == 0:
-                    # Take the first 5 frames of the batch starting from the random starting_point
+                    # Take the first N frames of the batch starting from the random starting_point
                     input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
                     output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training)
                 elif future_frame_idx == reinsert_frequency:
-                    # It will insert the last 5 predictions as an input
+                    # It will insert the last N predictions as an input
                     input_frames = output_frames[:, -num_input_frames:, :, :].clone()
                     output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, device, training)
                 else:
                     # This doesn't take any input, just propagates the LSTM internal state once
                     output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point, num_input_frames, future_frame_idx, device, training)
             loss = F.mse_loss(output_frames, target_frames)
+            batch_loss += loss.item()
+
             if training:
                 loss.backward()
                 lr_scheduler.optimizer.step()
 
-            mean_batch_loss += loss.item()
             if debug:
                 break
-
-        analyser.save_loss_batchwise(mean_batch_loss / (i + 1), batch_increment=1)
-        mean_loss += loss.item()
+        mean_batch_loss = batch_loss / (sp_idx + 1)
+        analyser.save_loss_batchwise(mean_batch_loss, batch_increment=1)
+        total_loss += mean_batch_loss
 
         batch_time = time.time() - batch_start
-        logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1,
-                     len(train_dataloader), 100. * (batch_num + 1) / len(train_dataloader), loss.item(), batch_time))
+        logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1, len(dataloader), 100. * (batch_num + 1) / len(dataloader), mean_batch_loss, batch_time))
 
         if debug:
             break
-    epoch_loss = mean_loss / (batch_num + 1)
+    mean_loss = total_loss / (batch_num + 1)
     # plot_predictions(batch_num, output_frames, target_frames, show_plots)
-    return epoch_loss
-
-
-def validate(model, val_dataloader, num_input_frames, num_output_frames, reinsert_frequency,
-             device, show_plots=False, debug=False):
-    """
-    Validation of network (same protocol as training)
-    :param val_dataloader: Data to test
-    :param plot: If to plot predictions
-    :return:
-    """
-    training = False
-    model.eval()
-    overall_loss = 0
-    for batch_num, batch_images in enumerate(val_dataloader):
-        random_starting_points = random.sample(range(100 - num_input_frames - num_output_frames - 1), 10)
-        batch_loss = 0
-        for i, starting_point in enumerate(random_starting_points):
-            model.reset_hidden(batch_size=batch_images.size()[0], training=False)
-            for future_frame_idx in range(num_output_frames):
-                if future_frame_idx == 0:
-                    input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
-                    output_frames, target_frames = initial_input(model, input_frames, batch_images, starting_point, num_input_frames, device, training)
-                elif future_frame_idx == reinsert_frequency:
-                    input_frames = output_frames[:, -num_input_frames:, :, :].clone()
-                    output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images,
-                                                            starting_point, num_input_frames, future_frame_idx, device, training)
-                else:
-                    output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, starting_point,
-                                                             num_input_frames, future_frame_idx, device, training)
-            loss = F.mse_loss(output_frames, target_frames)
-            batch_loss += loss.item()
-            if debug:
-                break
-        overall_loss += batch_loss / (i + 1)
-        if debug:
-            break
-    val_loss = overall_loss / (batch_num + 1)
-    # plot_predictions(batch_num, output_frames, target_frames, show_plots)
-    return val_loss
+    return mean_loss
 
 
 def plot_test_predictions(future_frame_idx, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots):

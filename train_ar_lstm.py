@@ -4,7 +4,7 @@ import os
 import time
 import torch
 import torch.optim as optim
-from models.AR_LSTM import AR_LSTM, train_epoch, validate, test
+from models.AR_LSTM import AR_LSTM, run_iteration, test
 from utils.Analyser import Analyser
 from utils.io import save
 from utils.arg_extract import get_args_train
@@ -18,6 +18,7 @@ logging.basicConfig(format='%(message)s', level=logging.INFO)
 args = get_args_train()
 setup = ExperimentSetup(args.experiment_name)
 normalizer = get_normalizer(args.normalizer)
+print(setup.dirs)
 datasets = create_new_datasets(setup.dirs['data'], normalizer)
 save(datasets, setup.files['datasets'])
 data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
@@ -38,10 +39,10 @@ for epoch in range(1, args.num_epochs+1):
     epoch_start = time.time()
 
     logging.info('Epoch %d' % epoch)
-    train_loss = train_epoch(model, lr_scheduler, epoch, data_loaders['train'], args.num_input_frames, args.num_output_frames,args.reinsert_frequency, device, analyser, show_plots=args.show_plots, debug=args.debug)
+    train_loss = run_iteration(model, lr_scheduler, epoch, data_loaders['train'], args.num_input_frames, args.num_output_frames, args.reinsert_frequency, device, analyser, training=True, show_plots=args.show_plots, debug=args.debug)
     analyser.save_epoch_loss(train_loss, epoch)
     with torch.no_grad():
-        validation_loss = validate(model, data_loaders['val'], args.num_input_frames, args.num_output_frames, args.reinsert_frequency, device, show_plots=args.show_plots, debug=args.debug)
+        validation_loss = run_iteration(model, lr_scheduler, epoch, data_loaders['val'], args.num_input_frames, args.num_output_frames, args.reinsert_frequency, device, analyser, training=False, show_plots=args.show_plots, debug=args.debug)
     analyser.save_validation_loss(validation_loss, epoch)
     validation_loss = analyser.validation_loss[-1]
     lr_scheduler.step(validation_loss)

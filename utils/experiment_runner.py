@@ -86,12 +86,12 @@ class ExperimentRunner(nn.Module):
         random_starting_points = random.sample(range(video_length - self.num_input_frames - self.num_output_frames - 1), self.samples_per_sequence)
 
         batch_loss = 0
-        for i, starting_point in enumerate(random_starting_points):
+        for starting_point in random_starting_points:
             # logging.info('Starting point: %d' %i)
 
             input_end_point = starting_point + self.num_input_frames
             input_frames = batch_images[:, starting_point:input_end_point, :, :].clone()
-            predicted_frames = self.model.forward(input_frames) # TODO REMOVE THIS
+            predicted_frames = self.model.forward(input_frames)  # TODO REMOVE THIS
             target_frames = batch_images[:, input_end_point:(input_end_point + self.num_output_frames), :, :]
             loss = F.mse_loss(predicted_frames, target_frames)
 

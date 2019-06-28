@@ -16,6 +16,7 @@ def get_normalizer(normalizer):
                    }
     return normalizers[normalizer]
 
+
 def get_transforms(normalizer):
     trans = {"Test": transforms.Compose([
         transforms.Resize(128),  # Already 184 x 184
@@ -125,6 +126,7 @@ def load_network(model, filename):
         raise Warning('model and dictionary mismatch')
     return model
 
+
 class ExperimentSetup():
     def __init__(self, experiment_name, new=True):
         logging.info('Experiment %s' % experiment_name)
@@ -154,15 +156,14 @@ class ExperimentSetup():
         logging.info('Creating directories')
         if 'Darwin' in platform.system():
             dirs = {'base': '/Users/stathis/Code/thesis/wave_propagation/',
-                    'data': '/Users/stathis/Code/thesis/wave_propagation/'}
+                    'data': '/Users/stathis/Code/thesis/wave_propagation/Video_Data/'}
         else:
             dirs = {'base': '/home/s1680171/wave_propagation/',
-                    'data': '/disk/scratch/s1680171/wave_propagation/'}
+                    'data': '/disk/scratch/s1680171/wave_propagation/Video_Data/'}
 
         dirs['exp_folder'] = os.path.join(dirs['base'], "experiments_results/")
         dirs['results'] = os.path.join(dirs['exp_folder'], self.experiment_name)
         for d in self.sub_folders:
             dirs[d] = os.path.join(dirs['results'], '%s/' % d)
-        dirs['video_data'] = os.path.join(dirs['data'], "Video_Data/")
 
         return dirs

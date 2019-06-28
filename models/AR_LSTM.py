@@ -62,25 +62,23 @@ class AR_LSTM(nn.Module):
         self.LSTM_propagation = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
         self.LSTM_reinsert = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
 
-    def forward(self, x, mode="initial_input", training=False):  # "initial_input", "new_initial_input", "internal"
-        x.requires_grad_(training)
-        with torch.set_grad_enabled(training):
-            if "initial_input" in mode:
-                x = self.encoder_conv(x)
-                self.org_size = x.size()
-                x = x.view(-1, 30720)
-                x = self.encoder_linear(x)
-                if mode == "initial_input":
-                    self.h0, self.c0 = self.LSTM_initial_input(x, (self.h0, self.c0))
-                elif mode == "reinsert":
-                    self.h0, self.c0 = self.LSTM_reinserting(x, (self.h0, self.c0))
-            elif mode == "propagate":
-                self.h0, self.c0 = self.LSTM_propagation(self.h0, (self.h0, self.c0))
-            x = self.h0.clone()
-            x = self.decoder_linear(x)
-            x = x.view(self.org_size)
-            x = self.decoder_conv(x)
-            return x
+    def forward(self, x, mode="initial_input"):
+        if "initial_input" in mode:
+            x = self.encoder_conv(x)
+            self.org_size = x.size()
+            x = x.view(-1, 30720)
+            x = self.encoder_linear(x)
+            if mode == "initial_input":
+                self.h0, self.c0 = self.LSTM_initial_input(x, (self.h0, self.c0))
+            elif mode == "reinsert":
+                self.h0, self.c0 = self.LSTM_reinserting(x, (self.h0, self.c0))
+        elif mode == "propagate":
+            self.h0, self.c0 = self.LSTM_propagation(self.h0, (self.h0, self.c0))
+        x = self.h0.clone()
+        x = self.decoder_linear(x)
+        x = x.view(self.org_size)
+        x = self.decoder_conv(x)
+        return x
 
     def reset_hidden(self, batch_size, training=False):
         # TODO user random values?
@@ -130,8 +128,6 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
         random_starting_points = random.sample(range(sequence_length - num_input_frames - num_output_frames - 1), samples_per_sequence)
         for sp_idx, starting_point in enumerate(random_starting_points):
             model.reset_hidden(batch_size=batch_images.size()[0], training=training)
-            if training:
-                lr_scheduler.optimizer.zero_grad()
             for future_frame_idx in range(num_output_frames):
                 target_idx = starting_point + future_frame_idx + num_input_frames
                 if future_frame_idx == 0:
@@ -146,6 +142,7 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
             batch_loss += loss.item()
 
             if training:
+                lr_scheduler.optimizer.zero_grad()
                 loss.backward()
                 lr_scheduler.optimizer.step()
 
@@ -165,18 +162,12 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
     return mean_loss
 
 
-def test(model, test_dataloader, starting_point, num_input_frames, reinsert_frequency,
-         device, score_keeper, figures_dir, show_plots, debug=False, normalize=None):
-    """
-    Testing of network
-    :param test_dataloader: Data to test
-    :param plot: If to plot predictionss
-    :return:
-    """
+def test_ar_lstm(model, dataloader, starting_point, num_input_frames, reinsert_frequency, device, score_keeper, figures_dir, show_plots, debug=False, normalize=None):
     model.eval()
+    NUM_CHANNELS = 1
     training = False
 
-    for batch_num, batch_images in enumerate(test_dataloader):
+    for batch_num, batch_images in enumerate(dataloader):
         batch_size = batch_images.size()[0]
         model.reset_hidden(batch_size=batch_images.size()[0], training=training)
         image_to_plot = random.randint(0, batch_size - 1)
@@ -186,23 +177,17 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
         for future_frame_idx in range(num_future_frames):
             target_idx = starting_point + future_frame_idx + num_input_frames
             if future_frame_idx == 0:
-                prop_type = 'Initial input'
                 input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
                 output_frames, target_frames = initial_input(model, input_frames, batch_images, target_idx, device, training)
             elif future_frame_idx % reinsert_frequency == 0:
-                prop_type = 'Reinsert'
                 input_frames = output_frames[:, -num_input_frames:, :, :].clone()
                 output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, target_idx, device, training)
             else:
-                prop_type = 'Propagate'
                 output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, target_idx, device, training)
                 # output & target_frames size is [batches, * (n + 1), 128, 128]
             if debug:
-                print('batch_num %d\tfuture_frame_idx %d\ttype %s' % (batch_num, future_frame_idx, prop_type))
-                # print(output_frames.size(), target_frames.size())
+                print('batch_num %d\tfuture_frame_idx %d' % (batch_num, future_frame_idx))
 
-            # print(output_frames.size(), target_frames.size())
-            NUM_CHANNELS = 1
             for ba in range(output_frames.size()[0]):
                 score_keeper.add(output_frames[ba, -NUM_CHANNELS:, :, :].cpu(),
                                  target_frames[ba, -NUM_CHANNELS:, :, :].cpu(),
@@ -210,7 +195,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
 
             # if  batch_num == 1 and (((future_frame_idx + 1) % plot_frequency) == 0 or (future_frame_idx == 0)):
 
-        logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(test_dataloader)))
+        logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
         if debug:
             break
     # TODO Save more frequently

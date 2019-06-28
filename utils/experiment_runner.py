@@ -89,9 +89,9 @@ class ExperimentRunner(nn.Module):
             input_end_point = starting_point + self.num_input_frames
             input_frames = batch_images[:, starting_point:input_end_point, :, :].clone()
             # TODO change this for a model specific function prediction or something
-            predicted_frames = self.model.forward(input_frames)
+            output_frames = self.model.forward(input_frames)
             target_frames = batch_images[:, input_end_point:(input_end_point + self.num_output_frames), :, :]
-            loss = F.mse_loss(predicted_frames, target_frames)
+            loss = F.mse_loss(output_frames, target_frames)
 
             if train:
                 self.lr_scheduler.optimizer.zero_grad()

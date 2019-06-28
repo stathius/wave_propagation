@@ -4,7 +4,7 @@ import os
 import time
 import torch
 import torch.optim as optim
-from models.AR_LSTM import AR_LSTM, run_iteration, test
+from models.AR_LSTM import AR_LSTM, run_iteration, test_ar_lstm
 from utils.Analyser import Analyser
 from utils.io import save
 from utils.arg_extract import get_args_train
@@ -55,5 +55,7 @@ for epoch in range(1, args.num_epochs+1):
 logging.info("Start testing")
 score_keeper = Scorekeeper(setup.dirs['charts'], normalizer)
 figures_dir = os.path.join(setup.dirs['results'], 'test_charts')
-test(model, data_loaders['test'], args.test_starting_point, args.num_input_frames, args.reinsert_frequency, device, score_keeper, setup.dirs['predictions'], show_plots=args.show_plots, debug=args.debug, normalize=normalizer)
+
+with torch.no_grad():
+    test_ar_lstm(model, data_loaders['test'], args.test_starting_point, args.num_input_frames, args.reinsert_frequency, device, score_keeper, setup.dirs['predictions'], show_plots=args.show_plots, debug=args.debug, normalize=normalizer)
 score_keeper.plot(args.show_plots)

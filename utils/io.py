@@ -18,7 +18,7 @@ def load(filename):
         return pickle.load(handle)
 
 def figure_save(destination, obj=None):
-    plt.savefig(destination)
+    plt.savefig(destination) # png
     plt.savefig(destination + ".svg", format="svg")
     save(obj, destination) if obj else None
 

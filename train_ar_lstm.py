@@ -5,10 +5,10 @@ import time
 import torch.optim as optim
 from models.AR_LSTM import AR_LSTM, train_epoch, validate, test
 from utils.Analyser import Analyser
-from utils.io import save_network, save
+from utils.io import save
 from utils.arg_extract import get_args_train
 from utils.Scorekeeper import Scorekeeper
-from utils.experiment_setup import ExperimentSetup, get_normalizer, create_new_datasets, create_dataloaders, get_device, save_metadata
+from utils.experiment_setup import ExperimentSetup, get_normalizer, create_new_datasets, create_dataloaders, get_device, save_metadata, save_network
 import matplotlib.pyplot as plt
 plt.ioff()
 
@@ -18,7 +18,7 @@ args = get_args_train()
 setup = ExperimentSetup(args.experiment_name)
 normalizer = get_normalizer(args.normalizer)
 datasets = create_new_datasets(setup.dirs['data'], normalizer)
-save(datasets, setup.files['dataset'])
+save(datasets, setup.files['datasets'])
 data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 device = get_device()
 

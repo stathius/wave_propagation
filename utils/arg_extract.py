@@ -39,7 +39,7 @@ def get_args_train():
     parser.add_argument('--reinsert_frequency', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--samples_per_sequence', type=int, default=10, help='how may training points to generate from a video sequence')
-    parser.add_argument('--normalizer', type=str, default='normal', help='how to normalize the images [normal, m1to1, none]')
+    parser.add_argument('--normalizer_type', type=str, default='normal', help='how to normalize the images [normal, m1to1, none]')
     parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
     parser.add_argument('--experiment_name', type=str, default="dummy",
                         help='Experiment name - to be used for building the experiment folder')
@@ -77,7 +77,7 @@ def get_args_test():
     parser.add_argument('--reinsert_frequency', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
-    parser.add_argument('--normalizer', type=str, default='normal', help='how to normalize the images [normal, m1to1, none]')
+    parser.add_argument('--normalizer_type', type=str, default='normal', help='how to normalize the images [normal, m1to1, none]')
     parser.add_argument('--experiment_name', type=str, default="dummy",
                         help='Experiment name - to be used for building the experiment folder')
     parser.add_argument('--num_workers', type=int, default=12, help='how many workers for the dataloader')

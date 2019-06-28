@@ -6,15 +6,15 @@ import random
 from utils.WaveDataset import WaveDataset
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from utils.io import save, load
+from utils.io import save, load, save_json, load_json
 
 
-def get_normalizer(normalizer):
+def get_normalizer(normalizer_type):
     normalizers = {'none': {'mean': 0.0, 'std': 1.0},  # leave as is
                    'normal': {'mean': 0.5047, 'std': 0.1176},  # mean 0 std 1
                    'm1to1': {'mean': 0.5, 'std': 0.5}  # makes it -1, 1
                    }
-    return normalizers[normalizer]
+    return normalizers[normalizer_type]
 
 
 def get_transforms(normalizer):
@@ -30,14 +30,15 @@ def get_transforms(normalizer):
         transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[normalizer['mean']], std=[normalizer['std']])])}
-    return trans, normalizer
+    return trans
 
 
 def create_new_datasets(data_directory, normalizer):
     logging.info('Creating new datasets')
     test_fraction = 0.15
     validation_fraction = 0.15
-    transform, normalizer = get_transforms(normalizer)
+    # normalizer = get_normalizer(normalizer_type)
+    transform = get_transforms(normalizer)
 
     classes = os.listdir(data_directory)
     imagesets = []
@@ -92,7 +93,7 @@ def create_dataloaders(datasets, batch_size, num_workers):
 
 def save_metadata(filename_metadata, args, model, optim, lr_scheduler, device):
     meta_data_dict = {"args": args, "optimizer": optim.state_dict(), "scheduler": lr_scheduler.state_dict(), "model": "%s" % model, 'device': device}
-    save(meta_data_dict, filename_metadata)
+    save_as_json(meta_data_dict, filename_metadata)
     logging.info(meta_data_dict)
 
 
@@ -151,7 +152,6 @@ class ExperimentSetup():
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
         self.files['analyser'] = os.path.join(self.dirs['pickles'], "analyser.pickle")
         self.files['model'] = os.path.join(self.dirs['models'], 'model.pt')
-
 
     def _create_dirs(self):
         if not os.path.isdir(self.dirs['exp_folder']):

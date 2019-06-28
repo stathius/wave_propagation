@@ -24,10 +24,13 @@ def figure_save(destination, obj=None):
     save(obj, destination) if obj else None
 
 
-def save_as_json(dict, filename):
+def save_json(dict, filename):
     with open(filename, 'w') as f:
         f.write("%s" % json.dumps(dict))
     f.close()
+
+def load_json(filename):
+    pass
 
 
 def read_stats(folder):

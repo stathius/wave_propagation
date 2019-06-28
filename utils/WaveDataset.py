@@ -1,8 +1,8 @@
 import torch
 from torch.utils.data import Dataset
 from torchvision.transforms import functional as FF
-from os import listdir
 import random
+import os
 from PIL import Image
 
 
@@ -30,7 +30,7 @@ class WaveDataset(Dataset):
     def __getitem__(self, idx):
         # logging.info('Get item')
         img_path = self.imagesets[idx][1]
-        im_list = sorted(listdir(self.root_dir + img_path))
+        im_list = sorted(os.listdir(self.root_dir + img_path))
 
         Concat_Img = self.concatenate_data(img_path, im_list)
 

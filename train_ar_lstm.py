@@ -17,7 +17,7 @@ logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 args = get_args_train()
 setup = ExperimentSetup(args.experiment_name)
-normalizer = get_normalizer(args.normalizer)
+normalizer = get_normalizer(args.normalizer_type)
 print(setup.dirs)
 datasets = create_new_datasets(setup.dirs['data'], normalizer)
 save(datasets, setup.files['datasets'])
@@ -54,8 +54,6 @@ for epoch in range(1, args.num_epochs+1):
 
 logging.info("Start testing")
 score_keeper = Scorekeeper(setup.dirs['charts'], normalizer)
-figures_dir = os.path.join(setup.dirs['results'], 'test_charts')
-
 with torch.no_grad():
     test_ar_lstm(model, data_loaders['test'], args.test_starting_point, args.num_input_frames, args.reinsert_frequency, device, score_keeper, setup.dirs['predictions'], show_plots=args.show_plots, debug=args.debug, normalize=normalizer)
 score_keeper.plot(args.show_plots)

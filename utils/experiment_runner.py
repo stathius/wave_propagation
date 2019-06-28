@@ -12,8 +12,7 @@ from utils.experiment_setup import save_network
 
 
 class ExperimentRunner(nn.Module):
-    def __init__(self, model, lr_scheduler, experiment_name, num_epochs, samples_per_sequence,
-                 train_data, val_data, test_data, device, dirs, continue_from_epoch, debug):
+    def __init__(self, model, lr_scheduler, experiment_name, num_epochs, samples_per_sequence, train_data, val_data, test_data, device, dirs, continue_from_epoch, debug):
         super(ExperimentRunner, self).__init__()
 
         self.samples_per_sequence = samples_per_sequence
@@ -51,7 +50,7 @@ class ExperimentRunner(nn.Module):
                     model_idx='latest')  # reload existing model from epoch and return best val model index
                 # and the best val acc of that model
                 self.starting_epoch = self.state['current_epoch_idx']
-            except:
+            except Exception:
                 print("Model objects cannot be found, initializing a new model and starting from scratch")
                 self.starting_epoch = 0
                 self.state = dict()

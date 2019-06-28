@@ -2,10 +2,9 @@ from torch import nn
 import torch
 from collections import OrderedDict
 import random
+import logging
 from utils.helper_functions import convert_SBCHW_to_BSHW, convert_BSHW_to_SBCHW
-# code modified from https://github.com/Hzzone/Precipitation-Nowcasting
-
-# MAIN MODEL IS THE EF CLASS, REST ARE PARTS OF IT ####
+from utils.plotting import plot_predictions, plot_cutthrough
 
 
 class ConvLSTMCell(nn.Module):
@@ -178,3 +177,71 @@ def make_layers(block):
             raise NotImplementedError
 
     return nn.Sequential(OrderedDict(layers))
+
+
+def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):    # Define encoder #
+    encoder_architecture = [
+        # in_channels, out_channels, kernel_size, stride, padding
+        [OrderedDict({'conv1_leaky_1': [1, 8, 3, 2, 1]}),
+         OrderedDict({'conv2_leaky_1': [64, 192, 3, 2, 1]}),
+         OrderedDict({'conv3_leaky_1': [192, 192, 3, 2, 1]})],
+
+        [ConvLSTMCell(input_channel=8, num_filter=64, b_h_w=(batch_size, 64, 64),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_input_frames),
+         ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 32, 32),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_input_frames),
+         ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 16, 16),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_input_frames)]
+    ]
+
+    forecaster_architecture = [
+        [OrderedDict({'deconv1_leaky_1': [192, 192, 4, 2, 1]}),
+         OrderedDict({'deconv2_leaky_1': [192, 64, 4, 2, 1]}),
+         OrderedDict({'deconv3_leaky_1': [64, 8, 4, 2, 1],
+                      'conv3_leaky_2': [8, 8, 3, 1, 1],
+                      'conv3_3': [8, 1, 1, 1, 0]}), ],
+
+        [ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 16, 16),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_output_frames),
+         ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 32, 32),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_output_frames),
+         ConvLSTMCell(input_channel=64, num_filter=64, b_h_w=(batch_size, 64, 64),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_output_frames)]
+    ]
+
+    encoder = Encoder(encoder_architecture[0], encoder_architecture[1]).to(device)
+    forecaster = Forecaster(forecaster_architecture[0], forecaster_architecture[1], num_output_frames).to(device)
+    return EncoderForecaster(encoder, forecaster)
+
+
+def test_convlstm(model, dataloader, starting_point, device, score_keeper, figures_dir, show_plots, debug=False, normalize=None):
+    model.eval()
+    num_input_frames = model.get_num_input_frames()
+    num_output_frames = model.get_num_output_frames()
+
+    for batch_num, batch_images in enumerate(dataloader):
+        batch_size = batch_images.size(0)
+        image_to_plot = random.randint(0, batch_size - 1)
+
+        # total_frames = batch_images.size()[1]
+        # num_future_frames = total_frames - (starting_point + num_input_frames)
+        # for future_frame_idx in range(num_future_frames):
+        # target_idx = starting_point + future_frame_idx + num_input_frames
+
+        input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
+        output_frames = model.forward(input_frames)
+        input_end_point = starting_point + num_input_frames
+        target_frames = batch_images[:, input_end_point:(input_end_point + num_output_frames), :, :]
+
+        for batch_index in range(batch_size):
+            for frame_index in range(num_output_frames):
+                score_keeper.add(output_frames[batch_index, frame_index, :, :].cpu(),
+                                 target_frames[batch_index, frame_index:, :, :].cpu(),
+                                 frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
+
+        logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
+        if debug:
+            break
+    # TODO Save more frequently
+    plot_predictions(frame_index, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots)
+    plot_cutthrough(frame_index, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots, direction="Horizontal", location=None)

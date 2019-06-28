@@ -124,19 +124,6 @@ def propagate(model, output_frames, target_frames, batch_images, target_idx, dev
     return output_frames, target_frames
 
 
-def plot_predictions(batch, output_frames, target_frames, normalize, show_plots):
-    logging.info('** plot predictions **')
-    predicted = output_frames[batch, -NUM_CHANNELS:, :, :].cpu().detach()
-    target_frames = target_frames[batch, -NUM_CHANNELS:, :, :].cpu().detach()
-    fig = plt.figure(figsize=[8, 8])
-    pred = fig.add_subplot(1, 2, 1)
-    imshow(predicted, title="Predicted smoothened %02d" % batch, smoothen=True, obj=pred, normalize=normalize)
-    tar = fig.add_subplot(1, 2, 2)
-    imshow(target_frames, title="Target %02d" % batch, obj=tar, normalize=normalize)
-    if show_plots:
-        plt.show()
-
-
 def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_output_frames, reinsert_frequency, device, analyser, training, show_plots=False, debug=False):
     samples_per_sequence = 10
     if training:
@@ -186,14 +173,17 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
     return mean_loss
 
 
-def plot_test_predictions(future_frame_idx, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots):
-    if future_frame_idx == 0:
-        for imag in range(int(input_frames.shape[1])):
-            fig = plt.figure().add_axes()
-            sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
-            sns.set_context("talk")
-            imshow(input_frames[image_to_plot, imag:(imag + 1), :, :], title="Input %01d" % imag, obj=fig, normalize=normalize)
-            figure_save(os.path.join(figures_dir, "Input %02d" % imag))
+def plot_input_frames(input_frames, image_to_plot, normalize, figures_dir):
+    # Plot the N first input frames
+    for imag in range(int(input_frames.shape[1])):
+        fig = plt.figure().add_axes()
+        sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
+        sns.set_context("talk")
+        imshow(input_frames[image_to_plot, imag:(imag + 1), :, :], title="Input %01d" % imag, obj=fig, normalize=normalize)
+        figure_save(os.path.join(figures_dir, "Input %02d" % imag))
+
+
+def plot_predictions(future_frame_idx, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots):
     predicted = output_frames[image_to_plot, -NUM_CHANNELS:, :, :].cpu()
     target = target_frames[image_to_plot, -NUM_CHANNELS:, :, :].cpu()
     fig = plt.figure()

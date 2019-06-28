@@ -22,10 +22,10 @@ class AR_LSTM(nn.Module):
     def __init__(self, num_input_frames, num_output_frames, device):
         super(AR_LSTM, self).__init__()
         self.num_input_frames = num_input_frames
-        self.num_output_frames = 1 # num_output_frames # It should be set to 1
+        self.num_output_frames = 1  # num_output_frames # It should be set to 1
         self.device = device
         self.encoder_conv = nn.Sequential(
-            nn.Conv2d(self.num_input_frames , 60, kernel_size=7, stride=2, padding=1),
+            nn.Conv2d(self.num_input_frames, 60, kernel_size=7, stride=2, padding=1),
             nn.BatchNorm2d(num_features=60),
             nn.Tanh(),
             nn.Conv2d(60, 120, kernel_size=3, stride=2, padding=1),
@@ -63,7 +63,7 @@ class AR_LSTM(nn.Module):
             nn.BatchNorm2d(num_features=60),
             nn.Tanh(),
             nn.Dropout2d(0.25),
-            nn.ConvTranspose2d(60, self.num_output_frames , kernel_size=3, stride=2, padding=1, output_padding=1)
+            nn.ConvTranspose2d(60, self.num_output_frames, kernel_size=3, stride=2, padding=1, output_padding=1)
         )
 
         self.LSTM_initial_input = nn.LSTMCell(input_size=1000, hidden_size=1000, bias=True)
@@ -124,7 +124,7 @@ def propagate(model, output_frames, target_frames, batch_images, starting_point,
     return output_frames, target_frames
 
 
-def plot_predictions(batch, output_frames, target_frames, show_plots):
+def plot_predictions(batch, output_frames, target_frames, normalize, show_plots):
     logging.info('** plot predictions **')
     predicted = output_frames[batch, -NUM_CHANNELS:, :, :].cpu().detach()
     target_frames = target_frames[batch, -NUM_CHANNELS:, :, :].cpu().detach()
@@ -222,9 +222,11 @@ def validate(model, val_dataloader, num_input_frames, num_output_frames, reinser
                                                                  num_input_frames, future_frame_idx, device, training)
                 loss = F.mse_loss(output_frames, target_frames)
                 batch_loss += loss.item()
-                if debug: break
+                if debug:
+                    break
             overall_loss += batch_loss / (i + 1)
-            if debug: break
+            if debug:
+                break
     val_loss = overall_loss / (batch_num + 1)
     # plot_predictions(batch_num, output_frames, target_frames, show_plots)
     return val_loss
@@ -325,7 +327,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
         for batch_num, batch_images in enumerate(test_dataloader):
             batch_size = batch_images.size()[0]
             model.reset_hidden(batch_size=batch_images.size()[0], training=training)
-            image_to_plot = random.randint(0, batch_size-1)
+            image_to_plot = random.randint(0, batch_size - 1)
 
             total_frames = batch_images.size()[1]
             num_future_frames = total_frames - (starting_point + num_input_frames)
@@ -350,7 +352,7 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
                 for ba in range(output_frames.size()[0]):
                     score_keeper.add(output_frames[ba, -NUM_CHANNELS:, :, :].cpu(),
                                      target_frames[ba, -NUM_CHANNELS:, :, :].cpu(),
-                                     future_frame_idx,"pHash", "pHash2", "SSIM", "Own", "RMSE")
+                                     future_frame_idx, "pHash", "pHash2", "SSIM", "Own", "RMSE")
 
                 # if  batch_num == 1 and (((future_frame_idx + 1) % plot_frequency) == 0 or (future_frame_idx == 0)):
 
@@ -358,6 +360,5 @@ def test(model, test_dataloader, starting_point, num_input_frames, reinsert_freq
             if debug:
                 break
     # TODO Save more frequently
-    # plot_predictions(show_plots)
     plot_test_predictions(future_frame_idx, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots)
     plot_cutthrough(future_frame_idx, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots, direction="Horizontal", location=None)

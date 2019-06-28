@@ -15,7 +15,7 @@ args = get_args_train()
 setup = ExperimentSetup(args.experiment_name)
 normalizer = get_normalizer(args.normalizer)
 datasets = create_new_datasets(setup.dirs['data'], normalizer)
-save(datasets, setup.files['dataset'])
+save(datasets, setup.files['datasets'])
 data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 device = get_device()
 

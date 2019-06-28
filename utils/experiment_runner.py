@@ -7,7 +7,8 @@ import os
 import numpy as np
 import time
 import logging
-from utils.io import save_network, save_as_json
+from utils.io import save_as_json
+from utils.experiment_setup import save_network
 
 
 class ExperimentRunner(nn.Module):

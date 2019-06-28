@@ -16,7 +16,6 @@ def get_normalizer(normalizer):
                    }
     return normalizers[normalizer]
 
-
 def get_transforms(normalizer):
     trans = {"Test": transforms.Compose([
         transforms.Resize(128),  # Already 184 x 184
@@ -33,9 +32,8 @@ def get_transforms(normalizer):
     return trans, normalizer
 
 
-def create_new_datasets(base_dir, normalizer):
+def create_new_datasets(data_directory, normalizer):
     logging.info('Creating new datasets')
-    data_directory = os.path.join(base_dir, "Video_Data/")
     test_fraction = 0.15
     validation_fraction = 0.15
     transform, normalizer = get_transforms(normalizer)
@@ -71,9 +69,8 @@ def create_new_datasets(base_dir, normalizer):
     return datasets
 
 
-def load_datasets(self):
+def load_datasets(filename_data):
     logging.info('Loading datasets')
-    filename_data = os.path.join(self.dirs['pickles'], self.filename_dataset)
     if os.path.isfile(filename_data):
         datasets = load(filename_data)
     else:
@@ -98,10 +95,8 @@ def save_metadata(filename_metadata, args, model, optim, lr_scheduler, device):
     logging.info(meta_data_dict)
 
 
-def load_metadata(self):
-    filename_metadata = os.path.join(self.dirs['pickles'], self.filename_metadata)
-    metadata = load(filename_metadata)
-    return metadata
+def load_metadata(filename_metadata):
+    return load(filename_metadata)
 
 
 def get_device():
@@ -114,6 +109,22 @@ def get_device():
     return device
 
 
+def save_network(model, filename):
+    if hasattr(model, 'module'):
+        network_dict = model.module.state_dict()
+    else:
+        network_dict = model.state_dict()
+    torch.save(network_dict, filename)
+
+
+def load_network(model, filename):
+    dct = torch.load(filename, map_location='cpu')
+    try:
+        model.load_state_dict(dct)
+    except Exception:
+        raise Warning('model and dictionary mismatch')
+    return model
+
 class ExperimentSetup():
     def __init__(self, experiment_name, new=True):
         logging.info('Experiment %s' % experiment_name)
@@ -124,10 +135,11 @@ class ExperimentSetup():
         if self.new:
             self._create_dirs()
         self.files = {}
-        self.files['dataset'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
+        self.files['datasets'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
         self.files['analyser'] = os.path.join(self.dirs['pickles'], "analyser.pickle")
         self.files['model'] = os.path.join(self.dirs['models'], 'model.pt')
+
 
     def _create_dirs(self):
         if not os.path.isdir(self.dirs['exp_folder']):
@@ -151,5 +163,6 @@ class ExperimentSetup():
         dirs['results'] = os.path.join(dirs['exp_folder'], self.experiment_name)
         for d in self.sub_folders:
             dirs[d] = os.path.join(dirs['results'], '%s/' % d)
-        return dirs
+        dirs['video_data'] = os.path.join(dirs['data'], "Video_Data/")
 
+        return dirs

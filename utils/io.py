@@ -7,30 +7,6 @@ import matplotlib.pyplot as plt
 import scipy.ndimage as ndimage
 from utils.helper_functions import normalize_image
 
-
-def load_datasets_from_file(filename_data):
-    all_data = load(filename_data)
-    train_dataset = all_data["Training data"]
-    val_dataset = all_data["Validation data"]
-    test_dataset = all_data["Testing data"]
-    return train_dataset, val_dataset, test_dataset
-
-
-def save_network(model, filename):
-    if hasattr(model, 'module'):
-        network_dict = model.module.state_dict()
-    else:
-        network_dict = model.state_dict()
-    torch.save(network_dict, filename)
-
-def load_network(model, filename):
-    dct = torch.load(filename, map_location='cpu')
-    try:
-        model.load_state_dict(dct)
-    except:
-        raise Warning('model and dictionary mismatch')
-    return model
-
 def save(obj, filename):
     filename += ".pickle" if ".pickle" not in filename else ""
     with open(filename, 'wb') as handle:

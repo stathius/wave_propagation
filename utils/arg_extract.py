@@ -73,9 +73,11 @@ def get_args_train():
 def get_args_test():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--num_input_frames', type=int, default=5, help='LSTM. How many frames to insert initially')
     parser.add_argument('--reinsert_frequency', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
+    parser.add_argument('--normalizer', type=str, default='normal', help='how to normalize the images [normal, m1to1, none]')
     parser.add_argument('--experiment_name', type=str, default="dummy",
                         help='Experiment name - to be used for building the experiment folder')
     parser.add_argument('--num_workers', type=int, default=12, help='how many workers for the dataloader')

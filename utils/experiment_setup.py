@@ -30,7 +30,7 @@ def get_transforms(normalizer):
         transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[normalizer['mean']], std=[normalizer['std']])])}
-    return trans, normalizer
+    return trans
 
 
 def create_new_datasets(data_directory, normalizer):

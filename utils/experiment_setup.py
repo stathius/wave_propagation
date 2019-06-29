@@ -155,6 +155,7 @@ class ExperimentSetup():
 
 
     def _create_dirs(self):
+        logging.info('Creating directories')
         if not os.path.isdir(self.dirs['exp_folder']):
             os.mkdir(self.dirs['exp_folder'])
         if not os.path.isdir(self.dirs['results']):
@@ -164,7 +165,6 @@ class ExperimentSetup():
                 os.mkdir(self.dirs[d])
 
     def _get_dirs(self):
-        logging.info('Creating directories')
         if 'Darwin' in platform.system():
             dirs = {'base': '/Users/stathis/Code/thesis/wave_propagation/',
                     'data': '/Users/stathis/Code/thesis/wave_propagation/Video_Data/'}

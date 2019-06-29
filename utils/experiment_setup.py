@@ -93,7 +93,8 @@ def create_dataloaders(datasets, batch_size, num_workers):
 
 def save_metadata(filename_metadata, args, model, optim, lr_scheduler, device):
     meta_data_dict = {"args": args, "optimizer": optim.state_dict(), "scheduler": lr_scheduler.state_dict(), "model": "%s" % model, 'device': device}
-    save_as_json(meta_data_dict, filename_metadata)
+    save_json(meta_data_dict, filename_metadata)
+    save_json(meta_data_dict, filename_metadata + '.json')
     logging.info(meta_data_dict)
 
 

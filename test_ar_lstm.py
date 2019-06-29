@@ -21,7 +21,7 @@ datasets['Testing data'].root_dir = setup.dirs['data']
 data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 device = get_device()
 
-model = AR_LSTM(num_input_frames=5, num_output_frames=1, device=device)
+model = AR_LSTM(num_input_frames=metadata['args'].num_input_frames, num_output_frames=metadata['args'].num_output_frames, device=device)
 model = load_network(model, setup.files['model'])
 model.to(device)
 

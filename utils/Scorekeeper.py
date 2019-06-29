@@ -47,6 +47,7 @@ class Scorekeeper():
         self.phash2 = False
 
     def add(self, predicted, target, frame_nr, *args):
+        # input H * W
         predicted = self.prepro(predicted)
         target = self.prepro(target)
 
@@ -108,7 +109,6 @@ class Scorekeeper():
         return measure.compare_ssim(predicted, target, multichannel=False, gaussian_weights=True)
 
     def prepro(self, image):
-        image = image[0, :, :].numpy()
         image = normalize_image(image, self.normalize)
         # image = np.clip(image, 0, 1)
         return image

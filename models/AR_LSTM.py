@@ -80,13 +80,14 @@ class AR_LSTM(nn.Module):
         x = self.decoder_conv(x)
         return x
 
-    def reset_hidden(self, batch_size, training=False):
+    def reset_hidden(self, batch_size):
         # TODO user random values?
-        self.h0 = torch.zeros((batch_size, 1000), requires_grad=training).to(self.device)
-        self.c0 = torch.zeros((batch_size, 1000), requires_grad=training).to(self.device)
+        # TODO check if requires_grads should be set
+        self.h0 = torch.zeros((batch_size, 1000)).to(self.device)
+        self.c0 = torch.zeros((batch_size, 1000)).to(self.device)
 
 
-def initial_input(model, input_frames, batch_images, target_idx, device, training):
+def initial_input(model, input_frames, batch_images, target_idx, device):
     """
     # Uses the first N frames of the batch starting from the random starting_point
     var           size
@@ -95,21 +96,21 @@ def initial_input(model, input_frames, batch_images, target_idx, device, trainin
     output_frames  [16, 1, 128, 128]
     target_frames  [16, 1, 128, 128]
     """
-    output_frames = model(input_frames.to(device), mode='initial_input', training=training)
+    output_frames = model(input_frames.to(device), mode='initial_input')
     target_frames = batch_images[:, target_idx:(target_idx + 1), :, :].to(device)
     return output_frames, target_frames
 
 
-def reinsert(model, input_frames, output_frames, target_frames, batch_images, target_idx, device, training):
+def reinsert(model, input_frames, output_frames, target_frames, batch_images, target_idx, device):
     # It will insert the last N predictions as an input
-    output_frames = torch.cat((output_frames, model(input_frames, mode="reinsert", training=training)), dim=1).to(device)
+    output_frames = torch.cat((output_frames, model(input_frames, mode="reinsert")), dim=1).to(device)
     target_frames = torch.cat((target_frames, batch_images[:, target_idx:(target_idx + 1), :, :].to(device)), dim=1)
     return output_frames, target_frames
 
 
-def propagate(model, output_frames, target_frames, batch_images, target_idx, device, training):
+def propagate(model, output_frames, target_frames, batch_images, target_idx, device):
     # This doesn't take any input, just propagates the LSTM internal state once
-    output_frames = torch.cat((output_frames, model(torch.Tensor([0]), mode="propagate", training=training)), dim=1).to(device)
+    output_frames = torch.cat((output_frames, model(torch.Tensor([0]), mode="propagate")), dim=1).to(device)
     target_frames = torch.cat((target_frames, batch_images[:, target_idx:(target_idx + 1), :, :].to(device)), dim=1)
     return output_frames, target_frames
 
@@ -127,17 +128,17 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
         sequence_length = batch_images.size(1)
         random_starting_points = random.sample(range(sequence_length - num_input_frames - num_output_frames - 1), samples_per_sequence)
         for sp_idx, starting_point in enumerate(random_starting_points):
-            model.reset_hidden(batch_size=batch_images.size()[0], training=training)
+            model.reset_hidden(batch_size=batch_images.size()[0])
             for future_frame_idx in range(num_output_frames):
                 target_idx = starting_point + future_frame_idx + num_input_frames
                 if future_frame_idx == 0:
                     input_frames = batch_images[:, starting_point:target_idx, :, :].clone()
-                    output_frames, target_frames = initial_input(model, input_frames, batch_images, target_idx, device, training)
+                    output_frames, target_frames = initial_input(model, input_frames, batch_images, target_idx, device)
                 elif future_frame_idx == reinsert_frequency:
                     input_frames = output_frames[:, -num_input_frames:, :, :].clone()
-                    output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, target_idx, device, training)
+                    output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, target_idx, device)
                 else:
-                    output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, target_idx, device, training)
+                    output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, target_idx, device, )
             loss = F.mse_loss(output_frames, target_frames)
             batch_loss += loss.item()
 
@@ -165,11 +166,10 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
 def test_ar_lstm(model, dataloader, starting_point, num_input_frames, reinsert_frequency, device, score_keeper, figures_dir, show_plots, debug=False, normalize=None):
     model.eval()
     NUM_CHANNELS = 1
-    training = False
 
     for batch_num, batch_images in enumerate(dataloader):
         batch_size = batch_images.size()[0]
-        model.reset_hidden(batch_size=batch_images.size()[0], training=training)
+        model.reset_hidden(batch_size=batch_images.size()[0])
         image_to_plot = random.randint(0, batch_size - 1)
 
         total_frames = batch_images.size()[1]
@@ -178,12 +178,12 @@ def test_ar_lstm(model, dataloader, starting_point, num_input_frames, reinsert_f
             target_idx = starting_point + future_frame_idx + num_input_frames
             if future_frame_idx == 0:
                 input_frames = batch_images[:, starting_point:target_idx, :, :].clone()
-                output_frames, target_frames = initial_input(model, input_frames, batch_images, target_idx, device, training)
+                output_frames, target_frames = initial_input(model, input_frames, batch_images, target_idx, device)
             elif future_frame_idx % reinsert_frequency == 0:
                 input_frames = output_frames[:, -num_input_frames:, :, :].clone()
-                output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, target_idx, device, training)
+                output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, target_idx, device)
             else:
-                output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, target_idx, device, training)
+                output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, target_idx, device)
                 # output & target_frames size is [batches, * (n + 1), 128, 128]
             if debug:
                 print('batch_num %d\tfuture_frame_idx %d' % (batch_num, future_frame_idx))

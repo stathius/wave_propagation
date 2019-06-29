@@ -7,7 +7,7 @@ import os
 import numpy as np
 import time
 import logging
-from utils.io import save_as_json
+from utils.io import save_json
 from utils.experiment_setup import save_network
 
 
@@ -133,7 +133,7 @@ class ExperimentRunner(nn.Module):
             for key, value in current_epoch_losses.items():
                 total_losses[key].append(np.mean(value))  #
             total_losses['curr_epoch'].append(epoch_idx)
-            save_as_json(total_losses, os.path.join(self.dirs['logs'], 'train_val_loss.json'))
+            save_json(total_losses, os.path.join(self.dirs['logs'], 'train_val_loss.json'))
             save_network(self.model, os.path.join(self.dirs['models'], 'model_latest.pt'))
 
             loss_string = "Train loss: {:.4f} | Validation loss: {:.4f}".format(total_losses['train_loss'][-1], total_losses['val_loss'][-1])

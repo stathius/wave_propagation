@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from models.AR_LSTM import AR_LSTM, test_ar_lstm
 from utils.arg_extract import get_args_test
 from utils.Scorekeeper import Scorekeeper
-from utils.experiment_setup import ExperimentSetup, get_device, load_metadata, load_datasets, load_network, create_dataloaders, get_normalizer
+from utils.experiment_setup import ExperimentSetup, get_device, load_metadata, load_datasets, load_network, create_dataloaders, get_normalizer, get_transforms
 plt.ioff()
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
@@ -18,6 +18,7 @@ print(metadata)
 normalizer = get_normalizer(args.normalizer_type)
 datasets = load_datasets(setup.files['datasets'])
 datasets['Testing data'].root_dir = setup.dirs['data']
+datasets['Testing data'].transform = get_transforms(normalizer)['Test']
 data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 device = get_device()
 

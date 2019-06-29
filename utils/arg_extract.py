@@ -62,7 +62,7 @@ def get_args_train():
         args.samples_per_sequence = 5
         args.num_epochs = 3
         args.test_starting_point = 70
-        args.normalizer = 'none'
+        args.normalizer_type = 'none'
 
     if args.seed_everything:
         seed_everything(args.seed)

@@ -6,15 +6,15 @@ import random
 from utils.WaveDataset import WaveDataset
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from utils.io import save, load, save_json, load_json
+from utils.io import save, load, save_json
 
 
-def get_normalizer(normalizer_type):
+def get_normalizer(normalizer):
     normalizers = {'none': {'mean': 0.0, 'std': 1.0},  # leave as is
                    'normal': {'mean': 0.5047, 'std': 0.1176},  # mean 0 std 1
                    'm1to1': {'mean': 0.5, 'std': 0.5}  # makes it -1, 1
                    }
-    return normalizers[normalizer_type]
+    return normalizers[normalizer]
 
 
 def get_transforms(normalizer):
@@ -30,15 +30,14 @@ def get_transforms(normalizer):
         transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[normalizer['mean']], std=[normalizer['std']])])}
-    return trans
+    return trans, normalizer
 
 
 def create_new_datasets(data_directory, normalizer):
     logging.info('Creating new datasets')
     test_fraction = 0.15
     validation_fraction = 0.15
-    # normalizer = get_normalizer(normalizer_type)
-    transform = get_transforms(normalizer)
+    transform, normalizer = get_transforms(normalizer)
 
     classes = os.listdir(data_directory)
     imagesets = []
@@ -153,6 +152,7 @@ class ExperimentSetup():
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
         self.files['analyser'] = os.path.join(self.dirs['pickles'], "analyser.pickle")
         self.files['model'] = os.path.join(self.dirs['models'], 'model.pt')
+
 
     def _create_dirs(self):
         if not os.path.isdir(self.dirs['exp_folder']):

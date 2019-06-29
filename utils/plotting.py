@@ -6,8 +6,6 @@ import numpy as np
 import os
 from utils.io import figure_save
 
-NUM_CHANNELS = 1
-
 
 def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
     """Imshow for Tensor."""
@@ -51,8 +49,9 @@ def plot_input_frames(input_frames, image_to_plot, normalize, figures_dir):
 
 
 def plot_predictions(future_frame_idx, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots):
-    predicted = output_frames[image_to_plot, -NUM_CHANNELS:, :, :].cpu()
-    target = target_frames[image_to_plot, -NUM_CHANNELS:, :, :].cpu()
+    # -1 means print last frame
+    predicted = output_frames[image_to_plot, -1:, :, :].cpu()
+    target = target_frames[image_to_plot, -1:, :, :].cpu()
     fig = plt.figure()
     sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
     sns.set_context("talk")
@@ -88,8 +87,8 @@ def plot_cutthrough(future_frame_idx, output_frames, target_frames, image_to_plo
                      data=pd.DataFrame.from_dict(data_dict), ax=profile)
         profile.set_title("Intensity Profile")
 
-    predicted = output_frames[image_to_plot, -NUM_CHANNELS:, :, :].cpu()
-    target = target_frames[image_to_plot, -NUM_CHANNELS:, :, :].cpu()
+    predicted = output_frames[image_to_plot, -1:, :, :].cpu()
+    target = target_frames[image_to_plot, -1:, :, :].cpu()
     fig = plt.figure()
     sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
     with sns.axes_style("white"):

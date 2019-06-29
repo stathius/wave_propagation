@@ -1,7 +1,7 @@
 import pickle
 import os
 import csv
-import json
+import jsons
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -26,7 +26,7 @@ def figure_save(destination, obj=None):
 
 def save_json(dict, filename):
     with open(filename, 'w') as f:
-        f.write("%s" % json.dumps(dict))
+        f.write("%s" % jsons.dumps(dict))
     f.close()
 
 def load_json(filename):

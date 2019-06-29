@@ -219,6 +219,7 @@ def test_convlstm(model, dataloader, starting_point, device, score_keeper, figur
     num_input_frames = model.get_num_input_frames()
 
     for batch_num, batch_images in enumerate(dataloader):
+        batch_images = batch_images.to(device)
         logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
         batch_size = batch_images.size(0)
         # image_to_plot = random.randint(0, batch_size - 1)

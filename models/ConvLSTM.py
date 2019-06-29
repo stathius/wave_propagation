@@ -217,11 +217,11 @@ def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):
 def test_convlstm(model, dataloader, starting_point, device, score_keeper, figures_dir, show_plots, debug=False, normalize=None):
     model.eval()
     num_input_frames = model.get_num_input_frames()
-    num_output_frames = model.get_num_output_frames()
 
     for batch_num, batch_images in enumerate(dataloader):
+        logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
         batch_size = batch_images.size(0)
-        image_to_plot = random.randint(0, batch_size - 1)
+        # image_to_plot = random.randint(0, batch_size - 1)
 
         # total_frames = batch_images.size()[1]
         # num_future_frames = total_frames - (starting_point + num_input_frames)
@@ -231,17 +231,17 @@ def test_convlstm(model, dataloader, starting_point, device, score_keeper, figur
         input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
         output_frames = model.forward(input_frames)
         input_end_point = starting_point + num_input_frames
+        num_output_frames = output_frames.size(1)
         target_frames = batch_images[:, input_end_point:(input_end_point + num_output_frames), :, :]
+#
+        # plot_predictions(5, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots)
+        # plot_cutthrough(5, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots, direction="Horizontal", location=None)
 
         for batch_index in range(batch_size):
             for frame_index in range(num_output_frames):
-                score_keeper.add(output_frames[batch_index, frame_index, :, :].cpu(),
-                                 target_frames[batch_index, frame_index:, :, :].cpu(),
+                score_keeper.add(output_frames[batch_index, frame_index, :, :].cpu().numpy(),
+                                 target_frames[batch_index, frame_index, :, :].cpu().numpy(),
                                  frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
 
-        logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
         if debug:
             break
-    # TODO Save more frequently
-    plot_predictions(frame_index, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots)
-    plot_cutthrough(frame_index, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots, direction="Horizontal", location=None)

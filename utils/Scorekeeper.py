@@ -122,10 +122,18 @@ class Scorekeeper():
         relative_diff = np.mean(np.abs(pred_relative - target_relative))/ (np.sum(target_relative) / np.prod(np.shape(target)))
 
         absolute_diff = np.mean(np.abs(predicted - target)) / (np.sum(target) / np.prod(np.shape(target)))
-
         return relative_diff, absolute_diff
 
-    def plot(self, show_plots):
+    def compare_output_target(self, output_frames, target_frames):
+        batch_size = output_frames.size(0)
+        num_output_frames = output_frames.size(1)
+        for batch_index in range(batch_size):
+            for frame_index in range(num_output_frames):
+                self.add(output_frames[batch_index, frame_index, :, :].cpu().numpy(),
+                         target_frames[batch_index, frame_index, :, :].cpu().numpy(),
+                         frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
+
+    def plot(self):
         if self.own:
             all_data = {}
             all_data.update({"Time-steps Ahead": self.frame, "Difference": self.intermitted, "Scoring Type": self.hue})
@@ -134,8 +142,6 @@ class Scorekeeper():
             sns.lineplot(x="Time-steps Ahead", y="Difference", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig,  ci='sd')
             figure_save(os.path.join(self.output_dir, "Scoring_Quality"), obj=fig)
-            if show_plots:
-                plt.show()
 
         if self.SSIM:
             all_data = {}
@@ -147,8 +153,6 @@ class Scorekeeper():
                          data=pd.DataFrame.from_dict(all_data), ax=fig,  ci='sd')
             # plt.ylim(0.0, 1)
             figure_save(os.path.join(self.output_dir, "SSIM_Quality"), obj=fig)
-            if show_plots:
-                plt.show()
 
         if self.MSE:
             all_data = {}
@@ -159,8 +163,6 @@ class Scorekeeper():
             sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
             figure_save(os.path.join(self.output_dir, "RMSE_Quality"), obj=fig)
-            if show_plots:
-                plt.show()
 
         if self.phash:
             all_data = {}
@@ -171,8 +173,6 @@ class Scorekeeper():
             sns.lineplot(x="Time-steps Ahead", y="Hamming Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
             figure_save(os.path.join(self.output_dir, "Scoring_Spatial_Hamming"), obj=fig)
-            if show_plots:
-                plt.show()
 
         if self.phash2:
             all_data = {}
@@ -183,5 +183,3 @@ class Scorekeeper():
             sns.lineplot(x="Time-steps Ahead", y="Jaccard Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
             figure_save(os.path.join(self.output_dir, "Scoring_Spatial_Jaccard"), obj=fig)
-            if show_plots:
-                plt.show()

@@ -9,16 +9,7 @@ from utils.io import figure_save
 
 def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
     """Imshow for Tensor."""
-    num_channels = image.size()[0]
-
-    if num_channels == 3:
-        image = image.numpy().transpose((1, 2, 0))
-        smooth_filter = (.5, .5, 0)
-    elif num_channels == 1:
-        image = image[0, :, :].numpy()
-        smooth_filter = (.5, .5)
-    else:
-        raise Exception('Image size not supported ', image.size())
+    smooth_filter = (.5, .5)
 
     if smoothen:
         image = ndimage.gaussian_filter(image, sigma=smooth_filter)
@@ -34,6 +25,7 @@ def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normali
         plt.axis("off")
         if title is not None:
             plt.title(title)
+
     if return_np:
         return image
 
@@ -45,26 +37,24 @@ def plot_input_frames(input_frames, image_to_plot, normalize, figures_dir):
         sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
         sns.set_context("talk")
         imshow(input_frames[image_to_plot, imag:(imag + 1), :, :], title="Input %01d" % imag, obj=fig, normalize=normalize)
-        figure_save(os.path.join(figures_dir, "Input %02d" % imag))
+        figure_save(os.path.join(figures_dir, "Input_%02d" % imag))
 
 
-def plot_predictions(future_frame_idx, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots):
+def save_prediction_plot(batch_index, frame_index, predicted, target, normalize, figures_dir):
     # -1 means print last frame
-    predicted = output_frames[image_to_plot, -1:, :, :].cpu()
-    target = target_frames[image_to_plot, -1:, :, :].cpu()
-    fig = plt.figure()
+    # predicted = predicted[image_to_plot, -1:, :, :].cpu()
+    # target = target[image_to_plot, -1:, :, :].cpu()
+    fig = plt.figure(figsize=(6, 6))
     sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
     sns.set_context("talk")
     pred = fig.add_subplot(1, 2, 1)
-    imshow(predicted, title="Predicted %02d" % future_frame_idx, smoothen=True, obj=pred, normalize=normalize)
+    imshow(predicted, title="Predicted %02d" % frame_index, smoothen=True, obj=pred, normalize=normalize)
     tar = fig.add_subplot(1, 2, 2)
-    imshow(target, title="Target %02d" % future_frame_idx, obj=tar, normalize=normalize)
-    figure_save(os.path.join(figures_dir, "Prediction %02d" % future_frame_idx))
-    if show_plots:
-        plt.show()
+    imshow(target, title="Target %02d" % frame_index, obj=tar, normalize=normalize)
+    figure_save(os.path.join(figures_dir, "Prediction_%03d_%03d" % (batch_index, frame_index)), fig)
 
 
-def plot_cutthrough(future_frame_idx, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots, direction, location=None):
+def save_cutthrough_plot(batch_index, frame_index, predicted, target, normalize, figures_dir, direction, location=None):
     def cutthrough(img1, img2, hue1, hue2):
         intensity = []
         location = []
@@ -87,18 +77,19 @@ def plot_cutthrough(future_frame_idx, output_frames, target_frames, image_to_plo
                      data=pd.DataFrame.from_dict(data_dict), ax=profile)
         profile.set_title("Intensity Profile")
 
-    predicted = output_frames[image_to_plot, -1:, :, :].cpu()
-    target = target_frames[image_to_plot, -1:, :, :].cpu()
-    fig = plt.figure()
+    # predicted = predicted[image_to_plot, -1:, :, :].cpu()
+    # target = target[image_to_plot, -1:, :, :].cpu()
+    # fig = plt.figure()
+    fig = plt.figure(figsize=(12, 4))
     sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
     with sns.axes_style("white"):
-        pre = fig.add_subplot(2, 2, 1)
-        tar = fig.add_subplot(2, 2, 2)
+        pre = fig.add_subplot(1, 4, 1)
+        tar = fig.add_subplot(1, 4, 2)
     with sns.axes_style("darkgrid"):  # darkgrid, whitegrid, dark, white, and ticks
-        profile = fig.add_subplot(2, 2, (3, 4))
+        profile = fig.add_subplot(1, 4, (3, 4))
 
-    predicted = imshow(predicted, title="Predicted %02d" % future_frame_idx, return_np=True, obj=pre, normalize=normalize)
-    target = imshow(target, title="Target %02d" % future_frame_idx, return_np=True, obj=tar, normalize=normalize)
+    predicted = imshow(predicted, title="Predicted %d" % frame_index, return_np=True, obj=pre, normalize=normalize)
+    target = imshow(target, title="Target %d" % frame_index, return_np=True, obj=tar, normalize=normalize)
     if not location:
         if "Horizontal" in direction:
             std = np.std(target, axis=1)
@@ -117,6 +108,14 @@ def plot_cutthrough(future_frame_idx, output_frames, target_frames, image_to_plo
 
     # print(predicted.size())
     cutthrough(predicted, target, "Predicted", "Target")
-    figure_save(os.path.join(figures_dir, "Cut-through %02d" % future_frame_idx), obj=fig)
-    if show_plots:
-        plt.show()
+    figure_save(os.path.join(figures_dir, "Cut_through_batch_%03d_%03d" % (batch_index, frame_index)), obj=fig)
+
+
+def save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalize):
+    num_total_frames = output_frames.size(1)
+    batch_index = 0  # doesn't really matter
+    for frame_index in range(0, num_total_frames, 10):
+        output = output_frames[batch_index, frame_index, :, :].cpu().numpy()
+        target = target_frames[batch_index, frame_index, :, :].cpu().numpy()
+        save_prediction_plot(batch_num, frame_index, output, target, normalize, figures_dir)
+        save_cutthrough_plot(batch_num, frame_index, output, target, normalize, figures_dir, direction='Horizontal', location=None)

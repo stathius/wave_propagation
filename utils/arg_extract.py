@@ -50,13 +50,13 @@ def get_args_train():
     parser.add_argument('--debug', type=str2bool, default=False)
     parser.add_argument('--weight_decay_coefficient', type=float, default=1e-05, help='Weight decay to use for Adam')
     parser.add_argument('--learning_rate', type=float, default=1e-03, help='learning rate to use for Adam')
-    parser.add_argument('--continue_experiment', type=str2bool, default=True, help='Whether the experiment should continue from the last epoch')
+    parser.add_argument('--continue_experiment', type=str2bool, default=False, help='Whether the experiment should continue from the last epoch')
 
     args = parser.parse_args()
 
     if args.debug:
         args.num_input_frames = 2
-        args.num_output_frames = 2
+        args.num_output_frames = 5
         args.batch_size = 2
         args.num_workers = 1
         args.samples_per_sequence = 5

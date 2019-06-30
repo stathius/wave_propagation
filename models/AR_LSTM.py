@@ -4,7 +4,7 @@ import torch.nn as nn
 import random
 import logging
 import time
-from utils.plotting import plot_predictions, plot_cutthrough
+from utils.plotting import save_sequence_plots
 
 
 class AR_LSTM(nn.Module):
@@ -139,6 +139,7 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
                     output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, target_idx, device)
                 else:
                     output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, target_idx, device, )
+            print(output_frames.size())
             loss = F.mse_loss(output_frames, target_frames)
             batch_loss += loss.item()
 
@@ -159,45 +160,34 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
         if debug:
             break
     mean_loss = total_loss / (batch_num + 1)
-    # plot_predictions(batch_num, output_frames, target_frames, show_plots)
     return mean_loss
 
 
 def test_ar_lstm(model, dataloader, starting_point, num_input_frames, reinsert_frequency, device, score_keeper, figures_dir, show_plots, debug=False, normalize=None):
     model.eval()
-    NUM_CHANNELS = 1
+    with torch.no_grad():
+        for batch_num, batch_images in enumerate(dataloader):
+            batch_images = batch_images.to(device)
+            model.reset_hidden(batch_size=batch_images.size()[0])
 
-    for batch_num, batch_images in enumerate(dataloader):
-        batch_size = batch_images.size()[0]
-        model.reset_hidden(batch_size=batch_images.size()[0])
-        image_to_plot = random.randint(0, batch_size - 1)
+            total_frames = batch_images.size()[1]
+            num_future_frames = total_frames - (starting_point + num_input_frames)
+            for future_frame_idx in range(num_future_frames):
+                target_idx = starting_point + future_frame_idx + num_input_frames
+                if future_frame_idx == 0:
+                    input_frames = batch_images[:, starting_point:target_idx, :, :].clone()
+                    output_frames, target_frames = initial_input(model, input_frames, batch_images, target_idx, device)
+                elif future_frame_idx % reinsert_frequency == 0:
+                    input_frames = output_frames[:, -num_input_frames:, :, :].clone()
+                    output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, target_idx, device)
+                else:
+                    output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, target_idx, device)
+                if debug:
+                    print('batch_num %d\tfuture_frame_idx %d' % (batch_num, future_frame_idx))
 
-        total_frames = batch_images.size()[1]
-        num_future_frames = total_frames - (starting_point + num_input_frames)
-        for future_frame_idx in range(num_future_frames):
-            target_idx = starting_point + future_frame_idx + num_input_frames
-            if future_frame_idx == 0:
-                input_frames = batch_images[:, starting_point:target_idx, :, :].clone()
-                output_frames, target_frames = initial_input(model, input_frames, batch_images, target_idx, device)
-            elif future_frame_idx % reinsert_frequency == 0:
-                input_frames = output_frames[:, -num_input_frames:, :, :].clone()
-                output_frames, target_frames = reinsert(model, input_frames, output_frames, target_frames, batch_images, target_idx, device)
-            else:
-                output_frames, target_frames = propagate(model, output_frames, target_frames, batch_images, target_idx, device)
-                # output & target_frames size is [batches, * (n + 1), 128, 128]
+                score_keeper.compare_output_target(output_frames, target_frames)
+                save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalize)
+
+            logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
             if debug:
-                print('batch_num %d\tfuture_frame_idx %d' % (batch_num, future_frame_idx))
-
-            for ba in range(output_frames.size()[0]):
-                score_keeper.add(output_frames[ba, -NUM_CHANNELS:, :, :].cpu(),
-                                 target_frames[ba, -NUM_CHANNELS:, :, :].cpu(),
-                                 future_frame_idx, "pHash", "pHash2", "SSIM", "Own", "RMSE")
-
-            # if  batch_num == 1 and (((future_frame_idx + 1) % plot_frequency) == 0 or (future_frame_idx == 0)):
-
-        logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
-        if debug:
-            break
-    # TODO Save more frequently
-    plot_predictions(future_frame_idx, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots)
-    plot_cutthrough(future_frame_idx, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots, direction="Horizontal", location=None)
+                break

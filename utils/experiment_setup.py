@@ -37,7 +37,7 @@ def create_new_datasets(data_directory, normalizer):
     logging.info('Creating new datasets')
     test_fraction = 0.15
     validation_fraction = 0.15
-    transform, normalizer = get_transforms(normalizer)
+    transform = get_transforms(normalizer)
 
     classes = os.listdir(data_directory)
     imagesets = []
@@ -152,7 +152,6 @@ class ExperimentSetup():
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
         self.files['analyser'] = os.path.join(self.dirs['pickles'], "analyser.pickle")
         self.files['model'] = os.path.join(self.dirs['models'], 'model.pt')
-
 
     def _create_dirs(self):
         logging.info('Creating directories')

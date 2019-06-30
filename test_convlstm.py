@@ -32,6 +32,5 @@ model.to(device)
 score_keeper = Scorekeeper(setup.dirs['charts'], normalizer)
 
 logging.info("Start testing")
-with torch.no_grad():
-    test_convlstm(model, data_loaders['test'], args.test_starting_point, device, score_keeper, setup.dirs['predictions'], args.show_plots, debug=args.debug, normalize=normalizer)
+test_convlstm(model, data_loaders['test'], args.test_starting_point, device, score_keeper, setup.dirs['predictions'], args.show_plots, debug=args.debug, normalize=normalizer)
 score_keeper.plot(args.show_plots)

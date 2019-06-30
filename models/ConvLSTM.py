@@ -1,10 +1,9 @@
 from torch import nn
 import torch
 from collections import OrderedDict
-import random
 import logging
 from utils.helper_functions import convert_SBCHW_to_BSHW, convert_BSHW_to_SBCHW
-from utils.plotting import plot_predictions, plot_cutthrough
+from utils.plotting import save_sequence_plots
 
 
 class ConvLSTMCell(nn.Module):
@@ -42,8 +41,6 @@ class ConvLSTMCell(nn.Module):
             seq_len = self.seq_len
         outputs = []
         for index in range(seq_len):
-            # print(index)
-            # initial inputs
             if inputs is None:
                 x = torch.zeros((h.size(0), self._input_channel, self._state_height,
                                 self._state_width), dtype=torch.float).to(self.device)
@@ -127,27 +124,6 @@ class Forecaster(nn.Module):
         return input
 
 
-class EncoderForecaster(nn.Module):
-
-    def __init__(self, encoder, forecaster):
-        super().__init__()
-        self.encoder = encoder
-        self.forecaster = forecaster
-        self.input_dim = 'SBCHW'  # indicates the model expects inputs in the form S*B*C*H*W
-
-    def forward(self, input):
-        input = convert_BSHW_to_SBCHW(input)
-        state = self.encoder(input)
-        output = self.forecaster(state)
-        return convert_SBCHW_to_BSHW(output)
-
-    def get_num_input_frames(self):
-        return self.encoder.rnn1.seq_len
-
-    def get_num_output_frames(self):
-        return self.forecaster.rnn3.seq_len
-
-
 def make_layers(block):
     layers = []
     for layer_name, v in block.items():
@@ -211,38 +187,59 @@ def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):
 
     encoder = Encoder(encoder_architecture[0], encoder_architecture[1]).to(device)
     forecaster = Forecaster(forecaster_architecture[0], forecaster_architecture[1], num_output_frames).to(device)
-    return EncoderForecaster(encoder, forecaster)
+    return EncoderForecaster(encoder, forecaster, device)
 
 
-def test_convlstm(model, dataloader, starting_point, device, score_keeper, figures_dir, show_plots, debug=False, normalize=None):
-    model.eval()
+class EncoderForecaster(nn.Module):
+    def __init__(self, encoder, forecaster, device):
+        super().__init__()
+        self.encoder = encoder
+        self.forecaster = forecaster
+        self.device = device
+
+    def forward(self, input):
+        input = convert_BSHW_to_SBCHW(input)
+        state = self.encoder(input)
+        output = self.forecaster(state)
+        return convert_SBCHW_to_BSHW(output)
+
+    def get_num_input_frames(self):
+        return self.encoder.rnn1.seq_len
+
+    def get_num_output_frames(self):
+        return self.forecaster.rnn3.seq_len
+
+    def get_future_frames(self, input_frames, num_requested_output_frames, num_keep_output_frames):
+        output_frames = self(input_frames)[:, :num_keep_output_frames, :, :]
+        num_input_frames = self.get_num_input_frames()
+
+        while output_frames.size(1) < num_requested_output_frames:
+            input_frames = output_frames[:, -num_input_frames:, :, :].clone()
+            output_keep_frames = self(input_frames)[:, :num_keep_output_frames, :, :]
+            output_frames = torch.cat((output_frames, output_keep_frames), dim=1)
+        return output_frames
+
+
+def test_convlstm(model, dataloader, starting_point, num_keep_output_frames, num_requested_output_frames, device, score_keeper, figures_dir, show_plots, debug=False, normalize=None):
     num_input_frames = model.get_num_input_frames()
 
-    for batch_num, batch_images in enumerate(dataloader):
-        batch_images = batch_images.to(device)
-        logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
-        batch_size = batch_images.size(0)
-        # image_to_plot = random.randint(0, batch_size - 1)
+    model.eval()
+    with torch.no_grad():
+        for batch_num, batch_images in enumerate(dataloader):
+            logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
+            batch_images = batch_images.to(device)
 
-        # total_frames = batch_images.size()[1]
-        # num_future_frames = total_frames - (starting_point + num_input_frames)
-        # for future_frame_idx in range(num_future_frames):
-        # target_idx = starting_point + future_frame_idx + num_input_frames
+            input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
 
-        input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
-        output_frames = model.forward(input_frames)
-        input_end_point = starting_point + num_input_frames
-        num_output_frames = output_frames.size(1)
-        target_frames = batch_images[:, input_end_point:(input_end_point + num_output_frames), :, :]
-#
-        # plot_predictions(5, input_frames, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots)
-        # plot_cutthrough(5, output_frames, target_frames, image_to_plot, normalize, figures_dir, show_plots, direction="Horizontal", location=None)
+            output_frames = model.get_future_frames(input_frames, num_requested_output_frames, num_keep_output_frames)
 
-        for batch_index in range(batch_size):
-            for frame_index in range(num_output_frames):
-                score_keeper.add(output_frames[batch_index, frame_index, :, :].cpu().numpy(),
-                                 target_frames[batch_index, frame_index, :, :].cpu().numpy(),
-                                 frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
+            num_total_output_frames = output_frames.size(1)
+            input_end_point = starting_point + num_input_frames
+            target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
 
-        if debug:
-            break
+            score_keeper.compare_output_target(output_frames, target_frames)
+
+            save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalize)
+
+            if debug:
+                break

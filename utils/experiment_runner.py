@@ -80,7 +80,6 @@ class ExperimentRunner(nn.Module):
         else:
             self.model.eval()
 
-        batch_images = batch_images.to(self.device)
         video_length = batch_images.size(1)
         random_starting_points = random.sample(range(video_length - self.num_input_frames - self.num_output_frames - 1), self.samples_per_sequence)
 
@@ -111,6 +110,7 @@ class ExperimentRunner(nn.Module):
             with tqdm.tqdm(total=len(self.train_data)) as pbar_train:  # create a progress bar for training
                 for batch_num, batch_images in enumerate(self.train_data):
                     # logging.info('BATCH: %d' % batch_num )
+                    batch_images = batch_images.to(self.device)
                     batch_start_time = time.time()
                     loss = self.run_batch_iter(batch_images, train=True)
                     current_epoch_losses["train_loss"].append(loss)
@@ -121,6 +121,7 @@ class ExperimentRunner(nn.Module):
                         break
             with tqdm.tqdm(total=len(self.val_data)) as pbar_val:  #
                 for batch_images in self.val_data:
+                    batch_images = batch_images.to(self.device)
                     with torch.no_grad():
                         loss = self.run_batch_iter(batch_images, train=False)
                     current_epoch_losses["val_loss"].append(loss)  # add current iter loss to val loss list.
@@ -147,16 +148,3 @@ class ExperimentRunner(nn.Module):
                 logging.info('Saving a better model. Previous loss: %.4f New loss: %.4f' % (self.best_val_model_loss, val_mean_loss))
                 self.best_val_model_loss = val_mean_loss
                 save_network(self.model, os.path.join(self.dirs['models'], 'model_best.pt'))
-
-        # print("Generating test set evaluation metrics")
-        # with tqdm.tqdm(total=len(self.test_data)) as pbar_test:  # ini a progress bar
-        #     for x, y in self.test_data:  # sample batch
-        #         loss = self.run_evaluation_iter(x=x, y=y)  # compute loss and accuracy by running an evaluation step
-        #         current_epoch_losses["test_loss"].append(loss)  # save test loss
-        #         pbar_test.update(1)  # update progress bar status
-        #         pbar_test.set_description(
-        #             "loss: {:.4f}".format(loss))  # update progress bar string output
-
-        # test_losses = {key: [np.mean(value)] for key, value in
-                       # current_epoch_losses.items()}  # save test set metrics in dict format
-        # save_statistics(experiment_log_dir=self.experiment_logs, filename='test_summary.csv',stats_dict=test_losses, current_epoch=0, continue_from_mode=False)

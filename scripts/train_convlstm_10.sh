@@ -35,4 +35,4 @@ fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 cd /home/s1680171/wave_propagation/
-python train_convlstm.py --experiment_name "ConvLSTM_batch8_samples_5_epoch30_out10" --batch_size 8 --num_epochs 30 --samples_per_sequence 5 --num_input_frames 5 --num_output_frames 10
+python train_network.py --experiment_name "ConvLSTM_batch8_samples_5_epoch30_out10" --model_type 'convlstm' --batch_size 8 --num_epochs 30 --samples_per_sequence 5 --num_input_frames 5 --num_output_frames 10

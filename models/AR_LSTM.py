@@ -104,8 +104,7 @@ class AR_LSTM(nn.Module):
         return output_frames
 
 
-def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_output_frames, reinsert_frequency, device, analyser, training=False, debug=False):
-    samples_per_sequence = 10
+def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_output_frames, reinsert_frequency, samples_per_sequence, device, analyser, training=False, debug=False):
     if training:
         model.train()
     else:
@@ -116,14 +115,17 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
         batch_loss = 0
         sequence_length = batch_images.size(1)
         random_starting_points = random.sample(range(sequence_length - num_input_frames - num_output_frames - 1), samples_per_sequence)
+        # print('RANDOM POINTS: ',random_starting_points)
+
         for sp_idx, starting_point in enumerate(random_starting_points):
             target_index = starting_point + num_input_frames
             input_frames = batch_images[:, starting_point:target_index, :, :].clone()
             output_frames = model.get_future_frames(input_frames, num_output_frames)
-            target_frames = batch_images[:, target_index:(target_index + num_output_frames), :, :].clone()
+            target_frames = batch_images[:, target_index:(target_index + num_output_frames), :, :]
 
-            print(output_frames.size())
+            # print('ar size out tar ', output_frames.size(), target_frames.size())
             loss = F.mse_loss(output_frames, target_frames)
+            # print('idx, loss: ', sp_idx, loss.item())
             batch_loss += loss.item()
 
             if training:
@@ -131,8 +133,6 @@ def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_
                 loss.backward()
                 lr_scheduler.optimizer.step()
 
-            if debug:
-                break
         mean_batch_loss = batch_loss / (sp_idx + 1)
         analyser.save_loss_batchwise(mean_batch_loss, batch_increment=1)
         total_loss += mean_batch_loss

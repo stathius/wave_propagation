@@ -28,10 +28,10 @@ for epoch in range(1, args.num_epochs+1):
     epoch_start = time.time()
 
     logging.info('Epoch %d' % epoch)
-    train_loss = run_iteration(experiment.model, experiment.lr_scheduler, epoch, experiment.dataloaders['train'], args.num_input_frames, args.num_output_frames, args.reinsert_frequency, experiment.device, analyser, training=True, debug=args.debug)
+    train_loss = run_iteration(experiment.model, experiment.lr_scheduler, epoch, experiment.dataloaders['train'], args.num_input_frames, args.num_output_frames, args.reinsert_frequency, args.samples_per_sequence, experiment.device, analyser, training=True, debug=args.debug)
     analyser.save_epoch_loss(train_loss, epoch)
     with torch.no_grad():
-        validation_loss = run_iteration(experiment.model, experiment.lr_scheduler, epoch, experiment.dataloaders['val'], args.num_input_frames, args.num_output_frames, args.reinsert_frequency, experiment.device, analyser, training=False, debug=args.debug)
+        validation_loss = run_iteration(experiment.model, experiment.lr_scheduler, epoch, experiment.dataloaders['val'], args.num_input_frames, args.num_output_frames, args.reinsert_frequency, args.samples_per_sequence, experiment.device, analyser, training=False, debug=args.debug)
     analyser.save_validation_loss(validation_loss, epoch)
     validation_loss = analyser.validation_loss[-1]
     experiment.lr_scheduler.step(validation_loss)

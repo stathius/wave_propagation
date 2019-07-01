@@ -2,7 +2,7 @@ import logging
 import matplotlib.pyplot as plt
 from models.AR_LSTM import AR_LSTM, test_ar_lstm
 from utils.arg_extract import get_args_test
-from utils.Scorekeeper import Scorekeeper
+from utils.Evaluator import Evaluator
 from utils.experiment import Experiment, get_device, load_metadata, load_datasets, load_network, create_dataloaders, get_normalizer, get_transforms
 plt.ioff()
 
@@ -25,7 +25,7 @@ model = AR_LSTM(metadata['args'].num_input_frames, args.reinsert_frequency, devi
 model = load_network(model, experiment.files['model'])
 model.to(device)
 
-score_keeper = Scorekeeper(experiment.dirs['charts'], normalizer)
+score_keeper = Evaluator(experiment.dirs['charts'], normalizer)
 
 test_ar_lstm(model, dataloaders['test'], args.test_starting_point, args.num_input_frames, args.reinsert_frequency, device, score_keeper, experiment.dirs['predictions'], args.debug, normalizer)
 score_keeper.plot()

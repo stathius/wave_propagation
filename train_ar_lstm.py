@@ -6,7 +6,7 @@ from models.AR_LSTM import run_iteration
 from utils.Analyser import Analyser
 from utils.io import save
 from utils.arg_extract import get_args
-from utils.Scorekeeper import Scorekeeper
+from utils.Evaluator import Evaluator
 from utils.experiment import Experiment, save_network
 from utils.experiment_runner import test_future_frames
 plt.ioff()
@@ -42,6 +42,6 @@ for epoch in range(1, args.num_epochs+1):
     logging.info('Epoch %d\tTrain Loss %.6f\tValidation loss: %.6f\tEpoch Time: %.3f' % (epoch, train_loss, validation_loss, epochs_time))
 
 logging.info("Start testing")
-score_keeper = Scorekeeper(experiment.dirs['charts'], experiment.normalizer)
+score_keeper = Evaluator(experiment.dirs['charts'], experiment.normalizer)
 test_future_frames(experiment.model, experiment.dataloaders['test'], args.test_starting_point, args.num_future_test_frames, experiment.device, score_keeper, experiment.dirs['predictions'], debug=args.debug, normalize=experiment.normalizer)
 score_keeper.plot()

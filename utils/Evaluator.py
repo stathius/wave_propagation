@@ -10,13 +10,14 @@ import imagehash
 import os
 from utils.helper_functions import hex_str2bool, normalize_image
 
-class Scorekeeper():
+
+class Evaluator():
     """
     Calculates and keeps track of testing results
     SSIM/pHash/RMSE etc.
     """
     def __init__(self, output_dir, normalize):
-        super(Scorekeeper, self).__init__()
+        super(Evaluator, self).__init__()
         self.normalize = normalize
         self.output_dir = output_dir
 

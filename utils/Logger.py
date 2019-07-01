@@ -4,7 +4,8 @@ import pandas as pd
 from utils.io import figure_save
 import os
 
-class Analyser():
+
+class Logger():
     """
     Saves network data for later analasys. Epochwise loss, Batchwise loss, Accuracy (not currently in use) and
     Validation loss

@@ -30,9 +30,7 @@ class ExperimentRunner(nn.Module):
         #     self.model.to(self.device)
         #     self.model = nn.DataParallel(module=self.model)
         # else:
-        self.model.to(self.device)  # sends the model from the cpu to the gpu
-
-        # self.self.dirs = create_results_folder(base_folder=base_folder, experiment_name=args.experiment_name)
+        self.model.to(self.device)
 
         self.lr_scheduler = lr_scheduler
 
@@ -44,19 +42,7 @@ class ExperimentRunner(nn.Module):
         self.val_data = val_data
         self.test_data = test_data
 
-        if continue_from_epoch == -2:
-            try:
-                self.best_val_model_idx, self.best_val_model_loss, self.state = self.load_model(
-                    model_save_dir=self.experiment_saved_models, model_save_name="train_model",
-                    model_idx='latest')  # reload existing model from epoch and return best val model index
-                # and the best val acc of that model
-                self.starting_epoch = self.state['current_epoch_idx']
-            except Exception:
-                print("Model objects cannot be found, initializing a new model and starting from scratch")
-                self.starting_epoch = 0
-                self.state = dict()
-
-        elif continue_from_epoch != -1:  # if continue from epoch is not -1 then
+        if continue_from_epoch != -1:
             self.best_val_model_idx, self.best_val_model_loss, self.state = self.load_model(
                 model_save_dir=self.experiment_saved_models, model_save_name="train_model",
                 model_idx=continue_from_epoch)  # reload existing model from epoch and return best val model index
@@ -64,7 +50,6 @@ class ExperimentRunner(nn.Module):
             self.starting_epoch = self.state['current_epoch_idx']
         else:
             self.starting_epoch = 0
-            self.state = dict()
 
     def get_num_parameters(self):
         total_num_params = 0

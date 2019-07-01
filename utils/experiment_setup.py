@@ -138,7 +138,7 @@ def save_experiment():
             }, PATH)
 
 
-class ExperimentSetup():
+class Experiment():
     def __init__(self, experiment_name, new=True):
         logging.info('Experiment %s' % experiment_name)
         self.experiment_name = experiment_name

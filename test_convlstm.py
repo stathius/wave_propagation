@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 from models.ConvLSTM import get_convlstm_model
 from utils.arg_extract import get_args
 from utils.Scorekeeper import Scorekeeper
-from utils.experiment_setup import ExperimentSetup, get_normalizer, load_datasets, create_dataloaders, get_device, load_metadata, load_network, get_transforms
+from utils.experiment_setup import Experiment, get_normalizer, load_datasets, create_dataloaders, get_device, load_metadata, load_network, get_transforms
 from utils.experiment_runner import test_future_frames
 plt.ioff()
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 args = get_args()
 # print(args)
-setup = ExperimentSetup(args.experiment_name)
+setup = Experiment(args.experiment_name)
 metadata = load_metadata(setup.files['metadata'])
 # print(metadata)
 # get normalizer from metadata

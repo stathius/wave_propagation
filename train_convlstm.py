@@ -4,14 +4,14 @@ import logging
 from models.ConvLSTM import get_convlstm_model
 from utils.arg_extract import get_args
 from utils.experiment_runner import ExperimentRunner
-from utils.experiment_setup import ExperimentSetup, get_normalizer, create_new_datasets, create_dataloaders, get_device, save_metadata
+from utils.experiment_setup import Experiment, get_normalizer, create_new_datasets, create_dataloaders, get_device, save_metadata
 from utils.io import save
 
 plt.ioff()
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 args = get_args()
-setup = ExperimentSetup(args.experiment_name)
+setup = Experiment(args.experiment_name)
 normalizer = get_normalizer(args.normalizer_type)
 datasets = create_new_datasets(setup.dirs['data'], normalizer)
 save(datasets, setup.files['datasets'])

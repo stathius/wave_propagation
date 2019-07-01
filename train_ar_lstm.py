@@ -9,21 +9,21 @@ from utils.Analyser import Analyser
 from utils.io import save, save_json
 from utils.arg_extract import get_args
 from utils.Scorekeeper import Scorekeeper
-from utils.experiment_setup import ExperimentSetup, get_normalizer, create_new_datasets, create_dataloaders, get_device, save_metadata, save_network
+from utils.experiment_setup import Experiment, get_normalizer, create_new_datasets, create_dataloaders, get_device, save_metadata, save_network
 from utils.experiment_runner import test_future_frames
 plt.ioff()
 
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 args = get_args()
-setup = ExperimentSetup(args.experiment_name)
+setup = Experiment(args.experiment_name)
 normalizer = get_normalizer(args.normalizer_type)
 datasets = create_new_datasets(setup.dirs['data'], normalizer)
 save(datasets, setup.files['datasets'])
 data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 device = get_device()
 
-analyser = Analyser(setup.dirs['results'])
+analyser = Analyser(setup.dirs['pickles'])
 
 model = AR_LSTM(args.num_input_frames, args.reinsert_frequency, device)
 model.to(device)

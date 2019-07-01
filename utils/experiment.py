@@ -210,7 +210,7 @@ class Experiment():
         else:
             self.dirs['base'] = '/home/s1680171/wave_propagation/'
             self.dirs['data'] = '/disk/scratch/s1680171/wave_propagation/Video_Data/'
-        print(self.dirs)
+
         self.dirs['exp_folder'] = os.path.join(self.dirs['base'], "experiments_results/")
         self.dirs['results'] = os.path.join(self.dirs['exp_folder'], self.args.experiment_name)
         for d in self.sub_folders:

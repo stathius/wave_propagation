@@ -54,6 +54,7 @@ def save_prediction_plot(batch_index, frame_index, predicted, target, normalize,
     figure_save(os.path.join(figures_dir, "Prediction_%03d_%03d" % (batch_index, frame_index)), fig)
     plt.close()
 
+
 def save_cutthrough_plot(batch_index, frame_index, predicted, target, normalize, figures_dir, direction, location=None):
     def cutthrough(img1, img2, hue1, hue2):
         intensity = []

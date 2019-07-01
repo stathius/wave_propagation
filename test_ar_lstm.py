@@ -22,12 +22,11 @@ datasets['Testing data'].transform = get_transforms(normalizer)['Test']
 data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 device = get_device()
 
-model = AR_LSTM(num_input_frames=metadata['args'].num_input_frames, num_output_frames=metadata['args'].num_output_frames, device=device)
+model = AR_LSTM(metadata['args'].num_input_frames, args.reinsert_frequency, device)
 model = load_network(model, setup.files['model'])
 model.to(device)
 
 score_keeper = Scorekeeper(setup.dirs['charts'], normalizer)
 
-with torch.no_grad():
-    test_ar_lstm(model, data_loaders['test'], args.test_starting_point, args.num_input_frames, args.reinsert_frequency, device, score_keeper, setup.dirs['predictions'], show_plots=args.show_plots, debug=args.debug, normalize=normalizer)
-score_keeper.plot(show_plots=args.show_plots)
+test_ar_lstm(model, data_loaders['test'], args.test_starting_point, args.num_input_frames, args.reinsert_frequency, device, score_keeper, setup.dirs['predictions'], args.debug, normalizer)
+score_keeper.plot()

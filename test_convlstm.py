@@ -1,16 +1,14 @@
 import logging
-import torch
-import os
 import matplotlib.pyplot as plt
-from models.ConvLSTM import get_convlstm_model, test_convlstm
-from utils.arg_extract import get_args_test
+from models.ConvLSTM import get_convlstm_model
+from utils.arg_extract import get_args
 from utils.Scorekeeper import Scorekeeper
 from utils.experiment_setup import ExperimentSetup, get_normalizer, load_datasets, create_dataloaders, get_device, load_metadata, load_network, get_transforms
+from utils.experiment_runner import test_future_frames
 plt.ioff()
-
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
-args = get_args_test()
+args = get_args()
 # print(args)
 setup = ExperimentSetup(args.experiment_name)
 metadata = load_metadata(setup.files['metadata'])
@@ -25,12 +23,14 @@ data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 # up to here
 device = get_device()
 
-model = get_convlstm_model(metadata['args'].num_input_frames, metadata['args'].num_output_frames, args.batch_size, device)
+model = get_convlstm_model(metadata['args'].num_input_frames, metadata['args'].num_output_frames, args.num_autoregress_frames, args.batch_size, device)
+
 model = load_network(model, setup.files['model'])
 model.to(device)
 
-score_keeper = Scorekeeper(setup.dirs['charts'], normalizer)
 
 logging.info("Start testing")
-test_convlstm(model, data_loaders['test'], args.test_starting_point, device, score_keeper, setup.dirs['predictions'], args.show_plots, debug=args.debug, normalize=normalizer)
+score_keeper = Scorekeeper(setup.dirs['charts'], normalizer)
+test_future_frames(model, data_loaders['test'], args.test_starting_point, args.num_future_test_frames, device, score_keeper, setup.dirs['predictions'], debug=args.debug, normalize=normalizer)
 score_keeper.plot(args.show_plots)
+score_keeper.plot()

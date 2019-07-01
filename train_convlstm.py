@@ -2,7 +2,7 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import logging
 from models.ConvLSTM import get_convlstm_model
-from utils.arg_extract import get_args_train
+from utils.arg_extract import get_args
 from utils.experiment_runner import ExperimentRunner
 from utils.experiment_setup import ExperimentSetup, get_normalizer, create_new_datasets, create_dataloaders, get_device, save_metadata
 from utils.io import save
@@ -10,15 +10,15 @@ from utils.io import save
 plt.ioff()
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
-args = get_args_train()
+args = get_args()
 setup = ExperimentSetup(args.experiment_name)
-normalizer = get_normalizer(args.normalizer)
+normalizer = get_normalizer(args.normalizer_type)
 datasets = create_new_datasets(setup.dirs['data'], normalizer)
 save(datasets, setup.files['datasets'])
 data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 device = get_device()
 
-model = get_convlstm_model(args.num_input_frames, args.num_output_frames, args.batch_size, device)
+model = get_convlstm_model(args.num_input_frames, args.num_output_frames, args.num_autoregress_frames, args.batch_size, device)
 
 optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
 lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=7)

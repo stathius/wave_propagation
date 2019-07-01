@@ -52,7 +52,7 @@ def save_prediction_plot(batch_index, frame_index, predicted, target, normalize,
     tar = fig.add_subplot(1, 2, 2)
     imshow(target, title="Target %02d" % frame_index, obj=tar, normalize=normalize)
     figure_save(os.path.join(figures_dir, "Prediction_%03d_%03d" % (batch_index, frame_index)), fig)
-
+    plt.close()
 
 def save_cutthrough_plot(batch_index, frame_index, predicted, target, normalize, figures_dir, direction, location=None):
     def cutthrough(img1, img2, hue1, hue2):
@@ -109,6 +109,7 @@ def save_cutthrough_plot(batch_index, frame_index, predicted, target, normalize,
     # print(predicted.size())
     cutthrough(predicted, target, "Predicted", "Target")
     figure_save(os.path.join(figures_dir, "Cut_through_batch_%03d_%03d" % (batch_index, frame_index)), obj=fig)
+    plt.close()
 
 
 def save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalize):

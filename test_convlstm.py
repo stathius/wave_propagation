@@ -9,19 +9,14 @@ plt.ioff()
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 args = get_args()
-# print(args)
 
 experiment = Experiment(args.experiment_name)
 metadata = load_metadata(experiment.files['metadata'])
-# print(metadata)
-# get normalizer from metadata
 normalizer = get_normalizer(args.normalizer_type)
-# TODO make this load_dataloaders
 datasets = load_datasets(experiment.files['datasets'])
 datasets['Testing data'].root_dir = experiment.dirs['data']
 datasets['Testing data'].transform = get_transforms(normalizer)['Test']
-data_loaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
-# up to here
+dataloaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 device = get_device()
 
 model = get_convlstm_model(metadata['args'].num_input_frames, metadata['args'].num_output_frames, args.num_autoregress_frames, args.batch_size, device)
@@ -32,6 +27,6 @@ model.to(device)
 
 logging.info("Start testing")
 score_keeper = Scorekeeper(experiment.dirs['charts'], normalizer)
-test_future_frames(model, data_loaders['test'], args.test_starting_point, args.num_future_test_frames, device, score_keeper, experiment.dirs['predictions'], debug=args.debug, normalize=normalizer)
+test_future_frames(model, dataloaders['test'], args.test_starting_point, args.num_future_test_frames, device, score_keeper, experiment.dirs['predictions'], debug=args.debug, normalize=normalizer)
 score_keeper.plot(args.show_plots)
 score_keeper.plot()

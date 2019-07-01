@@ -7,6 +7,8 @@ from utils.WaveDataset import WaveDataset
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.io import save, load, save_json
+from models.AR_LSTM import AR_LSTM
+from models.ConvLSTM import get_convlstm_model
 
 
 def get_normalizer(normalizer):
@@ -90,17 +92,6 @@ def create_dataloaders(datasets, batch_size, num_workers):
     return dataloaders
 
 
-def save_metadata(filename_metadata, args, model, optim, lr_scheduler, device):
-    meta_data_dict = {"args": args, "optimizer": optim.state_dict(), "scheduler": lr_scheduler.state_dict(), "model": "%s" % model, 'device': device}
-    save_json(meta_data_dict, filename_metadata)
-    save_json(meta_data_dict, filename_metadata + '.json')
-    logging.info(meta_data_dict)
-
-
-def load_metadata(filename_metadata):
-    return load(filename_metadata)
-
-
 def get_device():
     if torch.cuda.is_available():
         device = torch.cuda.current_device()
@@ -139,21 +130,69 @@ def save_experiment():
 
 
 class Experiment():
-    def __init__(self, experiment_name, new=True):
-        logging.info('Experiment %s' % experiment_name)
-        self.experiment_name = experiment_name
+    def __init__(self, args):
+        logging.info('Experiment %s' % args.experiment_name)
+        self.args = args
         self.sub_folders = ['logs', 'pickles', 'models', 'predictions', 'charts']
-        self.new = new
-        self.dirs = self._get_dirs()
-        if self.new:
-            self._create_dirs()
-        self.files = {}
-        self.files['datasets'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
-        self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
-        self.files['analyser'] = os.path.join(self.dirs['pickles'], "analyser.pickle")
-        self.files['model'] = os.path.join(self.dirs['models'], 'model.pt')
+        self._filesystem_structure()
+        self.device = get_device()
 
-    def _create_dirs(self):
+    def _create_model(self, model_type):
+        if model_type == 'convlstm':
+            model = get_convlstm_model(self.args.num_input_frames, self.args.num_output_frames, self.args.num_autoregress_frames, self.args.batch_size, self.device)
+        elif model_type == 'ar_lstm':
+            model = AR_LSTM(self.args.num_input_frames, self.args.reinsert_frequency, self.device)
+        elif model_type == 'cnn':
+            pass
+        return model
+
+    def _create_scheduler(self):
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()),
+                                     lr=self.args.learning_rate)
+        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
+                                                          factor=self.args.scheduler_factor,
+                                                          patience=self.args.scheduler_patience)
+
+    def create_new(self):
+        self._mkdirs()
+        self.normalizer = get_normalizer(self.args.normalizer_type)
+        self.datasets = create_new_datasets(self.dirs['data'], self.normalizer)
+        save(self.datasets, self.files['datasets'])
+        self.dataloaders = create_dataloaders(self.datasets, self.args.batch_size, self.args.num_workers)
+        self.model = self._create_model(self.args.model_type)
+        self.lr_scheduler = self._create_scheduler()
+        self._save_metadata()
+
+    def load_from_disk(self):
+        self.metadata = load(self.files['metadata'])
+        self.args_new = self.args
+        self.args = self.metadata['args']
+        self.normalizer = get_normalizer(self.args.normalizer_type)
+        self.datasets = load_datasets(self.files['datasets'])
+        self.datasets['Training data'].root_dir = self.dirs['data']
+        self.datasets['Training data'].transform = get_transforms(self.normalizer)['Train']
+        self.datasets['Validation data'].root_dir = self.dirs['data']
+        self.datasets['Validation data'].transform = get_transforms(self.normalizer)['Test']
+        self.datasets['Testing data'].root_dir = self.dirs['data']
+        self.datasets['Testing data'].transform = get_transforms(self.normalizer)['Test']
+        self.dataloaders = create_dataloaders(self.datasets, self.args.batch_size, self.args.num_workers)
+        self.model = self._create_model(self.args.model_type)
+        self.lr_scheduler = self._create_scheduler()
+        self.model = load_network(self.model, self.files['model'])
+
+        # Plus more stuff to get the best val accuracy and the last epoch number
+
+    def _save_metadata(self):
+        meta_data_dict = {"args": self.args,
+                          "model": self.model,
+                          "optimizer": self.lr_scheduler.optimizer.state_dict(),
+                          "scheduler": self.lr_scheduler.state_dict()
+                          }
+        save(meta_data_dict, self.files['metadata'])
+        save_json(meta_data_dict, self.files['metadata'] + '.json')
+        logging.info(meta_data_dict)
+
+    def _mkdirs(self):
         logging.info('Creating directories')
         if not os.path.isdir(self.dirs['exp_folder']):
             os.mkdir(self.dirs['exp_folder'])
@@ -163,17 +202,23 @@ class Experiment():
             if not os.path.isdir(self.dirs[d]):
                 os.mkdir(self.dirs[d])
 
-    def _get_dirs(self):
+    def _filesystem_structure(self):
+        self.dirs = {}
         if 'Darwin' in platform.system():
-            dirs = {'base': '/Users/stathis/Code/thesis/wave_propagation/',
-                    'data': '/Users/stathis/Code/thesis/wave_propagation/Video_Data/'}
+            self.dirs['base'] = '/Users/stathis/Code/thesis/wave_propagation/'
+            self.dirs['data'] = '/Users/stathis/Code/thesis/wave_propagation/Video_Data/'
         else:
-            dirs = {'base': '/home/s1680171/wave_propagation/',
-                    'data': '/disk/scratch/s1680171/wave_propagation/Video_Data/'}
-
-        dirs['exp_folder'] = os.path.join(dirs['base'], "experiments_results/")
-        dirs['results'] = os.path.join(dirs['exp_folder'], self.experiment_name)
+            self.dirs['base'] = '/home/s1680171/wave_propagation/',
+            self.dirs['data'] = '/disk/scratch/s1680171/wave_propagation/Video_Data/'
+        self.dirs['exp_folder'] = os.path.join(self.dirs['base'], "experiments_results/")
+        self.dirs['results'] = os.path.join(self.dirs['exp_folder'], self.args.experiment_name)
         for d in self.sub_folders:
-            dirs[d] = os.path.join(dirs['results'], '%s/' % d)
+            self.dirs[d] = os.path.join(self.dirs['results'], '%s/' % d)
 
-        return dirs
+        self.files = {}
+        self.files['datasets'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
+        self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
+        self.files['analyser'] = os.path.join(self.dirs['pickles'], "analyser.pickle")
+        self.files['model'] = os.path.join(self.dirs['models'], 'model_latest.pt')
+        self.files['model_best'] = os.path.join(self.dirs['models'], 'model_best.pt')
+

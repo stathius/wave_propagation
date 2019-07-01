@@ -9,6 +9,7 @@ import time
 import logging
 from utils.io import save_json
 from utils.experiment_setup import save_network
+from utils.plotting import save_sequence_plots
 
 
 class ExperimentRunner(nn.Module):
@@ -90,6 +91,8 @@ class ExperimentRunner(nn.Module):
             # TODO change this for a model specific function prediction or something
             output_frames = self.model.forward(input_frames)
             target_frames = batch_images[:, input_end_point:(input_end_point + self.num_output_frames), :, :]
+            if self.debug:
+                logging.info('EXP RUNNER out tar size %s %s' % (output_frames.size(), target_frames.size()))
             loss = F.mse_loss(output_frames, target_frames)
 
             if train:
@@ -148,3 +151,25 @@ class ExperimentRunner(nn.Module):
                 logging.info('Saving a better model. Previous loss: %.4f New loss: %.4f' % (self.best_val_model_loss, val_mean_loss))
                 self.best_val_model_loss = val_mean_loss
                 save_network(self.model, os.path.join(self.dirs['models'], 'model_best.pt'))
+
+
+def test_future_frames(model, dataloader, starting_point, num_requested_output_frames, device, score_keeper, figures_dir, debug=False, normalize=None):
+    model.eval()
+    input_end_point = starting_point + model.get_num_input_frames()
+    with torch.no_grad():
+        for batch_num, batch_images in enumerate(dataloader):
+            logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
+            batch_images = batch_images.to(device)
+
+            input_frames = batch_images[:, starting_point:input_end_point, :, :]
+            output_frames = model.get_future_frames(input_frames, num_requested_output_frames)
+
+            num_total_output_frames = output_frames.size(1)
+            target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
+
+            score_keeper.compare_output_target(output_frames, target_frames)
+            save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalize)
+
+            if debug:
+                print('batch_num %d\tSSIM %f' % (batch_num, score_keeper.SSIM_val[-1]))
+                break

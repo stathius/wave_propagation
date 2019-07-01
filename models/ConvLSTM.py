@@ -76,9 +76,6 @@ class Encoder(nn.Module):
         input = torch.reshape(input, (-1, input_channel, height, width))
         input = subnet(input)
         input = torch.reshape(input, (seq_number, batch_size, input.size(1), input.size(2), input.size(3)))
-        # hidden = torch.zeros((batch_size, rnn._cell._hidden_size, input.size(3), input.size(4))).to(cfg.GLOBAL.DEVICE)
-        # cell = torch.zeros((batch_size, rnn._cell._hidden_size, input.size(3), input.size(4))).to(cfg.GLOBAL.DEVICE)
-        # state = (hidden, cell)
         outputs_stage, state_stage = rnn(input, None)
 
         return outputs_stage, state_stage
@@ -155,7 +152,40 @@ def make_layers(block):
     return nn.Sequential(OrderedDict(layers))
 
 
-def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):    # Define encoder #
+class EncoderForecaster(nn.Module):
+    def __init__(self, encoder, forecaster, num_autoregress_frames, device):
+        super().__init__()
+        self.num_autoregress_frames = num_autoregress_frames
+        self.encoder = encoder
+        self.forecaster = forecaster
+        self.device = device
+        assert num_autoregress_frames >= self.get_num_input_frames(), "ConvLSTM EF: The frames that are being kept in each step should be enough to become an input on the next iteration"
+
+    def forward(self, input):
+        input = convert_BSHW_to_SBCHW(input)
+        state = self.encoder(input)
+        output = self.forecaster(state)
+        return convert_SBCHW_to_BSHW(output)
+
+    def get_num_input_frames(self):
+        return self.encoder.rnn1.seq_len
+
+    def get_num_output_frames(self):
+        return self.forecaster.rnn3.seq_len
+
+    def get_future_frames(self, input_frames, num_requested_output_frames):
+        output_frames = self(input_frames)[:, :self.num_autoregress_frames, :, :]
+        num_input_frames = self.get_num_input_frames()
+
+        while output_frames.size(1) < num_requested_output_frames:
+            # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
+            input_frames = output_frames[:, -num_input_frames:, :, :].clone()
+            output_keep_frames = self(input_frames)[:, :self.num_autoregress_frames, :, :]
+            output_frames = torch.cat((output_frames, output_keep_frames), dim=1)
+        return output_frames
+
+
+def get_convlstm_model(num_input_frames, num_output_frames, num_autoregress_frames, batch_size, device):    # Define encoder #
     encoder_architecture = [
         # in_channels, out_channels, kernel_size, stride, padding
         [OrderedDict({'conv1_leaky_1': [1, 8, 3, 2, 1]}),
@@ -187,59 +217,4 @@ def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):
 
     encoder = Encoder(encoder_architecture[0], encoder_architecture[1]).to(device)
     forecaster = Forecaster(forecaster_architecture[0], forecaster_architecture[1], num_output_frames).to(device)
-    return EncoderForecaster(encoder, forecaster, device)
-
-
-class EncoderForecaster(nn.Module):
-    def __init__(self, encoder, forecaster, device):
-        super().__init__()
-        self.encoder = encoder
-        self.forecaster = forecaster
-        self.device = device
-
-    def forward(self, input):
-        input = convert_BSHW_to_SBCHW(input)
-        state = self.encoder(input)
-        output = self.forecaster(state)
-        return convert_SBCHW_to_BSHW(output)
-
-    def get_num_input_frames(self):
-        return self.encoder.rnn1.seq_len
-
-    def get_num_output_frames(self):
-        return self.forecaster.rnn3.seq_len
-
-    def get_future_frames(self, input_frames, num_requested_output_frames, num_keep_output_frames):
-        output_frames = self(input_frames)[:, :num_keep_output_frames, :, :]
-        num_input_frames = self.get_num_input_frames()
-
-        while output_frames.size(1) < num_requested_output_frames:
-            input_frames = output_frames[:, -num_input_frames:, :, :].clone()
-            output_keep_frames = self(input_frames)[:, :num_keep_output_frames, :, :]
-            output_frames = torch.cat((output_frames, output_keep_frames), dim=1)
-        return output_frames
-
-
-def test_convlstm(model, dataloader, starting_point, num_keep_output_frames, num_requested_output_frames, device, score_keeper, figures_dir, show_plots, debug=False, normalize=None):
-    num_input_frames = model.get_num_input_frames()
-
-    model.eval()
-    with torch.no_grad():
-        for batch_num, batch_images in enumerate(dataloader):
-            logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
-            batch_images = batch_images.to(device)
-
-            input_frames = batch_images[:, starting_point:(starting_point + num_input_frames), :, :].clone()
-
-            output_frames = model.get_future_frames(input_frames, num_requested_output_frames, num_keep_output_frames)
-
-            num_total_output_frames = output_frames.size(1)
-            input_end_point = starting_point + num_input_frames
-            target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
-
-            score_keeper.compare_output_target(output_frames, target_frames)
-
-            save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalize)
-
-            if debug:
-                break
+    return EncoderForecaster(encoder, forecaster, num_autoregress_frames, device)

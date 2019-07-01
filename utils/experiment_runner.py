@@ -8,7 +8,7 @@ import numpy as np
 import time
 import logging
 from utils.io import save_json
-from utils.experiment_setup import save_network
+from utils.experiment import save_network
 from utils.plotting import save_sequence_plots
 
 

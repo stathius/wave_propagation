@@ -87,8 +87,8 @@ class ExperimentRunner(nn.Module):
             with tqdm.tqdm(total=len(self.train_data)) as pbar_train:  # create a progress bar for training
                 for batch_num, batch_images in enumerate(self.train_data):
                     # logging.info('BATCH: %d' % batch_num )
-                    batch_images = batch_images.to(self.exp.device)
                     batch_start_time = time.time()
+                    batch_images = batch_images.to(self.exp.device)
                     loss = self.run_batch_iter(batch_images, train=True)
                     current_epoch_losses["train_loss"].append(loss)
                     batch_time = time.time() - batch_start_time

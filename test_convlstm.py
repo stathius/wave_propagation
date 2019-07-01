@@ -19,7 +19,7 @@ datasets['Testing data'].transform = get_transforms(normalizer)['Test']
 dataloaders = create_dataloaders(datasets, args.batch_size, args.num_workers)
 device = get_device()
 
-model = get_convlstm_model(metadata['args'].num_input_frames, metadata['args'].num_output_frames, args.num_autoregress_frames, args.batch_size, device)
+model = get_convlstm_model(metadata['args'].num_input_frames, metadata['args'].num_output_frames, args.num_output_keep_frames, args.batch_size, device)
 
 model = load_network(model, experiment.files['model'])
 model.to(device)

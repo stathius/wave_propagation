@@ -1,6 +1,5 @@
 import argparse
 import torch
-import logging
 import random
 import numpy as np
 import os
@@ -32,7 +31,7 @@ def get_args():
     """
     parser = argparse.ArgumentParser()
 
-    # parser.add_argument('--model', type=str, help='Network architecture for training')
+    parser.add_argument('--model_type', type=str, help='Network architecture for training [ar_lstm, convlstm, cnn]')
     parser.add_argument('--num_epochs', type=int, default=50, help='The experiment\'s epoch budget')
     parser.add_argument('--num_input_frames', type=int, default=5, help='LSTM. How many frames to insert initially')
     parser.add_argument('--num_output_frames', type=int, default=20, help='LSTM. How many framres to predict in the future"')
@@ -51,6 +50,8 @@ def get_args():
     parser.add_argument('--debug', type=str2bool, default=False)
     parser.add_argument('--weight_decay_coefficient', type=float, default=1e-05, help='Weight decay to use for Adam')
     parser.add_argument('--learning_rate', type=float, default=1e-03, help='learning rate to use for Adam')
+    parser.add_argument('--scheduler_patience', type=int, default=7, help='Epoch patience before reducing learning_rate')
+    parser.add_argument('--scheduler_factor', type=float, default=0.1, help='Factor to reduce learning_rate')
     parser.add_argument('--continue_experiment', type=str2bool, default=False, help='Whether the experiment should continue from the last epoch')
 
     args = parser.parse_args()

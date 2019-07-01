@@ -139,7 +139,7 @@ class Experiment():
 
     def _create_model(self, model_type):
         if model_type == 'convlstm':
-            model = get_convlstm_model(self.args.num_input_frames, self.args.num_output_frames, self.args.num_autoregress_frames, self.args.batch_size, self.device)
+            model = get_convlstm_model(self.args.num_input_frames, self.args.num_output_frames, self.args.num_output_keep_frames, self.args.batch_size, self.device)
         elif model_type == 'ar_lstm':
             model = AR_LSTM(self.args.num_input_frames, self.args.reinsert_frequency, self.device)
         elif model_type == 'cnn':

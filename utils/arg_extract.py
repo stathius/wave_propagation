@@ -40,7 +40,7 @@ def get_args():
     parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
     parser.add_argument('--num_future_test_frames', type=int, default=80, help='how many frames to predict to the future')
     parser.add_argument('--reinsert_frequency', type=int, default=10, help='AR LSTM: how often to use the reinsert mechanism')
-    parser.add_argument('--num_autoregress_frames', type=int, default=20, help='ConvLSTM: How many frames to keep from one pass to continue autoregression for longer outputs')
+    parser.add_argument('--num_output_keep_frames', type=int, default=20, help='ConvLSTM: How many frames to keep from one pass to continue autoregression for longer outputs')
     parser.add_argument('--experiment_name', type=str, default="dummy",
                         help='Experiment name - to be used for building the experiment folder')
     parser.add_argument('--normalizer_type', type=str, default='normal', help='how to normalize the images [normal, m1to1, none]')
@@ -64,7 +64,7 @@ def get_args():
         args.samples_per_sequence = 5
         args.num_epochs = 3
         args.test_starting_point = 75
-        args.normalizer_type = 'none'
+        args.normalizer_type = 'normal'
         args.num_autoregress_frames = 5
         args.num_future_test_frames = 20
 

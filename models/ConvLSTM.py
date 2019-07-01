@@ -158,7 +158,7 @@ class EncoderForecaster(nn.Module):
         self.device = device
         self.num_output_keep_frames = num_output_keep_frames
         assert num_output_keep_frames >= self.get_num_input_frames(), "ConvLSTM EF: The frames that are being kept in each step should be enough to become an input on the next iteration"
-        assert self.get_num_output_frames() >= self.get_num_input_frames(), "ConvLSTM EF: Output must be at least as big as the input to allow for auto-regression"
+        # assert self.get_num_output_frames() >= self.get_num_input_frames(), "ConvLSTM EF: Output must be at least as big as the input to allow for auto-regression"
 
     def forward(self, input):
         input = convert_BSHW_to_SBCHW(input)

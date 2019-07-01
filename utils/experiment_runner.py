@@ -13,18 +13,26 @@ from utils.plotting import save_sequence_plots
 
 
 class ExperimentRunner(nn.Module):
-    def __init__(self, model, lr_scheduler, experiment_name, num_epochs, samples_per_sequence, train_data, val_data, test_data, device, dirs, continue_from_epoch, debug):
+    def __init__(self, experiment):
         super(ExperimentRunner, self).__init__()
 
-        self.samples_per_sequence = samples_per_sequence
-        self.experiment_name = experiment_name
-        self.model = model
-        self.device = device
-        self.debug = debug
-        self.dirs = dirs
+        self.exp = experiment
 
-        self.num_input_frames = self.model.get_num_input_frames()
-        self.num_output_frames = self.model.get_num_output_frames()
+        self.samples_per_sequence = experiment.args.samples_per_sequence
+        self.experiment_name = experiment.args.experiment_name
+        self.num_epochs = experiment.args.num_epochs
+        self.debug = experiment.args.debug
+        self.num_input_frames = experiment.args.num_input_frames
+        self.num_output_frames = experiment.args.num_input_frames
+
+        self.model = experiment.model
+        self.device = experiment.device
+        self.dirs = experiment.dirs
+        self.lr_scheduler = experiment.lr_scheduler
+
+        self.train_data = experiment.dataloaders['train']
+        self.val_data = experiment.dataloaders['val']
+        self.test_data = experiment.dataloaders['test']
 
         # if torch.cuda.device_count() > 1:
         #     self.model.to(self.device)
@@ -32,24 +40,19 @@ class ExperimentRunner(nn.Module):
         # else:
         self.model.to(self.device)
 
-        self.lr_scheduler = lr_scheduler
 
         # Generate the directory names
+
+
+        # if continue_experiment != -1:
+        #     self.best_val_model_idx, self.best_val_model_loss, self.state = self.load_model(
+        #         model_save_dir=self.experiment_saved_models, model_save_name="train_model",
+        #         model_idx=continue_from_epoch)  # reload existing model from epoch and return best val model index
+        #     # and the best val acc of that model
+        #     self.starting_epoch = self.state['current_epoch_idx']
+        # else:
         self.best_val_model_loss = np.Inf
-        self.num_epochs = num_epochs
-
-        self.train_data = train_data
-        self.val_data = val_data
-        self.test_data = test_data
-
-        if continue_from_epoch != -1:
-            self.best_val_model_idx, self.best_val_model_loss, self.state = self.load_model(
-                model_save_dir=self.experiment_saved_models, model_save_name="train_model",
-                model_idx=continue_from_epoch)  # reload existing model from epoch and return best val model index
-            # and the best val acc of that model
-            self.starting_epoch = self.state['current_epoch_idx']
-        else:
-            self.starting_epoch = 0
+        self.starting_epoch = 0
 
     def get_num_parameters(self):
         total_num_params = 0
@@ -76,16 +79,16 @@ class ExperimentRunner(nn.Module):
             # TODO change this for a model specific function prediction or something
             output_frames = self.model.forward(input_frames)
             target_frames = batch_images[:, input_end_point:(input_end_point + self.num_output_frames), :, :]
-            if self.debug:
-                logging.info('EXP RUNNER out tar size %s %s' % (output_frames.size(), target_frames.size()))
             loss = F.mse_loss(output_frames, target_frames)
+            batch_loss += loss.item()
 
             if train:
                 self.lr_scheduler.optimizer.zero_grad()
                 loss.backward()
                 self.lr_scheduler.optimizer.step()
 
-            batch_loss += loss.item()
+            # if self.debug:
+                # logging.info('EXP RUNNER out tar size %s %s' % (output_frames.size(), target_frames.size()))
 
         return batch_loss / self.samples_per_sequence  # mean batch loss
 
@@ -123,7 +126,7 @@ class ExperimentRunner(nn.Module):
                 total_losses[key].append(np.mean(value))  #
             total_losses['curr_epoch'].append(epoch_idx)
             save_json(total_losses, os.path.join(self.dirs['logs'], 'train_val_loss.json'))
-            save_network(self.model, os.path.join(self.dirs['models'], 'model_latest.pt'))
+            save_network(self.model, os.path.join(self.exp.files['model']))
 
             loss_string = "Train loss: {:.4f} | Validation loss: {:.4f}".format(total_losses['train_loss'][-1], total_losses['val_loss'][-1])
             epoch_elapsed_time = "{:.4f}".format(time.time() - epoch_start_time)
@@ -135,7 +138,7 @@ class ExperimentRunner(nn.Module):
             if val_mean_loss < self.best_val_model_loss:
                 logging.info('Saving a better model. Previous loss: %.4f New loss: %.4f' % (self.best_val_model_loss, val_mean_loss))
                 self.best_val_model_loss = val_mean_loss
-                save_network(self.model, os.path.join(self.dirs['models'], 'model_best.pt'))
+                save_network(self.model, os.path.join(self.exp.files['model_best']))
 
 
 def test_future_frames(model, dataloader, starting_point, num_requested_output_frames, device, score_keeper, figures_dir, debug=False, normalize=None):

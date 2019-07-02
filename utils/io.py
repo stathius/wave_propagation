@@ -29,8 +29,12 @@ def save_json(dict, filename):
         f.write("%s" % jsons.dumps(dict))
     f.close()
 
+
 def load_json(filename):
-    pass
+    with open(filename, 'w') as f:
+        data = jsons.load(f)
+    f.close()
+    return data
 
 
 def read_stats(folder):

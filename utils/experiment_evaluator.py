@@ -15,6 +15,29 @@ from utils.helper_functions import hex_str2bool, normalize_image
 from utils.plotting import save_sequence_plots
 from utils.io import save, save_json
 
+
+def test_future_frames(model, dataloader, starting_point, num_requested_output_frames, device, score_keeper, figures_dir, debug=False, normalize=None):
+    model.eval()
+    input_end_point = starting_point + model.get_num_input_frames()
+    with torch.no_grad():
+        for batch_num, batch_images in enumerate(dataloader):
+            logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
+            batch_images = batch_images.to(device)
+
+            input_frames = batch_images[:, starting_point:input_end_point, :, :]
+            output_frames = model.get_future_frames(input_frames, num_requested_output_frames)
+
+            num_total_output_frames = output_frames.size(1)
+            target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
+
+            score_keeper.compare_output_target(output_frames, target_frames)
+            save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalize)
+
+            if debug:
+                print('batch_num %d\tSSIM %f' % (batch_num, score_keeper.SSIM_val[-1]))
+                break
+
+
 def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, debug):
     model.eval()
     num_input_frames = model.get_num_input_frames()

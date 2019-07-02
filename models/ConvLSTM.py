@@ -39,7 +39,8 @@ class ConvLSTMCell(nn.Module):
             seq_len = self.seq_len
         outputs = []
         print('ConvLSTM seqlen', seq_len)
-        print(inputs.size())
+        if inputs is not None:
+            print(inputs.size())
         for index in range(seq_len):
             if inputs is None:
                 x = torch.zeros((h.size(0), self._input_channel, self._state_height,

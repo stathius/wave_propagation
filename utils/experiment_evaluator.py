@@ -53,29 +53,28 @@ class Evaluator():
     Calculates and keeps track of testing results
     SSIM/pHash/RMSE etc.
     """
-    def __init__(self, normalizer):
+    def __init__(self, starting_point, num_total_output_frames, normalizer):
         super(Evaluator, self).__init__()
+        self.starting_point = starting_point
+        self.num_total_output_frames = num_total_output_frames
         self.normalizer = normalizer
 
         self.intermitted = []
         self.frame = []
         self.hue = []
 
-        self.pHash_val = []
-        self.pHash_frame = []
-        self.pHash_hue = []
-
-        self.pHash2_val = []
-        self.pHash2_frame = []
-        self.pHash2_hue = []
-
-        self.SSIM_val = []
-        self.SSIM_frame = []
-        self.SSIM_hue = []
-
-        self.MSE_val = []
-        self.MSE_frame = []
-        self.MSE_hue = []
+        self.state = {"pHash_val": [],
+                      "pHash_frame": [],
+                      "pHash_hue": [],
+                      "pHash2_val": [],
+                      "pHash2_frame": [],
+                      "pHash2_hue": [],
+                      "SSIM_val": [],
+                      "SSIM_frame": [],
+                      "SSIM_hue": [],
+                      "MSE_val": [],
+                      "MSE_frame": [],
+                      "MSE_hue": []}
 
         self.own = False
         self.phash = False
@@ -83,27 +82,28 @@ class Evaluator():
         self.MSE = False
         self.phash2 = False
 
-    def save(self, file):
+    def save_to_file(self, file):
         save(self, file)
-        save_json(self, file + '.json')
+        # save_json(self, file + '.json')
+        save_json(self.state, file + '.state.json')
 
-    def compute_experiment_metrics(self, exp, starting_point, num_total_output_frames, debug=False):
+    def compute_experiment_metrics(self, exp, debug=False):
         exp.model.eval()
-        input_end_point = starting_point + exp.model.get_num_input_frames()
+        input_end_point = self.starting_point + exp.model.get_num_input_frames()
         with torch.no_grad():
             for batch_num, batch_images in enumerate(exp.dataloaders['test']):
                 logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(exp.dataloaders['test'])))
                 batch_images = batch_images.to(exp.device)
 
-                input_frames = batch_images[:, starting_point:input_end_point, :, :]
-                output_frames = exp.model.get_future_frames(input_frames, num_total_output_frames)
+                input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
+                output_frames = exp.model.get_future_frames(input_frames, self.num_total_output_frames)
                 num_real_output_frames = output_frames.size(1)
                 target_frames = batch_images[:, input_end_point:(input_end_point + num_real_output_frames), :, :]
 
                 self.compare_output_target(output_frames, target_frames)
 
                 if debug:
-                    print('batch_num %d\tSSIM %f' % (batch_num, self.SSIM_val[-1]))
+                    print('batch_num %d\tSSIM %f' % (batch_num, self.state['SSIM_val'][-1]))
                     break
 
     def add(self, predicted, target, frame_nr, *args):
@@ -123,27 +123,27 @@ class Evaluator():
 
         if "SSIM" in args:
             ssim_score = self.ssim(predicted, target)
-            self.SSIM_val.append(ssim_score)
-            self.SSIM_frame.append(frame_nr)
-            self.SSIM_hue.append("SSIM")
+            self.state['SSIM_val'].append(ssim_score)
+            self.state['SSIM_frame'].append(frame_nr)
+            self.state['SSIM_hue'].append("SSIM")
             self.SSIM = True
 
         if "RMSE" in args:
-            self.MSE_val.append(np.sqrt(measure.compare_mse(predicted, target)))
-            self.MSE_frame.append(frame_nr)
-            self.MSE_hue.append("RMSE")
+            self.state['MSE_val'].append(np.sqrt(measure.compare_mse(predicted, target)))
+            self.state['MSE_frame'].append(frame_nr)
+            self.state['MSE_hue'].append("RMSE")
             self.MSE = True
 
         if "pHash" in args:
-            self.pHash_val.append(self.pHash(predicted, target, "hamming"))
-            self.pHash_frame.append(frame_nr)
-            self.pHash_hue.append("pHash - hamming")
+            self.state['pHash_val'].append(self.pHash(predicted, target, "hamming"))
+            self.state['pHash_frame'].append(frame_nr)
+            self.state['pHash_hue'].append("pHash - hamming")
             self.phash = True
 
         if "pHash2" in args:
-            self.pHash2_val.append(self.pHash(predicted, target, "jaccard"))
-            self.pHash2_frame.append(frame_nr)
-            self.pHash2_hue.append("pHash - jaccard")
+            self.state['pHash2_val'].append(self.pHash(predicted, target, "jaccard"))
+            self.state['pHash2_frame'].append(frame_nr)
+            self.state['pHash2_hue'].append("pHash - jaccard")
             self.phash2 = True
 
     def hamming2(self, s1, s2):
@@ -193,7 +193,7 @@ class Evaluator():
                          target_frames[batch_index, frame_index, :, :].cpu().numpy(),
                          frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
 
-    def save_plots(self, output_dir):
+    def save_metrics_plots(self, output_dir):
         if self.own:
             all_data = {}
             all_data.update({"Time-steps Ahead": self.frame, "Difference": self.intermitted, "Scoring Type": self.hue})
@@ -201,39 +201,39 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Difference", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "Scoring_Quality_start_%02d" % starting_point), obj=fig)
+            figure_save(os.path.join(output_dir, "Scoring_Quality_start_%02d" % self.starting_point), obj=fig)
 
         if self.SSIM:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.SSIM_frame, "Similarity": self.SSIM_val, "Scoring Type": self.SSIM_hue})
+            all_data.update({"Time-steps Ahead": self.state['SSIM_frame'], "Similarity": self.state['SSIM_val'], "Scoring Type": self.state['SSIM_hue']})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Similarity", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "SSIM_Quality_start_%02d" % starting_point), obj=fig)
+            figure_save(os.path.join(output_dir, "SSIM_Quality_start_%02d" % self.starting_point), obj=fig)
 
         if self.MSE:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.MSE_frame, "Root Mean Square Error (L2 residual)": self.MSE_val, "Scoring Type": self.MSE_hue})
+            all_data.update({"Time-steps Ahead": self.state['MSE_frame'], "Root Mean Square Error (L2 residual)": self.state['MSE_val'], "Scoring Type": self.state['MSE_hue']})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type", data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "RMSE_Quality_start_%02d" % starting_point), obj=fig)
+            figure_save(os.path.join(output_dir, "RMSE_Quality_start_%02d" % self.starting_point), obj=fig)
 
         if self.phash:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.pHash_frame, "Hamming Distance": self.pHash_val, "Scoring Type": self.pHash_hue})
+            all_data.update({"Time-steps Ahead": self.state['pHash_frame'], "Hamming Distance": self.state['pHash_val'], "Scoring Type": self.state['pHash_hue']})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Hamming Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "Scoring_Spatial_Hamming_start_%02d" % starting_point), obj=fig)
+            figure_save(os.path.join(output_dir, "Scoring_Spatial_Hamming_start_%02d" % self.starting_point), obj=fig)
 
         if self.phash2:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.pHash2_frame, "Jaccard Distance": self.pHash2_val, "Scoring Type": self.pHash2_hue})
+            all_data.update({"Time-steps Ahead": self.state['pHash2_frame'], "Jaccard Distance": self.state['pHash2_val'], "Scoring Type": self.state['pHash2_hue']})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Jaccard Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "Scoring_Spatial_Jaccard_start_%02d" % starting_point), obj=fig)
+            figure_save(os.path.join(output_dir, "Scoring_Spatial_Jaccard_start_%02d" % self.starting_point), obj=fig)

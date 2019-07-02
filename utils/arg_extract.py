@@ -64,7 +64,10 @@ def get_args():
         args.samples_per_sequence = 5
         args.num_epochs = 3
         args.test_starting_point = 75
-        args.normalizer_type = 'none'
+        if args.model_type == 'ar_lstm':
+            args.normalizer_type = 'none'
+        else:
+            args.normalizer_type = 'normal'
         args.num_autoregress_frames = 5
         args.num_future_test_frames = 20
 

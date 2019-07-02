@@ -34,7 +34,7 @@ class ExperimentRunner(nn.Module):
         #         model_save_dir=self.experiment_saved_models, model_save_name="train_model",
         #         model_idx=continue_from_epoch)  # reload existing model from epoch and return best val model index
         #     # and the best val acc of that model
-        #     self.starting_epoch = self.state['current_epoch_idx']
+        #     self.starting_epoch = self.state['current_epoch_num']
         # else:
         self.best_val_model_loss = np.Inf
         self.starting_epoch = 0
@@ -79,11 +79,11 @@ class ExperimentRunner(nn.Module):
 
     def run_experiment(self):
         logging.info('Start training')
-        total_losses = {"train_loss": [], "val_loss": [], "curr_epoch": []}
-        for i, epoch_idx in enumerate(range(self.starting_epoch, self.args.num_epochs)):
+        # total_losses = {"train_loss": [], "validation_loss": [], "curr_epoch": []}
+        for i, epoch_num in enumerate(range(self.starting_epoch, self.args.num_epochs)):
             logging.info('Epoch: %d' % i)
             epoch_start_time = time.time()
-            current_epoch_losses = {"train_loss": [], "val_loss": []}
+            current_epoch_losses = {"train_loss": [], "validation_loss": []}
             with tqdm.tqdm(total=len(self.train_data)) as pbar_train:  # create a progress bar for training
                 for batch_num, batch_images in enumerate(self.train_data):
                     # logging.info('BATCH: %d' % batch_num )
@@ -91,6 +91,7 @@ class ExperimentRunner(nn.Module):
                     batch_images = batch_images.to(self.exp.device)
                     loss = self.run_batch_iter(batch_images, train=True)
                     current_epoch_losses["train_loss"].append(loss)
+                    self.exp.logger.record_loss_batchwise(loss, batch_increment=1)
                     batch_time = time.time() - batch_start_time
                     pbar_train.update(1)
                     pbar_train.set_description("loss: {:.4f} time: {:.1f}s".format(loss, batch_time))
@@ -101,29 +102,27 @@ class ExperimentRunner(nn.Module):
                     batch_images = batch_images.to(self.exp.device)
                     with torch.no_grad():
                         loss = self.run_batch_iter(batch_images, train=False)
-                    current_epoch_losses["val_loss"].append(loss)  # add current iter loss to val loss list.
+                    current_epoch_losses["validation_loss"].append(loss)  # add current iter loss to val loss list.
                     pbar_val.update(1)  # add 1 step to the progress bar
                     pbar_val.set_description("loss: {:.4f}".format(loss))
                     if self.args.debug:
                         break
 
             #  get mean of all metrics of current epoch metrics dict, to get them ready for storage and output on the terminal.
-            for key, value in current_epoch_losses.items():
-                total_losses[key].append(np.mean(value))  #
-            total_losses['curr_epoch'].append(epoch_idx)
-            save_json(total_losses, os.path.join(self.exp.dirs['logs'], 'train_val_loss.json'))
-            save_network(self.exp.model, os.path.join(self.exp.files['model']))
+            current_train_loss = np.mean(current_epoch_losses['train_loss'])
+            current_validation_loss = np.mean(current_epoch_losses['validation_loss'])
+            self.exp.logger.record_epoch_losses(current_train_loss, current_validation_loss, epoch_num)
+            self.exp.logger.save_to_json(self.exp.files['logger'])
+            save_network(self.exp.model, self.exp.files['model'])
 
-            loss_string = "Train loss: {:.4f} | Validation loss: {:.4f}".format(total_losses['train_loss'][-1], total_losses['val_loss'][-1])
+            loss_string = "Train loss: {:.4f} | Validation loss: {:.4f}".format(current_train_loss, current_validation_loss)
             epoch_elapsed_time = "{:.4f}".format(time.time() - epoch_start_time)
-
-            logging.info("Epoch {}:\t{}\tTime elapsed {}s".format(epoch_idx, loss_string, epoch_elapsed_time))
+            logging.info("Epoch {}/{}:\t{}\tTime elapsed {}s".format(epoch_num, self.args.num_epochs, loss_string, epoch_elapsed_time))
 
             # Save if best model so far
-            val_mean_loss = np.mean(current_epoch_losses['val_loss'])
-            if val_mean_loss < self.best_val_model_loss:
-                logging.info('Saving a better model. Previous loss: %.4f New loss: %.4f' % (self.best_val_model_loss, val_mean_loss))
-                self.best_val_model_loss = val_mean_loss
+            if current_validation_loss < self.best_val_model_loss:
+                logging.info('Saving a better model. Previous loss: %.4f New loss: %.4f' % (self.best_val_model_loss, current_validation_loss))
+                self.best_val_model_loss = current_validation_loss
                 save_network(self.exp.model, os.path.join(self.exp.files['model_best']))
 
 

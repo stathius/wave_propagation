@@ -4,6 +4,7 @@ import jsons
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy
 
 
 def save(obj, filename):
@@ -20,15 +21,22 @@ def load(filename):
 
 def figure_save(destination, obj=None):
     plt.tight_layout()
-    plt.savefig(destination) # png
+    plt.savefig(destination)  # png
     plt.savefig(destination + ".svg", format="svg")
     save(obj, destination) if obj else None
 
 
+def default(o):
+    if isinstance(o, numpy.int64):
+        return int(o)
+    # return o
+    # raise TypeError
+
+
 def save_json(dict, filename):
-    with open(filename, 'w') as f:
-        f.write("%s" % jsons.dumps(dict))
-    f.close()
+    with open(filename, 'w') as fp:
+        json.dump(dict, fp, default=default)
+    fp.close()
 
 
 def load_json(filename):

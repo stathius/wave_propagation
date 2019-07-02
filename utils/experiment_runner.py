@@ -7,7 +7,6 @@ import os
 import numpy as np
 import time
 import logging
-from utils.io import save_json
 from utils.experiment import save_network
 from utils.plotting import save_sequence_plots
 
@@ -84,7 +83,7 @@ class ExperimentRunner(nn.Module):
             logging.info('Epoch: %d' % i)
             epoch_start_time = time.time()
             current_epoch_losses = {"train_loss": [], "validation_loss": []}
-            with tqdm.tqdm(total=len(self.train_data)) as pbar_train:  # create a progress bar for training
+            with tqdm.tqdm(total=len(self.train_data), ncols=40) as pbar_train:  # create a progress bar for training
                 for batch_num, batch_images in enumerate(self.train_data):
                     # logging.info('BATCH: %d' % batch_num )
                     batch_start_time = time.time()
@@ -97,7 +96,7 @@ class ExperimentRunner(nn.Module):
                     pbar_train.set_description("loss: {:.4f} time: {:.1f}s".format(loss, batch_time))
                     if self.args.debug:
                         break
-            with tqdm.tqdm(total=len(self.val_data)) as pbar_val:  #
+            with tqdm.tqdm(total=len(self.val_data), ncols=40) as pbar_val:  #
                 for batch_images in self.val_data:
                     batch_images = batch_images.to(self.exp.device)
                     with torch.no_grad():
@@ -124,25 +123,3 @@ class ExperimentRunner(nn.Module):
                 logging.info('Saving a better model. Previous loss: %.4f New loss: %.4f' % (self.best_val_model_loss, current_validation_loss))
                 self.best_val_model_loss = current_validation_loss
                 save_network(self.exp.model, os.path.join(self.exp.files['model_best']))
-
-
-def test_future_frames(model, dataloader, starting_point, num_requested_output_frames, device, score_keeper, figures_dir, debug=False, normalize=None):
-    model.eval()
-    input_end_point = starting_point + model.get_num_input_frames()
-    with torch.no_grad():
-        for batch_num, batch_images in enumerate(dataloader):
-            logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
-            batch_images = batch_images.to(device)
-
-            input_frames = batch_images[:, starting_point:input_end_point, :, :]
-            output_frames = model.get_future_frames(input_frames, num_requested_output_frames)
-
-            num_total_output_frames = output_frames.size(1)
-            target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
-
-            score_keeper.compare_output_target(output_frames, target_frames)
-            save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalize)
-
-            if debug:
-                print('batch_num %d\tSSIM %f' % (batch_num, score_keeper.SSIM_val[-1]))
-                break

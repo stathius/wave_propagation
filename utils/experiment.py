@@ -230,5 +230,8 @@ class Experiment():
         self.files['datasets'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
         self.files['logger'] = os.path.join(self.dirs['pickles'], "logger.json")
+        self.files['evaluator'] = os.path.join(self.dirs['pickles'], 'evaluator.pickle')
         self.files['model_latest'] = os.path.join(self.dirs['models'], 'model_latest.pt')
         self.files['model_best'] = os.path.join(self.dirs['models'], 'model_best.pt')
+
+

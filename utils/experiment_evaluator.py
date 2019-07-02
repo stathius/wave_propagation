@@ -1,14 +1,50 @@
 import matplotlib.pyplot as plt
+import math
+import torch
+import logging
 import seaborn as sns
 import pandas as pd
 from utils.io import figure_save
 import numpy as np
-from skimage import measure #supports video also
+from skimage import measure  # supports video also
 from scipy.spatial import distance
 from PIL import Image
 import imagehash
 import os
 from utils.helper_functions import hex_str2bool, normalize_image
+from utils.plotting import save_sequence_plots
+from utils.io import save, save_json
+
+def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, debug):
+    model.eval()
+    num_input_frames = model.get_num_input_frames()
+    num_output_frames = model.get_num_output_frames()
+    with torch.no_grad():
+        for batch_num, batch_images in enumerate(dataloader):
+            num_total_frames = batch_images.size(1)
+            batch_images = batch_images.to(device)
+
+            for starting_point in range(0, num_total_frames, 10):
+                num_total_output_frames = math.floor(math.floor((num_total_frames - num_input_frames - starting_point) / num_output_frames) * num_output_frames / 10) * 10  # requests multiple of ten
+
+                input_end_point = starting_point + num_input_frames
+                input_frames = batch_images[:, starting_point:input_end_point, :, :]
+                output_frames = model.get_future_frames(input_frames, num_total_output_frames)
+
+                num_total_output_frames = output_frames.size(1)
+                target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
+
+                save_sequence_plots(starting_point, output_frames, target_frames, figures_dir, normalizer)
+
+            if batch_num > 2:  # just plot couple of batches
+                break
+
+            if debug:
+                break
+
+
+def get_train_val_plots():
+    pass
 
 
 class Evaluator():
@@ -16,10 +52,11 @@ class Evaluator():
     Calculates and keeps track of testing results
     SSIM/pHash/RMSE etc.
     """
-    def __init__(self, output_dir, normalize):
+    def __init__(self, starting_point, num_total_output_frames, normalizer):
         super(Evaluator, self).__init__()
-        self.normalize = normalize
-        self.output_dir = output_dir
+        self.normalizer = normalizer
+        self.starting_point = starting_point
+        self.num_total_output_frames = num_total_output_frames
 
         self.intermitted = []
         self.frame = []
@@ -46,6 +83,29 @@ class Evaluator():
         self.SSIM = False
         self.MSE = False
         self.phash2 = False
+
+    def save(self, file):
+        save(self, file)
+        save_json(self, file + '.json')
+
+    def get_experiment_metrics(self, exp, debug=False):
+        exp.model.eval()
+        input_end_point = self.starting_point + exp.model.get_num_input_frames()
+        with torch.no_grad():
+            for batch_num, batch_images in enumerate(exp.dataloaders['test']):
+                logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(exp.dataloaders['test'])))
+                batch_images = batch_images.to(exp.device)
+
+                input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
+                output_frames = exp.model.get_future_frames(input_frames, self.num_total_output_frames)
+                num_total_output_frames = output_frames.size(1)
+                target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
+
+                self.compare_output_target(output_frames, target_frames)
+
+                if debug:
+                    print('batch_num %d\tSSIM %f' % (batch_num, self.SSIM_val[-1]))
+                    break
 
     def add(self, predicted, target, frame_nr, *args):
         # input H * W
@@ -110,7 +170,7 @@ class Evaluator():
         return measure.compare_ssim(predicted, target, multichannel=False, gaussian_weights=True)
 
     def prepro(self, image):
-        image = normalize_image(image, self.normalize)
+        image = normalize_image(image, self.normalizer)
         # image = np.clip(image, 0, 1)
         return image
 
@@ -120,7 +180,7 @@ class Evaluator():
         pred_relative = np.abs(predicted - predicted_mean)
         target_relative = np.abs(target - target_mean)
 
-        relative_diff = np.mean(np.abs(pred_relative - target_relative))/ (np.sum(target_relative) / np.prod(np.shape(target)))
+        relative_diff = np.mean(np.abs(pred_relative - target_relative)) / (np.sum(target_relative) / np.prod(np.shape(target)))
 
         absolute_diff = np.mean(np.abs(predicted - target)) / (np.sum(target) / np.prod(np.shape(target)))
         return relative_diff, absolute_diff
@@ -134,53 +194,47 @@ class Evaluator():
                          target_frames[batch_index, frame_index, :, :].cpu().numpy(),
                          frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
 
-    def plot(self):
+    def save_plots(self, output_dir):
         if self.own:
             all_data = {}
             all_data.update({"Time-steps Ahead": self.frame, "Difference": self.intermitted, "Scoring Type": self.hue})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Difference", hue="Scoring Type",
-                         data=pd.DataFrame.from_dict(all_data), ax=fig,  ci='sd')
-            figure_save(os.path.join(self.output_dir, "Scoring_Quality"), obj=fig)
+                         data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
+            figure_save(os.path.join(output_dir, "Scoring_Quality_start_%02d" % self.starting_point), obj=fig)
 
         if self.SSIM:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.SSIM_frame, "Similarity": self.SSIM_val,
-                                  "Scoring Type": self.SSIM_hue})
+            all_data.update({"Time-steps Ahead": self.SSIM_frame, "Similarity": self.SSIM_val, "Scoring Type": self.SSIM_hue})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Similarity", hue="Scoring Type",
-                         data=pd.DataFrame.from_dict(all_data), ax=fig,  ci='sd')
-            # plt.ylim(0.0, 1)
-            figure_save(os.path.join(self.output_dir, "SSIM_Quality"), obj=fig)
+                         data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
+            figure_save(os.path.join(output_dir, "SSIM_Quality_start_%02d" % self.starting_point), obj=fig)
 
         if self.MSE:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.MSE_frame, "Root Mean Square Error (L2 residual)": self.MSE_val,
-                                 "Scoring Type": self.MSE_hue})
+            all_data.update({"Time-steps Ahead": self.MSE_frame, "Root Mean Square Error (L2 residual)": self.MSE_val, "Scoring Type": self.MSE_hue})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
-            sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type",
-                         data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(self.output_dir, "RMSE_Quality"), obj=fig)
+            sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type", data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
+            figure_save(os.path.join(output_dir, "RMSE_Quality_start_%02d" % self.starting_point), obj=fig)
 
         if self.phash:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.pHash_frame, "Hamming Distance": self.pHash_val,
-                                   "Scoring Type": self.pHash_hue})
+            all_data.update({"Time-steps Ahead": self.pHash_frame, "Hamming Distance": self.pHash_val, "Scoring Type": self.pHash_hue})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Hamming Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(self.output_dir, "Scoring_Spatial_Hamming"), obj=fig)
+            figure_save(os.path.join(output_dir, "Scoring_Spatial_Hamming_start_%02d" % self.starting_point), obj=fig)
 
         if self.phash2:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.pHash2_frame, "Jaccard Distance": self.pHash2_val,
-                                   "Scoring Type": self.pHash2_hue})
+            all_data.update({"Time-steps Ahead": self.pHash2_frame, "Jaccard Distance": self.pHash2_val, "Scoring Type": self.pHash2_hue})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Jaccard Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(self.output_dir, "Scoring_Spatial_Jaccard"), obj=fig)
+            figure_save(os.path.join(output_dir, "Scoring_Spatial_Jaccard_start_%02d" % self.starting_point), obj=fig)

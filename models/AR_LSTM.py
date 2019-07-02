@@ -1,9 +1,5 @@
 import torch
-import torch.nn.functional as F
 import torch.nn as nn
-import random
-import logging
-import time
 
 
 class AR_LSTM(nn.Module):
@@ -17,6 +13,7 @@ class AR_LSTM(nn.Module):
         self.reinsert_frequency = reinsert_frequency
         self.NUM_OUTPUT_FRAMES = 1  # the model outputs one frame at a time
         self.LSTM_SIZE = 1000
+        # self.reset_hidden(2)
         self.encoder_conv = nn.Sequential(
             nn.Conv2d(self.num_input_frames, 60, kernel_size=7, stride=2, padding=1),
             nn.BatchNorm2d(num_features=60),
@@ -104,43 +101,43 @@ class AR_LSTM(nn.Module):
         return output_frames
 
 
-def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_output_frames, reinsert_frequency, samples_per_sequence, device, analyser, training=False, debug=False):
-    if training:
-        model.train()
-    else:
-        model.eval()           # initialises training stage/functions
-    total_loss = 0
-    for batch_num, batch_images in enumerate(dataloader):
-        batch_start = time.time()
-        batch_loss = 0
-        sequence_length = batch_images.size(1)
-        random_starting_points = random.sample(range(sequence_length - num_input_frames - num_output_frames - 1), samples_per_sequence)
-        # print('RANDOM POINTS: ',random_starting_points)
+# def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_output_frames, reinsert_frequency, samples_per_sequence, device, analyser, training=False, debug=False):
+#     if training:
+#         model.train()
+#     else:
+#         model.eval()           # initialises training stage/functions
+#     total_loss = 0
+#     for batch_num, batch_images in enumerate(dataloader):
+#         batch_start = time.time()
+#         batch_loss = 0
+#         sequence_length = batch_images.size(1)
+#         random_starting_points = random.sample(range(sequence_length - num_input_frames - num_output_frames - 1), samples_per_sequence)
+#         # print('RANDOM POINTS: ',random_starting_points)
 
-        for sp_idx, starting_point in enumerate(random_starting_points):
-            target_index = starting_point + num_input_frames
-            input_frames = batch_images[:, starting_point:target_index, :, :].clone()
-            output_frames = model.get_future_frames(input_frames, num_output_frames)
-            target_frames = batch_images[:, target_index:(target_index + num_output_frames), :, :]
+#         for sp_idx, starting_point in enumerate(random_starting_points):
+#             target_index = starting_point + num_input_frames
+#             input_frames = batch_images[:, starting_point:target_index, :, :].clone()
+#             output_frames = model.get_future_frames(input_frames, num_output_frames)
+#             target_frames = batch_images[:, target_index:(target_index + num_output_frames), :, :]
 
-            # print('ar size out tar ', output_frames.size(), target_frames.size())
-            loss = F.mse_loss(output_frames, target_frames)
-            # print('idx, loss: ', sp_idx, loss.item())
-            batch_loss += loss.item()
+#             # print('ar size out tar ', output_frames.size(), target_frames.size())
+#             loss = F.mse_loss(output_frames, target_frames)
+#             # print('idx, loss: ', sp_idx, loss.item())
+#             batch_loss += loss.item()
 
-            if training:
-                lr_scheduler.optimizer.zero_grad()
-                loss.backward()
-                lr_scheduler.optimizer.step()
+#             if training:
+#                 lr_scheduler.optimizer.zero_grad()
+#                 loss.backward()
+#                 lr_scheduler.optimizer.step()
 
-        mean_batch_loss = batch_loss / (sp_idx + 1)
-        analyser.save_loss_batchwise(mean_batch_loss, batch_increment=1)
-        total_loss += mean_batch_loss
+#         mean_batch_loss = batch_loss / (sp_idx + 1)
+#         analyser.save_loss_batchwise(mean_batch_loss, batch_increment=1)
+#         total_loss += mean_batch_loss
 
-        batch_time = time.time() - batch_start
-        logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1, len(dataloader), 100. * (batch_num + 1) / len(dataloader), mean_batch_loss, batch_time))
+#         batch_time = time.time() - batch_start
+#         logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1, len(dataloader), 100. * (batch_num + 1) / len(dataloader), mean_batch_loss, batch_time))
 
-        if debug:
-            break
-    mean_loss = total_loss / (batch_num + 1)
-    return mean_loss
+#         if debug:
+#             break
+#     mean_loss = total_loss / (batch_num + 1)
+#     return mean_loss

@@ -3,6 +3,7 @@ import logging
 import torch
 import os
 import random
+from argparse import Namespace
 from utils.WaveDataset import WaveDataset
 from torchvision import transforms
 from torch.utils.data import DataLoader
@@ -148,8 +149,7 @@ class Experiment():
         return model
 
     def _create_scheduler(self):
-        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()),
-                                     lr=self.args.learning_rate)
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.args.learning_rate)
         return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                           factor=self.args.scheduler_factor,
                                                           patience=self.args.scheduler_patience)
@@ -165,11 +165,10 @@ class Experiment():
         self._save_metadata()
         self.logger = Logger()
 
-    def load_from_disk(self):
-        self.metadata = load(self.files['metadata'])
+    def load_from_disk(self, test=True):
+        self.metadata = self._load_metadata()
         self.args_new = self.args
-        self.args = self.metadata['args']
-        print(self.args)
+        self.args = Namespace(**self.metadata['args'])
         self.normalizer = get_normalizer(self.args.normalizer_type)
         self.datasets = load_datasets(self.files['datasets'])
         self.datasets['Training data'].root_dir = self.dirs['data']
@@ -181,7 +180,10 @@ class Experiment():
         self.dataloaders = create_dataloaders(self.datasets, self.args.batch_size, self.args.num_workers)
         self.model = self._create_model(self.args.model_type)
         self.lr_scheduler = self._create_scheduler()
-        self.model = load_network(self.model, self.files['model'])
+        if test:
+            self.model = load_network(self.model, self.files['model_best'])
+        else:
+            self.model = load_network(self.model, self.files['model_lastest'])
 
         # Plus more stuff to get the best val accuracy and the last epoch number
 
@@ -196,7 +198,9 @@ class Experiment():
         logging.info(meta_data_dict)
 
     def _load_metadata(self):
-        return load_json(self.files['metadata'] + '.json')
+        mtd = load_json(self.files['metadata'] + '.json')
+        return mtd
+        # return load(self.files['metadata'])
 
     def _mkdirs(self):
         logging.info('Creating directories')
@@ -226,5 +230,5 @@ class Experiment():
         self.files['datasets'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
         self.files['logger'] = os.path.join(self.dirs['pickles'], "logger.json")
-        self.files['model'] = os.path.join(self.dirs['models'], 'model_latest.pt')
+        self.files['model_latest'] = os.path.join(self.dirs['models'], 'model_latest.pt')
         self.files['model_best'] = os.path.join(self.dirs['models'], 'model_best.pt')

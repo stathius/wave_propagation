@@ -6,7 +6,7 @@ import random
 from utils.WaveDataset import WaveDataset
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from utils.io import save, load, save_json
+from utils.io import save, load, save_json, load_json
 from models.AR_LSTM import AR_LSTM
 from models.ConvLSTM import get_convlstm_model
 from utils.Logger import Logger
@@ -169,6 +169,7 @@ class Experiment():
         self.metadata = load(self.files['metadata'])
         self.args_new = self.args
         self.args = self.metadata['args']
+        print(self.args)
         self.normalizer = get_normalizer(self.args.normalizer_type)
         self.datasets = load_datasets(self.files['datasets'])
         self.datasets['Training data'].root_dir = self.dirs['data']
@@ -193,6 +194,9 @@ class Experiment():
         save(meta_data_dict, self.files['metadata'])
         save_json(meta_data_dict, self.files['metadata'] + '.json')
         logging.info(meta_data_dict)
+
+    def _load_metadata(self):
+        return load_json(self.files['metadata'] + '.json')
 
     def _mkdirs(self):
         logging.info('Creating directories')

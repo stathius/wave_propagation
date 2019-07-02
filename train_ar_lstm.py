@@ -43,5 +43,5 @@ for epoch in range(1, args.num_epochs+1):
 
 logging.info("Start testing")
 score_keeper = Evaluator(experiment.dirs['charts'], experiment.normalizer)
-test_future_frames(experiment.model, experiment.dataloaders['test'], args.test_starting_point, args.num_future_test_frames, experiment.device, score_keeper, experiment.dirs['predictions'], debug=args.debug, normalize=experiment.normalizer)
+test_future_frames(experiment.model, experiment.dataloaders['test'], args.test_starting_point, args.num_total_output_frames, experiment.device, score_keeper, experiment.dirs['predictions'], debug=args.debug, normalize=experiment.normalizer)
 score_keeper.plot()

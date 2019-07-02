@@ -38,6 +38,8 @@ class ConvLSTMCell(nn.Module):
         if seq_len is None:
             seq_len = self.seq_len
         outputs = []
+        print('ConvLSTM seqlen', seq_len)
+        print(inputs.size())
         for index in range(seq_len):
             if inputs is None:
                 x = torch.zeros((h.size(0), self._input_channel, self._state_height,
@@ -172,11 +174,11 @@ class EncoderForecaster(nn.Module):
     def get_num_output_frames(self):
         return self.forecaster.rnn3.seq_len
 
-    def get_future_frames(self, input_frames, num_requested_output_frames):
+    def get_future_frames(self, input_frames, num_total_output_frames):
         output_frames = self(input_frames)[:, :self.num_output_keep_frames, :, :]
         num_input_frames = self.get_num_input_frames()
 
-        while output_frames.size(1) < num_requested_output_frames:
+        while output_frames.size(1) < num_total_output_frames:
             # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
             input_frames = output_frames[:, -num_input_frames:, :, :].clone()
             output_keep_frames = self(input_frames)[:, :self.num_output_keep_frames, :, :]

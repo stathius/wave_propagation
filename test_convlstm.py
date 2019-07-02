@@ -27,6 +27,6 @@ model.to(device)
 
 logging.info("Start testing")
 score_keeper = Evaluator(experiment.dirs['charts'], normalizer)
-test_future_frames(model, dataloaders['test'], args.test_starting_point, args.num_future_test_frames, device, score_keeper, experiment.dirs['predictions'], debug=args.debug, normalize=normalizer)
+test_future_frames(model, dataloaders['test'], args.test_starting_point, args.num_total_output_frames, device, score_keeper, experiment.dirs['predictions'], debug=args.debug, normalize=normalizer)
 score_keeper.plot(args.show_plots)
 score_keeper.plot()

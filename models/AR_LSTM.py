@@ -88,9 +88,9 @@ class AR_LSTM(nn.Module):
         self.h0 = torch.zeros((batch_size, self.LSTM_SIZE)).to(self.device)
         self.c0 = torch.zeros((batch_size, self.LSTM_SIZE)).to(self.device)
 
-    def get_future_frames(self, input_frames, num_requested_output_frames):
+    def get_future_frames(self, input_frames, num_total_output_frames):
         self.reset_hidden(batch_size=input_frames.size(0))
-        for future_frame_idx in range(num_requested_output_frames):
+        for future_frame_idx in range(num_total_output_frames):
             if future_frame_idx == 0:
                 output_frames = self(input_frames, mode='initial_input')
             elif future_frame_idx == self.reinsert_frequency:

@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from utils.io import save, load, save_json
 from models.AR_LSTM import AR_LSTM
 from models.ConvLSTM import get_convlstm_model
+from utils.Logger import Logger
 
 
 def get_normalizer(normalizer):
@@ -133,7 +134,7 @@ class Experiment():
     def __init__(self, args):
         logging.info('Experiment %s' % args.experiment_name)
         self.args = args
-        self.sub_folders = ['logs', 'pickles', 'models', 'predictions', 'charts']
+        self.sub_folders = ['pickles', 'models', 'predictions', 'charts']
         self._filesystem_structure()
         self.device = get_device()
 
@@ -162,6 +163,7 @@ class Experiment():
         self.model = self._create_model(self.args.model_type)
         self.lr_scheduler = self._create_scheduler()
         self._save_metadata()
+        self.logger = Logger()
 
     def load_from_disk(self):
         self.metadata = load(self.files['metadata'])
@@ -184,9 +186,9 @@ class Experiment():
 
     def _save_metadata(self):
         meta_data_dict = {"args": self.args,
-                          "model": self.model,
                           "optimizer": self.lr_scheduler.optimizer.state_dict(),
-                          "scheduler": self.lr_scheduler.state_dict()
+                          "scheduler": self.lr_scheduler.state_dict(),
+                          "model": "%s" % self.model
                           }
         save(meta_data_dict, self.files['metadata'])
         save_json(meta_data_dict, self.files['metadata'] + '.json')
@@ -219,7 +221,6 @@ class Experiment():
         self.files = {}
         self.files['datasets'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
-        self.files['analyser'] = os.path.join(self.dirs['pickles'], "analyser.pickle")
+        self.files['logger'] = os.path.join(self.dirs['pickles'], "logger.json")
         self.files['model'] = os.path.join(self.dirs['models'], 'model_latest.pt')
         self.files['model_best'] = os.path.join(self.dirs['models'], 'model_best.pt')
-

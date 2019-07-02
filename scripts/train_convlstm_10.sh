@@ -1,10 +1,10 @@
 #!/bin/sh
 #SBATCH -N 1	  # nodes requested
 #SBATCH -n 1	  # tasks requested
-#SBATCH --partition=General_Usage
+#SBATCH --partition=Standard
 #SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
-#SBATCH --time=23:59:00
+#SBATCH --time=07:59:59
 #SBATCH --exclude=marax # 980 with 4gb
 hostname
 nvidia-smi

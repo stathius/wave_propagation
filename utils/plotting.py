@@ -40,7 +40,7 @@ def plot_input_frames(input_frames, image_to_plot, normalize, figures_dir):
         figure_save(os.path.join(figures_dir, "Input_%02d" % imag))
 
 
-def save_prediction_plot(batch_index, frame_index, predicted, target, normalize, figures_dir):
+def save_prediction_plot(starting_point, frame_index, predicted, target, normalize, figures_dir):
     # -1 means print last frame
     # predicted = predicted[image_to_plot, -1:, :, :].cpu()
     # target = target[image_to_plot, -1:, :, :].cpu()
@@ -51,11 +51,11 @@ def save_prediction_plot(batch_index, frame_index, predicted, target, normalize,
     imshow(predicted, title="Predicted %02d" % frame_index, smoothen=True, obj=pred, normalize=normalize)
     tar = fig.add_subplot(1, 2, 2)
     imshow(target, title="Target %02d" % frame_index, obj=tar, normalize=normalize)
-    figure_save(os.path.join(figures_dir, "Prediction_%03d_%03d" % (batch_index, frame_index)), fig)
+    figure_save(os.path.join(figures_dir, "Prediction_start_%03d_frame_%03d" % (starting_point, frame_index)), fig)
     plt.close()
 
 
-def save_cutthrough_plot(batch_index, frame_index, predicted, target, normalize, figures_dir, direction, location=None):
+def save_cutthrough_plot(starting_point, frame_index, predicted, target, normalize, figures_dir, direction, location=None):
     def cutthrough(img1, img2, hue1, hue2):
         intensity = []
         location = []
@@ -109,15 +109,15 @@ def save_cutthrough_plot(batch_index, frame_index, predicted, target, normalize,
 
     # print(predicted.size())
     cutthrough(predicted, target, "Predicted", "Target")
-    figure_save(os.path.join(figures_dir, "Cut_through_batch_%03d_%03d" % (batch_index, frame_index)), obj=fig)
+    figure_save(os.path.join(figures_dir, "Cut-Through_start_%03d_frame_%03d" % (starting_point, frame_index)), obj=fig)
     plt.close()
 
 
-def save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalize):
+def save_sequence_plots(starting_point, output_frames, target_frames, figures_dir, normalize):
     num_total_frames = output_frames.size(1)
-    batch_index = 0  # doesn't really matter
+    batch = 0  # doesn't really matter
     for frame_index in range(0, num_total_frames, 10):
-        output = output_frames[batch_index, frame_index, :, :].cpu().numpy()
-        target = target_frames[batch_index, frame_index, :, :].cpu().numpy()
-        save_prediction_plot(batch_num, frame_index, output, target, normalize, figures_dir)
-        save_cutthrough_plot(batch_num, frame_index, output, target, normalize, figures_dir, direction='Horizontal', location=None)
+        output = output_frames[batch, frame_index, :, :].cpu().numpy()
+        target = target_frames[batch, frame_index, :, :].cpu().numpy()
+        save_prediction_plot(starting_point, frame_index, output, target, normalize, figures_dir)
+        save_cutthrough_plot(starting_point, frame_index, output, target, normalize, figures_dir, direction='Horizontal', location=None)

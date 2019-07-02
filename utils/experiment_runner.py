@@ -112,7 +112,7 @@ class ExperimentRunner(nn.Module):
             current_validation_loss = np.mean(current_epoch_losses['validation_loss'])
             self.exp.logger.record_epoch_losses(current_train_loss, current_validation_loss, epoch_num)
             self.exp.logger.save_to_json(self.exp.files['logger'])
-            save_network(self.exp.model, self.exp.files['model'])
+            save_network(self.exp.model, self.exp.files['model_latest'])
 
             loss_string = "Train loss: {:.4f} | Validation loss: {:.4f}".format(current_train_loss, current_validation_loss)
             epoch_elapsed_time = "{:.4f}".format(time.time() - epoch_start_time)

@@ -16,7 +16,7 @@ from utils.plotting import save_sequence_plots
 from utils.io import save, save_json
 
 
-def test_future_frames(model, dataloader, starting_point, num_requested_output_frames, device, score_keeper, figures_dir, debug=False, normalize=None):
+def test_future_frames(model, dataloader, starting_point, num_requested_output_frames, device, score_keeper, figures_dir, debug=False, normalizer=None):
     model.eval()
     input_end_point = starting_point + model.get_num_input_frames()
     with torch.no_grad():
@@ -31,7 +31,7 @@ def test_future_frames(model, dataloader, starting_point, num_requested_output_f
             target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
 
             score_keeper.compare_output_target(output_frames, target_frames)
-            save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalize)
+            save_sequence_plots(batch_num, output_frames, target_frames, figures_dir, normalizer)
 
             if debug:
                 print('batch_num %d\tSSIM %f' % (batch_num, score_keeper.SSIM_val[-1]))
@@ -75,11 +75,9 @@ class Evaluator():
     Calculates and keeps track of testing results
     SSIM/pHash/RMSE etc.
     """
-    def __init__(self, starting_point, num_total_output_frames, normalizer):
+    def __init__(self, normalizer):
         super(Evaluator, self).__init__()
         self.normalizer = normalizer
-        self.starting_point = starting_point
-        self.num_total_output_frames = num_total_output_frames
 
         self.intermitted = []
         self.frame = []
@@ -111,18 +109,18 @@ class Evaluator():
         save(self, file)
         save_json(self, file + '.json')
 
-    def get_experiment_metrics(self, exp, debug=False):
+    def compute_experiment_metrics(self, exp, starting_point, num_total_output_frames, debug=False):
         exp.model.eval()
-        input_end_point = self.starting_point + exp.model.get_num_input_frames()
+        input_end_point = starting_point + exp.model.get_num_input_frames()
         with torch.no_grad():
             for batch_num, batch_images in enumerate(exp.dataloaders['test']):
                 logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(exp.dataloaders['test'])))
                 batch_images = batch_images.to(exp.device)
 
-                input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
-                output_frames = exp.model.get_future_frames(input_frames, self.num_total_output_frames)
-                num_total_output_frames = output_frames.size(1)
-                target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
+                input_frames = batch_images[:, starting_point:input_end_point, :, :]
+                output_frames = exp.model.get_future_frames(input_frames, num_total_output_frames)
+                num_real_output_frames = output_frames.size(1)
+                target_frames = batch_images[:, input_end_point:(input_end_point + num_real_output_frames), :, :]
 
                 self.compare_output_target(output_frames, target_frames)
 
@@ -225,7 +223,7 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Difference", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "Scoring_Quality_start_%02d" % self.starting_point), obj=fig)
+            figure_save(os.path.join(output_dir, "Scoring_Quality_start_%02d" % starting_point), obj=fig)
 
         if self.SSIM:
             all_data = {}
@@ -234,7 +232,7 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Similarity", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "SSIM_Quality_start_%02d" % self.starting_point), obj=fig)
+            figure_save(os.path.join(output_dir, "SSIM_Quality_start_%02d" % starting_point), obj=fig)
 
         if self.MSE:
             all_data = {}
@@ -242,7 +240,7 @@ class Evaluator():
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type", data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "RMSE_Quality_start_%02d" % self.starting_point), obj=fig)
+            figure_save(os.path.join(output_dir, "RMSE_Quality_start_%02d" % starting_point), obj=fig)
 
         if self.phash:
             all_data = {}
@@ -251,7 +249,7 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Hamming Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "Scoring_Spatial_Hamming_start_%02d" % self.starting_point), obj=fig)
+            figure_save(os.path.join(output_dir, "Scoring_Spatial_Hamming_start_%02d" % starting_point), obj=fig)
 
         if self.phash2:
             all_data = {}
@@ -260,4 +258,4 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Jaccard Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "Scoring_Spatial_Jaccard_start_%02d" % self.starting_point), obj=fig)
+            figure_save(os.path.join(output_dir, "Scoring_Spatial_Jaccard_start_%02d" % starting_point), obj=fig)

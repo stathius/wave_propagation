@@ -113,14 +113,3 @@ def save_cutthrough_plot(title, predicted, target, normalize, figures_dir, direc
     fig.suptitle(title)
     save_figure(os.path.join(figures_dir, "Cut-Through_start_%s" % title), obj=fig)
     plt.close()
-
-
-def save_sequence_plots(sequence_index, starting_point, output_frames, target_frames, figures_dir, normalize):
-    num_total_frames = output_frames.size(1)
-    for frame_index in range(0, num_total_frames, 10):
-        # print('frame_index ', frame_index)
-        title = 'seq_%02d_start_%02d_frame_%02d' % (sequence_index, starting_point, frame_index)
-        output = output_frames[0, frame_index, :, :].cpu().numpy()
-        target = target_frames[0, frame_index, :, :].cpu().numpy()
-        save_prediction_plot(title, output, target, normalize, figures_dir)
-        save_cutthrough_plot(title, output, target, normalize, figures_dir, direction='Horizontal', location=None)

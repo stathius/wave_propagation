@@ -30,7 +30,7 @@ def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, d
                 num_total_output_frames = math.floor(math.floor((num_total_frames - num_input_frames - starting_point) / num_output_frames) * num_output_frames / 10) * 10  # requests multiple of ten
 
                 input_end_point = starting_point + num_input_frames
-                input_frames = batch_images[:1, starting_point:input_end_point, :, :]  # just one batch is fine
+                input_frames = batch_images[:1, starting_point:input_end_point, :, :]  # just one sequence from the batch is fine
 
                 # print(batch_num, starting_point, num_total_output_frames, input_frames.size())
                 output_frames = model.get_future_frames(input_frames, num_total_output_frames)
@@ -38,7 +38,7 @@ def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, d
                 num_total_output_frames = output_frames.size(1)
                 target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
 
-                save_sequence_plots(starting_point, output_frames, target_frames, figures_dir, normalizer)
+                save_sequence_plots(batch_num, starting_point, output_frames, target_frames, figures_dir, normalizer)
 
             if batch_num > 2:  # just plot couple of batches
                 break

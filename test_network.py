@@ -8,6 +8,8 @@ plt.ioff()
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 args = get_args()
+args.num_workers = 1
+args.batch_size = 1
 experiment = Experiment(args)
 experiment.load_from_disk(test=True)
 

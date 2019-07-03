@@ -164,6 +164,7 @@ class Experiment():
         self.lr_scheduler = self._create_scheduler()
         self._save_metadata()
         self.logger = Logger()
+        self.model.to(self.device)
 
     def load_from_disk(self, test=True):
         self.metadata = self._load_metadata()
@@ -184,7 +185,7 @@ class Experiment():
             self.model = load_network(self.model, self.files['model_best'])
         else:
             self.model = load_network(self.model, self.files['model_lastest'])
-
+        self.model.to(self.device)
         # Plus more stuff to get the best val accuracy and the last epoch number
 
     def _save_metadata(self):

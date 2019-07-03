@@ -9,7 +9,7 @@ logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 args = get_args()
 experiment = Experiment(args)
-experiment.load_from_disk()
+experiment.load_from_disk(test=True)
 
 evaluator = Evaluator(args.test_starting_point, args.num_total_output_frames, experiment.normalizer,)
 

@@ -8,7 +8,7 @@ import numpy as np
 import time
 import logging
 from utils.experiment import save_network
-from utils.plotting import save_sequence_plots
+from utils.experiment_evaluator import save_sequence_plots, get_test_predictions_pairs
 
 
 class ExperimentRunner(nn.Module):
@@ -17,16 +17,18 @@ class ExperimentRunner(nn.Module):
 
         self.exp = experiment
         self.args = experiment.args
+        self.model = experiment.model
 
         self.train_data = experiment.dataloaders['train']
         self.val_data = experiment.dataloaders['val']
         self.test_data = experiment.dataloaders['test']
 
         # if torch.cuda.device_count() > 1:
-        #     self.exp.model.to(self.exp.device)
-        #     self.exp.model = nn.DataParallel(module=self.exp.model)
+        #     self.model.to(self.exp.device)
+        #     self.model = nn.DataParallel(module=self.model)
         # else:
-        self.exp.model.to(self.exp.device)
+        self.model = experiment.model
+        self.model.to(self.exp.device)
 
         # if continue_experiment != -1:
         #     self.best_val_model_idx, self.best_val_model_loss, self.state = self.load_model(
@@ -49,9 +51,9 @@ class ExperimentRunner(nn.Module):
         # Expects input of Batch Size x Video Length x Height x Width
         # Returns loss per each sequence prediction
         if train:
-            self.exp.model.train()
+            self.model.train()
         else:
-            self.exp.model.eval()
+            self.model.eval()
 
         video_length = batch_images.size(1)
         random_starting_points = random.sample(range(video_length - self.args.num_input_frames - self.args.num_output_frames - 1), self.args.samples_per_sequence)
@@ -60,7 +62,7 @@ class ExperimentRunner(nn.Module):
         for starting_point in random_starting_points:
             input_end_point = starting_point + self.args.num_input_frames
             input_frames = batch_images[:, starting_point:input_end_point, :, :].clone()
-            output_frames = self.exp.model.get_future_frames(input_frames, self.args.num_output_frames)
+            output_frames = self.model.get_future_frames(input_frames, self.args.num_output_frames)
             target_frames = batch_images[:, input_end_point:(input_end_point + self.args.num_output_frames), :, :]
             # print('ER sizes out, tar', output_frames.size(), target_frames.size())
             loss = F.mse_loss(output_frames, target_frames)
@@ -99,6 +101,8 @@ class ExperimentRunner(nn.Module):
             with tqdm.tqdm(total=len(self.val_data), ncols=40) as pbar_val:  #
                 for batch_images in self.val_data:
                     batch_images = batch_images.to(self.exp.device)
+                    if (i == 0):
+                        self.test_batch_images = batch_images
                     with torch.no_grad():
                         loss = self.run_batch_iter(batch_images, train=False)
                     current_epoch_losses["validation_loss"].append(loss)  # add current iter loss to val loss list.
@@ -112,7 +116,7 @@ class ExperimentRunner(nn.Module):
             current_validation_loss = np.mean(current_epoch_losses['validation_loss'])
             self.exp.logger.record_epoch_losses(current_train_loss, current_validation_loss, epoch_num)
             self.exp.logger.save_to_json(self.exp.files['logger'])
-            save_network(self.exp.model, self.exp.files['model_latest'])
+            save_network(self.model, self.exp.files['model_latest'])
 
             loss_string = "Train loss: {:.4f} | Validation loss: {:.4f}".format(current_train_loss, current_validation_loss)
             epoch_elapsed_time = "{:.4f}".format(time.time() - epoch_start_time)
@@ -122,4 +126,8 @@ class ExperimentRunner(nn.Module):
             if current_validation_loss < self.best_val_model_loss:
                 logging.info('Saving a better model. Previous loss: %.4f New loss: %.4f' % (self.best_val_model_loss, current_validation_loss))
                 self.best_val_model_loss = current_validation_loss
-                save_network(self.exp.model, os.path.join(self.exp.files['model_best']))
+                save_network(self.model, os.path.join(self.exp.files['model_best']))
+
+            output_frames, target_frames = get_test_predictions_pairs(self.model, batch_images, self.args.test_starting_point, self.args.num_output_frames)
+            print(output_frames.size())
+            save_sequence_plots(epoch_num, self.args.test_starting_point, output_frames, target_frames, self.exp.dirs['training'], self.exp.normalizer, prediction=False, cutthrough=True)

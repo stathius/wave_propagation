@@ -15,9 +15,10 @@ experiment.load_from_disk(test=True)
 
 evaluator = Evaluator(args.test_starting_point, args.num_total_output_frames, experiment.normalizer,)
 
-logging.info("Generate prediction plots")
-get_sample_predictions(experiment.model, experiment.dataloaders['test'], experiment.device, experiment.dirs['predictions'], experiment.normalizer, args.debug)
 logging.info("Start testing")
 evaluator.compute_experiment_metrics(experiment, debug=args.debug)
 evaluator.save_metrics_plots(experiment.dirs['charts'])
 evaluator.save_to_file(experiment.files['evaluator'])
+# Get the sample plots after you compute everything else because the dataloader iterates from the beginning
+logging.info("Generate prediction plots")
+get_sample_predictions(experiment.model, experiment.dataloaders['test'], experiment.device, experiment.dirs['predictions'], experiment.normalizer, args.debug)

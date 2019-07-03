@@ -1,10 +1,10 @@
+import time
 import matplotlib.pyplot as plt
 import math
 import torch
 import logging
 import seaborn as sns
 import pandas as pd
-from utils.io import figure_save
 import numpy as np
 from skimage import measure  # supports video also
 from scipy.spatial import distance
@@ -13,10 +13,11 @@ import imagehash
 import os
 from utils.helper_functions import hex_str2bool, normalize_image
 from utils.plotting import save_sequence_plots
-from utils.io import save, save_json
+from utils.io import save, save_json, save_figure
 
 
 def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, debug):
+    time_start = time.time()
     model.eval()
     num_input_frames = model.get_num_input_frames()
     num_output_frames = model.get_num_output_frames()
@@ -29,7 +30,9 @@ def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, d
                 num_total_output_frames = math.floor(math.floor((num_total_frames - num_input_frames - starting_point) / num_output_frames) * num_output_frames / 10) * 10  # requests multiple of ten
 
                 input_end_point = starting_point + num_input_frames
-                input_frames = batch_images[:, starting_point:input_end_point, :, :]
+                input_frames = batch_images[:1, starting_point:input_end_point, :, :]  # just one batch is fine
+
+                # print(batch_num, starting_point, num_total_output_frames, input_frames.size())
                 output_frames = model.get_future_frames(input_frames, num_total_output_frames)
 
                 num_total_output_frames = output_frames.size(1)
@@ -42,6 +45,7 @@ def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, d
 
             if debug:
                 break
+    logging.info('Sample predictions finished in %.1fs' % (time.time() - time_start))
 
 
 def get_train_val_plots():
@@ -201,7 +205,7 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Difference", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "Scoring_Quality_start_%02d" % self.starting_point), obj=fig)
+            save_figure(os.path.join(output_dir, "Scoring_Quality_start_%02d" % self.starting_point), obj=fig)
 
         if self.SSIM:
             all_data = {}
@@ -210,7 +214,7 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Similarity", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "SSIM_Quality_start_%02d" % self.starting_point), obj=fig)
+            save_figure(os.path.join(output_dir, "SSIM_Quality_start_%02d" % self.starting_point), obj=fig)
 
         if self.MSE:
             all_data = {}
@@ -218,7 +222,7 @@ class Evaluator():
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type", data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "RMSE_Quality_start_%02d" % self.starting_point), obj=fig)
+            save_figure(os.path.join(output_dir, "RMSE_Quality_start_%02d" % self.starting_point), obj=fig)
 
         if self.phash:
             all_data = {}
@@ -227,7 +231,7 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Hamming Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "Scoring_Spatial_Hamming_start_%02d" % self.starting_point), obj=fig)
+            save_figure(os.path.join(output_dir, "Scoring_Spatial_Hamming_start_%02d" % self.starting_point), obj=fig)
 
         if self.phash2:
             all_data = {}
@@ -236,4 +240,4 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Jaccard Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            figure_save(os.path.join(output_dir, "Scoring_Spatial_Jaccard_start_%02d" % self.starting_point), obj=fig)
+            save_figure(os.path.join(output_dir, "Scoring_Spatial_Jaccard_start_%02d" % self.starting_point), obj=fig)

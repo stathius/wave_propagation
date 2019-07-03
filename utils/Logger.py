@@ -72,11 +72,11 @@ class Logger():
         nr = []
         for i, element in enumerate(self.logs['train_loss']):
             loss.append(element)
-            nr.append(self.logs['train_epoch_nr'][i])
+            nr.append(self.logs['epoch_nr'][i])
             hue.append("Training")
         for i, element in enumerate(self.logs['validation_loss']):
             loss.append(element)
-            nr.append(self.logs['validation_epoch_nr'][i])
+            nr.append(self.logs['epoch_nr'][i])
             hue.append("Validation")
         fig = plt.figure().add_axes()
         sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks

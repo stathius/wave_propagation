@@ -91,9 +91,16 @@ class Evaluator():
                       "SSIM_val": [],
                       "SSIM_frame": [],
                       "SSIM_hue": [],
+                      "SSIM_baseline_val": [],
+                      "SSIM_baseline_frame": [],
+                      "SSIM_baseline_hue": [],
                       "MSE_val": [],
                       "MSE_frame": [],
-                      "MSE_hue": []}
+                      "MSE_hue": [],
+                      "MSE_baseline_val": [],
+                      "MSE_baseline_frame": [],
+                      "MSE_baseline_hue": []
+                      }
 
         self.own = False
         self.phash = False
@@ -117,13 +124,21 @@ class Evaluator():
                 input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
                 output_frames = exp.model.get_future_frames(input_frames, self.num_total_output_frames)
                 num_real_output_frames = output_frames.size(1)
-                target_frames = batch_images[:, input_end_point:(input_end_point + num_real_output_frames), :, :]
+                target_frames = batch_images[:, input_end_point:(input_end_point + num_real_output_frames + 1), :, :]
 
                 self.compare_output_target(output_frames, target_frames)
 
                 if debug:
                     print('batch_num %d\tSSIM %f' % (batch_num, self.state['SSIM_val'][-1]))
                     break
+
+    def add_baseline(self, predicted, target, frame_nr):
+        self.state['SSIM_baseline_val'].append(self.ssim(predicted, target))
+        self.state['SSIM_baseline_frame'].append(frame_nr)
+        self.state['SSIM_baseline_hue'].append("SSIM baseline")
+        self.state['MSE_baseline_val'].append(np.sqrt(measure.compare_mse(predicted, target)))
+        self.state['MSE_baseline_frame'].append(frame_nr)
+        self.state['MSE_baseline_hue'].append("RMSE baseline")
 
     def add(self, predicted, target, frame_nr, *args):
         # input H * W
@@ -208,9 +223,12 @@ class Evaluator():
         num_output_frames = output_frames.size(1)
         for batch_index in range(batch_size):
             for frame_index in range(num_output_frames):
-                self.add(output_frames[batch_index, frame_index, :, :].cpu().numpy(),
-                         target_frames[batch_index, frame_index, :, :].cpu().numpy(),
-                         frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
+                output = output_frames[batch_index, frame_index, :, :].cpu().numpy()
+                target = target_frames[batch_index, frame_index, :, :].cpu().numpy()
+                self.add(output, target, frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
+                prediction_dummy = target  # previous frame predicts the next
+                target_new = target_frames[batch_index, frame_index + 1, :, :].cpu().numpy()
+                self.add_baseline(prediction_dummy, target_new, frame_index + 1)
 
     def save_metrics_plots(self, output_dir):
         if self.own:
@@ -224,7 +242,10 @@ class Evaluator():
 
         if self.SSIM:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.state['SSIM_frame'], "Similarity": self.state['SSIM_val'], "Scoring Type": self.state['SSIM_hue']})
+            all_data.update(
+                {"Time-steps Ahead": self.state['SSIM_frame'] + self.state['SSIM_baseline_frame'],
+                 "Similarity": self.state['SSIM_val'] + self.state['SSIM_baseline_val'],
+                 "Scoring Type": self.state['SSIM_hue'] + self.state['SSIM_baseline_hue']})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Similarity", hue="Scoring Type",
@@ -233,7 +254,9 @@ class Evaluator():
 
         if self.MSE:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.state['MSE_frame'], "Root Mean Square Error (L2 residual)": self.state['MSE_val'], "Scoring Type": self.state['MSE_hue']})
+            all_data.update({"Time-steps Ahead": self.state['MSE_frame'] + self.state['MSE_baseline_frame'],
+                             "Root Mean Square Error (L2 residual)": self.state['MSE_val'] + self.state['MSE_baseline_val'],
+                             "Scoring Type": self.state['MSE_hue'] + self.state['MSE_baseline_hue']})
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type", data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')

@@ -1,10 +1,16 @@
 import pickle
 import os
-import jsons
 import json
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy
+import matplotlib.pyplot as plt
+
+
+def save_figure(destination, obj=None):
+    plt.tight_layout()
+    # plt.savefig(destination)  # png
+    plt.savefig(destination + ".svg", format="svg")
+    # save(obj, destination) if obj else None
 
 
 def save(obj, filename):
@@ -17,13 +23,6 @@ def load(filename):
     filename += ".pickle" if ".pickle" not in filename else ""
     with open(filename, 'rb') as handle:
         return pickle.load(handle)
-
-
-def figure_save(destination, obj=None):
-    plt.tight_layout()
-    plt.savefig(destination)  # png
-    plt.savefig(destination + ".svg", format="svg")
-    save(obj, destination) if obj else None
 
 
 def default(o):

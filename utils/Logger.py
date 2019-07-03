@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from utils.io import figure_save, save_json
+from utils.io import save_figure, save_json
 import os
 
 
@@ -51,7 +51,7 @@ class Logger():
         data.update({"Epoch": self.logs['train_epoch_nr'], "Loss": self.logs['train_loss']})
         sns.lineplot(x="Epoch", y="Loss",
                      data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(os.path.join(figures_dir, "Epoch_Loss"), obj=fig)
+        save_figure(os.path.join(figures_dir, "Epoch_Loss"), obj=fig)
 
     def save_batchwise_loss_plot(self, figures_dir):
         fig = plt.figure().add_axes()
@@ -61,7 +61,7 @@ class Logger():
         data.update({"Batch": self.logs['batch_nr'], "Loss": self.logs['batch_loss']})
         sns.lineplot(x="Batch", y="Loss",
                      data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(os.path.join(figures_dir, "Batch_Loss"), obj=fig)
+        save_figure(os.path.join(figures_dir, "Batch_Loss"), obj=fig)
 
     def save_validation_loss_plot(self, figures_dir):
         """
@@ -84,7 +84,7 @@ class Logger():
         data = {}
         data.update({"Epoch": nr, "Loss": loss, "Dataset": hue})
         sns.lineplot(x="Epoch", y="Loss", hue="Dataset", data=pd.DataFrame.from_dict(data), ax=fig)
-        figure_save(os.path.join(figures_dir, "Validation_Loss"), obj=fig)
+        save_figure(os.path.join(figures_dir, "Validation_Loss"), obj=fig)
 
     def load_from_json(self, filename):
         pass

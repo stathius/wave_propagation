@@ -4,7 +4,7 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import os
-from utils.io import figure_save
+from utils.io import save_figure
 
 
 def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
@@ -37,7 +37,7 @@ def plot_input_frames(input_frames, image_to_plot, normalize, figures_dir):
         sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
         sns.set_context("talk")
         imshow(input_frames[image_to_plot, imag:(imag + 1), :, :], title="Input %01d" % imag, obj=fig, normalize=normalize)
-        figure_save(os.path.join(figures_dir, "Input_%02d" % imag))
+        save_figure(os.path.join(figures_dir, "Input_%02d" % imag))
 
 
 def save_prediction_plot(starting_point, frame_index, predicted, target, normalize, figures_dir):
@@ -51,7 +51,7 @@ def save_prediction_plot(starting_point, frame_index, predicted, target, normali
     imshow(predicted, title="Predicted %02d" % frame_index, smoothen=True, obj=pred, normalize=normalize)
     tar = fig.add_subplot(1, 2, 2)
     imshow(target, title="Target %02d" % frame_index, obj=tar, normalize=normalize)
-    figure_save(os.path.join(figures_dir, "Prediction_start_%03d_frame_%03d" % (starting_point, frame_index)), fig)
+    save_figure(os.path.join(figures_dir, "Prediction_start_%02d_frame_%02d" % (starting_point, frame_index)), fig)
     plt.close()
 
 
@@ -109,7 +109,7 @@ def save_cutthrough_plot(starting_point, frame_index, predicted, target, normali
 
     # print(predicted.size())
     cutthrough(predicted, target, "Predicted", "Target")
-    figure_save(os.path.join(figures_dir, "Cut-Through_start_%03d_frame_%03d" % (starting_point, frame_index)), obj=fig)
+    save_figure(os.path.join(figures_dir, "Cut-Through_start_%02d_frame_%02d" % (starting_point, frame_index)), obj=fig)
     plt.close()
 
 
@@ -117,6 +117,7 @@ def save_sequence_plots(starting_point, output_frames, target_frames, figures_di
     num_total_frames = output_frames.size(1)
     batch = 0  # doesn't really matter
     for frame_index in range(0, num_total_frames, 10):
+        # print('frame_index ', frame_index)
         output = output_frames[batch, frame_index, :, :].cpu().numpy()
         target = target_frames[batch, frame_index, :, :].cpu().numpy()
         save_prediction_plot(starting_point, frame_index, output, target, normalize, figures_dir)

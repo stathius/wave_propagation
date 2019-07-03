@@ -135,7 +135,7 @@ class Experiment():
     def __init__(self, args):
         logging.info('Experiment %s' % args.experiment_name)
         self.args = args
-        self.sub_folders = ['pickles', 'models', 'predictions', 'charts']
+        self.sub_folders = ['pickles', 'models', 'predictions', 'charts', 'training']
         self._filesystem_structure()
         self.device = get_device()
 

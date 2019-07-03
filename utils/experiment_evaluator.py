@@ -32,19 +32,19 @@ def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, d
                 input_end_point = starting_point + num_input_frames
                 input_frames = batch_images[:1, starting_point:input_end_point, :, :]  # just one sequence from the batch is fine
 
-                # print(batch_num, starting_point, num_total_output_frames, input_frames.size())
                 output_frames = model.get_future_frames(input_frames, num_total_output_frames)
 
                 num_total_output_frames = output_frames.size(1)
                 target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
 
+                # print(batch_num, starting_point, num_total_output_frames, input_frames.size(), output_frames.size(), target_frames.size())
                 save_sequence_plots(batch_num, starting_point, output_frames, target_frames, figures_dir, normalizer)
 
+                if debug:
+                    break
             if batch_num > 2:  # just plot couple of batches
                 break
 
-            if debug:
-                break
     logging.info('Sample predictions finished in %.1fs' % (time.time() - time_start))
 
 

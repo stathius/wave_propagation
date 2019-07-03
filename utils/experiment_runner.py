@@ -116,18 +116,21 @@ class ExperimentRunner(nn.Module):
             current_validation_loss = np.mean(current_epoch_losses['validation_loss'])
             self.exp.logger.record_epoch_losses(current_train_loss, current_validation_loss, epoch_num)
             self.exp.logger.save_to_json(self.exp.files['logger'])
-            save_network(self.model, self.exp.files['model_latest'])
+            self.exp.logger.save_validation_loss_plot(self.exp.dirs['training'])
+            self.exp.logger.save_batchwise_loss_plot(self.exp.dirs['training'])
 
             loss_string = "Train loss: {:.4f} | Validation loss: {:.4f}".format(current_train_loss, current_validation_loss)
             epoch_elapsed_time = "{:.4f}".format(time.time() - epoch_start_time)
             logging.info("Epoch {}/{}:\t{}\tTime elapsed {}s".format(epoch_num, self.args.num_epochs, loss_string, epoch_elapsed_time))
 
+            save_network(self.model, self.exp.files['model_latest'])
             # Save if best model so far
             if current_validation_loss < self.best_val_model_loss:
                 logging.info('Saving a better model. Previous loss: %.4f New loss: %.4f' % (self.best_val_model_loss, current_validation_loss))
                 self.best_val_model_loss = current_validation_loss
                 save_network(self.model, os.path.join(self.exp.files['model_best']))
 
+            # Plot test predictions during training. Cool!
             output_frames, target_frames = get_test_predictions_pairs(self.model, batch_images, self.args.test_starting_point, self.args.num_output_frames)
             print(output_frames.size())
             save_sequence_plots(epoch_num, self.args.test_starting_point, output_frames, target_frames, self.exp.dirs['training'], self.exp.normalizer, prediction=False, cutthrough=True)

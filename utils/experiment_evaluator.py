@@ -12,38 +12,53 @@ from PIL import Image
 import imagehash
 import os
 from utils.helper_functions import hex_str2bool, normalize_image
-from utils.plotting import save_sequence_plots
+from utils.plotting import save_prediction_plot, save_cutthrough_plot
 from utils.io import save, save_json, save_figure
+
+
+def save_sequence_plots(sequence_index, starting_point, output_frames, target_frames, figures_dir, normalize, prediction=True, cutthrough=True):
+    num_total_frames = output_frames.size(1)
+    for frame_index in range(0, num_total_frames, 10):
+        # print('frame_index ', frame_index)
+        title = 'seq_%02d_start_%02d_frame_%02d' % (sequence_index, starting_point, frame_index)
+        output = output_frames[0, frame_index, :, :].cpu().numpy()
+        target = target_frames[0, frame_index, :, :].cpu().numpy()
+        if prediction:
+            save_prediction_plot(title, output, target, normalize, figures_dir)
+        if cutthrough:
+            save_cutthrough_plot(title, output, target, normalize, figures_dir, direction='Horizontal', location=None)
+
+
+def get_test_predictions_pairs(model, batch_images, starting_point, num_total_output_frames):
+    model.eval()
+    num_input_frames = model.get_num_input_frames()
+    with torch.no_grad():
+        input_end_point = starting_point + num_input_frames
+        input_frames = batch_images[:1, starting_point:input_end_point, :, :].clone()
+        output_frames = model.get_future_frames(input_frames, num_total_output_frames)
+        target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
+    return output_frames, target_frames
 
 
 def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, debug):
     time_start = time.time()
-    model.eval()
     num_input_frames = model.get_num_input_frames()
     num_output_frames = model.get_num_output_frames()
-    with torch.no_grad():
-        for batch_num, batch_images in enumerate(dataloader):
-            num_total_frames = batch_images.size(1)
-            batch_images = batch_images.to(device)
+    for batch_num, batch_images in enumerate(dataloader):
+        num_total_frames = batch_images.size(1)
+        batch_images = batch_images.to(device)
 
-            for starting_point in range(0, num_total_frames, 10):
-                num_total_output_frames = math.floor(math.floor((num_total_frames - num_input_frames - starting_point) / num_output_frames) * num_output_frames / 10) * 10  # requests multiple of ten
+        for starting_point in range(0, num_total_frames, 10):
+            num_total_output_frames = math.floor(math.floor((num_total_frames - num_input_frames - starting_point) / num_output_frames) * num_output_frames / 10) * 10  # requests multiple of ten
 
-                input_end_point = starting_point + num_input_frames
-                input_frames = batch_images[:1, starting_point:input_end_point, :, :]  # just one sequence from the batch is fine
+            output_frames, target_frames = get_test_predictions_pairs(model, batch_images, starting_point, num_total_output_frames)
 
-                output_frames = model.get_future_frames(input_frames, num_total_output_frames)
+            save_sequence_plots(batch_num, starting_point, output_frames, target_frames, figures_dir, normalizer)
 
-                num_total_output_frames = output_frames.size(1)
-                target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
-
-                # print(batch_num, starting_point, num_total_output_frames, input_frames.size(), output_frames.size(), target_frames.size())
-                save_sequence_plots(batch_num, starting_point, output_frames, target_frames, figures_dir, normalizer)
-
-                if debug:
-                    break
-            if batch_num > 2:  # just plot couple of batches
+            if debug:
                 break
+        if batch_num > 2:  # just plot couple of batches
+            break
 
     logging.info('Sample predictions finished in %.1fs' % (time.time() - time_start))
 

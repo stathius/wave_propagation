@@ -31,7 +31,7 @@ def get_args():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--model_type', type=str, help='Network architecture for training [ar_lstm, convlstm, cnn]', required=True)
+    parser.add_argument('--model_type', type=str, help='Network architecture for training [ar_lstm, convlstm, cnn]')
     parser.add_argument('--num_epochs', type=int, default=50, help='The experiment\'s epoch budget')
     parser.add_argument('--num_input_frames', type=int, default=5, help='LSTM. How many frames to insert initially')
     parser.add_argument('--num_output_frames', type=int, default=20, help='LSTM. How many framres to predict in the future"')

@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from utils.io import save, load, save_json, load_json
 from models.AR_LSTM import AR_LSTM
 from models.ConvLSTM import get_convlstm_model
+from models.ResNet import resnet12
 from utils.Logger import Logger
 
 
@@ -121,16 +122,6 @@ def load_network(model, filename):
     return model
 
 
-def save_experiment():
-    # TODO save and resume an experiment
-    torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'loss': loss,
-            }, PATH)
-
-
 class Experiment():
     def __init__(self, args):
         logging.info('Experiment %s' % args.experiment_name)
@@ -144,8 +135,8 @@ class Experiment():
             model = get_convlstm_model(self.args.num_input_frames, self.args.num_output_frames, self.args.batch_size, self.device)
         elif model_type == 'ar_lstm':
             model = AR_LSTM(self.args.num_input_frames, self.args.reinsert_frequency, self.device)
-        elif model_type == 'cnn':
-            pass
+        elif model_type == 'resnet':
+            model = resnet12(self.args.num_input_frames, self.args.num_output_frames)
         return model
 
     def _create_scheduler(self):

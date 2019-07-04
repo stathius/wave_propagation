@@ -71,10 +71,9 @@ class Evaluator():
     Calculates and keeps track of testing results
     SSIM/pHash/RMSE etc.
     """
-    def __init__(self, starting_point, num_total_output_frames, normalizer):
+    def __init__(self, starting_point, normalizer):
         super(Evaluator, self).__init__()
         self.starting_point = starting_point
-        self.num_total_output_frames = num_total_output_frames
         self.normalizer = normalizer
 
         self.intermitted = []
@@ -112,7 +111,7 @@ class Evaluator():
         # save_json(self, file + '.json')
         save_json(self.state, file + '.state.json')
 
-    def compute_experiment_metrics(self, exp, debug=False):
+    def compute_experiment_metrics(self, exp, num_total_output_frames, debug=False):
         exp.model.eval()
         input_end_point = self.starting_point + exp.model.get_num_input_frames()
         with torch.no_grad():
@@ -121,7 +120,7 @@ class Evaluator():
                 batch_images = batch_images.to(exp.device)
 
                 input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
-                output_frames = exp.model.get_future_frames(input_frames, self.num_total_output_frames)
+                output_frames = exp.model.get_future_frames(input_frames,num_total_output_frames)
                 num_real_output_frames = output_frames.size(1)
                 target_frames = batch_images[:, input_end_point:(input_end_point + num_real_output_frames + 1), :, :]
 

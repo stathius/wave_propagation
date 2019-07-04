@@ -18,7 +18,7 @@ evaluator = Evaluator(args.test_starting_point, experiment.normalizer,)
 logging.info("Start testing")
 evaluator.compute_experiment_metrics(experiment, args.num_total_output_frames, debug=args.debug)
 evaluator.save_metrics_plots(experiment.dirs['charts'])
-evaluator.save_to_file(experiment.files['evaluator'] % % arts._test_starting_point)
+evaluator.save_to_file(experiment.files['evaluator'] % args.test_starting_point)
 # Get the sample plots after you compute everything else because the dataloader iterates from the beginning
 logging.info("Generate prediction plots")
 get_sample_predictions(experiment.model, experiment.dataloaders['test'], experiment.device, experiment.dirs['predictions'], experiment.normalizer, args.debug)

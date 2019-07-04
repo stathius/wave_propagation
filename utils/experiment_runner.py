@@ -9,6 +9,7 @@ import time
 import logging
 from utils.experiment import save_network
 from utils.experiment_evaluator import save_sequence_plots, get_test_predictions_pairs
+from utils.io import save_json
 
 
 class ExperimentRunner(nn.Module):
@@ -118,6 +119,7 @@ class ExperimentRunner(nn.Module):
             self.exp.logger.save_to_json(self.exp.files['logger'])
             self.exp.logger.save_validation_loss_plot(self.exp.dirs['training'])
             self.exp.logger.save_batchwise_loss_plot(self.exp.dirs['training'])
+            # self.exp.logger.save_train_progress_stats(self.exp.files['progress'])
 
             loss_string = "Train loss: {:.4f} | Validation loss: {:.4f}".format(current_train_loss, current_validation_loss)
             epoch_elapsed_time = "{:.4f}".format(time.time() - epoch_start_time)
@@ -131,6 +133,7 @@ class ExperimentRunner(nn.Module):
                 save_network(self.model, os.path.join(self.exp.files['model_best']))
 
             # Plot test predictions during training. Cool!
-            output_frames, target_frames = get_test_predictions_pairs(self.model, batch_images, self.args.test_starting_point, self.args.num_output_frames)
+            output_frames, target_frames = get_test_predictions_pairs(self.model, batch_images, self.args.test_starting_point, self.args.num_total_output_frames)
             print(output_frames.size())
             save_sequence_plots(epoch_num, self.args.test_starting_point, output_frames, target_frames, self.exp.dirs['training'], self.exp.normalizer, prediction=False, cutthrough=True)
+

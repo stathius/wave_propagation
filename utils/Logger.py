@@ -86,6 +86,12 @@ class Logger():
         sns.lineplot(x="Epoch", y="Loss", hue="Dataset", data=pd.DataFrame.from_dict(data), ax=fig)
         save_figure(os.path.join(figures_dir, "Validation_Loss"), obj=fig)
 
+    # def save_train_progress_stats(self, file):
+        # progress = { 'best_val' = max(self.logs['validation_loss'])
+                        # 'latest_epoch' = self.logs['epoch_nr'][-1]
+        # }
+        # save_json(progress, file)
+
     def load_from_json(self, filename):
         pass
 

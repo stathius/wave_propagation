@@ -19,7 +19,6 @@ from utils.io import save, save_json, save_figure
 def save_sequence_plots(sequence_index, starting_point, output_frames, target_frames, figures_dir, normalize, prediction=True, cutthrough=True):
     num_total_frames = output_frames.size(1)
     for frame_index in range(0, num_total_frames, 10):
-        # print('frame_index ', frame_index)
         title = 'seq_%02d_start_%02d_frame_%02d' % (sequence_index, starting_point, frame_index)
         output = output_frames[0, frame_index, :, :].cpu().numpy()
         target = target_frames[0, frame_index, :, :].cpu().numpy()
@@ -36,7 +35,7 @@ def get_test_predictions_pairs(model, batch_images, starting_point, num_total_ou
         input_end_point = starting_point + num_input_frames
         input_frames = batch_images[:1, starting_point:input_end_point, :, :].clone()
         output_frames = model.get_future_frames(input_frames, num_total_output_frames)
-        target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
+        target_frames = batch_images[:1, input_end_point:(input_end_point + num_total_output_frames), :, :]
     return output_frames, target_frames
 
 
@@ -48,7 +47,7 @@ def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, d
         num_total_frames = batch_images.size(1)
         batch_images = batch_images.to(device)
 
-        for starting_point in range(0, num_total_frames, 10):
+        for starting_point in range(0, num_total_frames - 10 - num_input_frames, 10):
             num_total_output_frames = math.floor(math.floor((num_total_frames - num_input_frames - starting_point) / num_output_frames) * num_output_frames / 10) * 10  # requests multiple of ten
 
             output_frames, target_frames = get_test_predictions_pairs(model, batch_images, starting_point, num_total_output_frames)

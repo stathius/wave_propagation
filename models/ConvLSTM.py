@@ -173,7 +173,7 @@ class EncoderForecaster(nn.Module):
         return self.encoder.rnn1.seq_len
 
     def get_num_output_frames(self):
-        return self.forecaster.rnn3.seq_len
+        return self.forecaster.rnn3.seq_lens
 
     def get_future_frames(self, input_frames, num_total_output_frames):
         output_frames = self(input_frames)
@@ -181,7 +181,11 @@ class EncoderForecaster(nn.Module):
 
         while output_frames.size(1) < num_total_output_frames:
             # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
-            input_frames = output_frames[:, -num_input_frames:, :, :].clone()
+            if output_frames.size(1) < num_input_frames:
+                keep_from_input = num_input_frames - output_frames.size(1)
+                input_frames = torch.cat((input_frames[:, -keep_from_input:, :, :], output_frames), dim=1)
+            else:
+                input_frames = output_frames[:, -num_input_frames:, :, :].clone()
             output_frames = torch.cat((output_frames, self(input_frames)), dim=1)
         return output_frames
 

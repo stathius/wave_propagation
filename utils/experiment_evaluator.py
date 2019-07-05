@@ -120,15 +120,29 @@ class Evaluator():
                 batch_images = batch_images.to(exp.device)
 
                 input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
-                output_frames = exp.model.get_future_frames(input_frames,num_total_output_frames)
+                output_frames = exp.model.get_future_frames(input_frames, num_total_output_frames)
                 num_real_output_frames = output_frames.size(1)
-                target_frames = batch_images[:, input_end_point:(input_end_point + num_real_output_frames + 1), :, :]
+                target_frames = batch_images[:, input_end_point:(input_end_point + num_real_output_frames), :, :]
 
                 self.compare_output_target(output_frames, target_frames)
 
                 if debug:
                     print('batch_num %d\tSSIM %f' % (batch_num, self.state['SSIM_val'][-1]))
                     break
+
+    def compare_output_target(self, output_frames, target_frames):
+        batch_size = output_frames.size(0)
+        num_output_frames = output_frames.size(1)
+        for batch_index in range(batch_size):
+            for frame_index in range(num_output_frames):
+                output = output_frames[batch_index, frame_index, :, :].cpu().numpy()
+                target = target_frames[batch_index, frame_index, :, :].cpu().numpy()
+                self.add(output, target, frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
+                if frame_index == 0:
+                    dummy_prediction = target  # previous frame predicts the next
+                elif frame_index > 0:
+                    self.add_baseline(dummy_prediction, target, frame_index)
+                    dummy_prediction = target
 
     def add_baseline(self, predicted, target, frame_nr):
         self.state['SSIM_baseline_val'].append(self.ssim(predicted, target))
@@ -215,18 +229,6 @@ class Evaluator():
 
         absolute_diff = np.mean(np.abs(predicted - target)) / (np.sum(target) / np.prod(np.shape(target)))
         return relative_diff, absolute_diff
-
-    def compare_output_target(self, output_frames, target_frames):
-        batch_size = output_frames.size(0)
-        num_output_frames = output_frames.size(1)
-        for batch_index in range(batch_size):
-            for frame_index in range(num_output_frames):
-                output = output_frames[batch_index, frame_index, :, :].cpu().numpy()
-                target = target_frames[batch_index, frame_index, :, :].cpu().numpy()
-                self.add(output, target, frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
-                prediction_dummy = target  # previous frame predicts the next
-                target_new = target_frames[batch_index, frame_index + 1, :, :].cpu().numpy()
-                self.add_baseline(prediction_dummy, target_new, frame_index + 1)
 
     def save_metrics_plots(self, output_dir):
         if self.own:

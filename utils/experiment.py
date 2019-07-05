@@ -180,7 +180,8 @@ class Experiment():
         # Plus more stuff to get the best val accuracy and the last epoch number
 
     def _save_metadata(self):
-        meta_data_dict = {"args": self.args,
+        print(self.args)
+        meta_data_dict = {"args": vars(self.args),
                           "optimizer": self.lr_scheduler.optimizer.state_dict(),
                           "scheduler": self.lr_scheduler.state_dict(),
                           "model": "%s" % self.model

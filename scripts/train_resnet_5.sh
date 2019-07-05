@@ -35,4 +35,4 @@ fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 cd /home/s1680171/wave_propagation/
-python train_network.py --experiment_name "ResNet_batch16_samples_5_epoch_50_out_1" --model_type 'resnet' --batch_size 16 --num_epochs 50 --samples_per_sequence 5 --num_input_frames 5 --num_output_frames 5 --num_workers 12
+python train_network.py --experiment_name "ResNet_batch16_samples_5_epoch_50_out_5" --model_type 'resnet' --batch_size 16 --num_epochs 50 --samples_per_sequence 5 --num_input_frames 5 --num_output_frames 5 --num_workers 12

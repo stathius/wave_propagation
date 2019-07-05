@@ -173,7 +173,7 @@ class EncoderForecaster(nn.Module):
         return self.encoder.rnn1.seq_len
 
     def get_num_output_frames(self):
-        return self.forecaster.rnn3.seq_lens
+        return self.forecaster.rnn3.seq_len
 
     def get_future_frames(self, input_frames, num_total_output_frames):
         output_frames = self(input_frames)

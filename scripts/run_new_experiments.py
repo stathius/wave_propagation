@@ -30,4 +30,4 @@ for exp, exp_args in new_experiments.items():
         file.write(template_exp)
     file.close()
 
-    # os.system("sbatch -o %s_%%j.out %s" % (exp_name, exp_script))
+    os.system("sbatch -o %s_%%j.out %s" % (exp_name, exp_script))

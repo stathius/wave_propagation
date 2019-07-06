@@ -1,0 +1,9 @@
+{"ar_lstm_1": {"model_type": "ar_lstm",
+				  "num_input_frames": 5,
+				  "num_output_frames": 10,
+				  "samples_per_sequence": 10,
+				  "num_epochs": 50,
+				  "batch_size": 16,
+				  "partition": "Interactive",
+				  "time": "0-2:00:00"}
+}

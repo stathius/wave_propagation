@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 def save_figure(destination, obj=None):
     plt.tight_layout()
     plt.savefig(destination)  # png
-    plt.savefig(destination + ".svg", format="svg")
+    # plt.savefig(destination + ".svg", format="svg")
     # save(obj, destination) if obj else None
 
 

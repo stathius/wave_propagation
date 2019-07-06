@@ -177,7 +177,7 @@ class Experiment():
         else:
             self.model = load_network(self.model, self.files['model_lastest'])
         self.model.to(self.device)
-        # Plus more stuff to get the best val accuracy and the last epoch number
+        # Plus more stuff to get the best val accuracy and the last epoch numbers
 
     def _save_metadata(self):
         print(self.args)
@@ -226,5 +226,4 @@ class Experiment():
         self.files['evaluator'] = os.path.join(self.dirs['pickles'], 'evaluator_sp_%d.pickle')
         self.files['model_latest'] = os.path.join(self.dirs['models'], 'model_latest.pt')
         self.files['model_best'] = os.path.join(self.dirs['models'], 'model_best.pt')
-        # self.files['progress'] = os.path.join(self.dirs['training'], "progress.json")
-
+        self.files['progress'] = os.path.join(self.dirs['training'], "progress.json")

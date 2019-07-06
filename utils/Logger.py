@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import numpy as np
 from utils.io import save_figure, save_json
 import os
+import time
 
 
 class Logger():
@@ -17,6 +19,7 @@ class Logger():
                      'batch_loss': [],
                      'batch_nr': []
                      }
+        self.start_time = time.time()
 
     def record_epoch_losses(self, train_loss, val_loss, epoch):
         """
@@ -86,11 +89,13 @@ class Logger():
         sns.lineplot(x="Epoch", y="Loss", hue="Dataset", data=pd.DataFrame.from_dict(data), ax=fig)
         save_figure(os.path.join(figures_dir, "Validation_Loss"), obj=fig)
 
-    # def save_train_progress_stats(self, file):
-        # progress = { 'best_val' = max(self.logs['validation_loss'])
-                        # 'latest_epoch' = self.logs['epoch_nr'][-1]
-        # }
-        # save_json(progress, file)
+    def save_training_progress(self, file):
+        progress = {'latest_epoch': self.logs['epoch_nr'][-1],
+                    'best_val_loss': min(self.logs['validation_loss']),
+                    'best_epoch': np.argmin(self.logs['validation_loss']),
+                    'time': time.time() - self.start_time
+                    }
+        save_json(progress, file)
 
     def load_from_json(self, filename):
         pass

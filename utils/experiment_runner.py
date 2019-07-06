@@ -81,6 +81,7 @@ class ExperimentRunner(nn.Module):
 
     def run_experiment(self):
         logging.info('Start training')
+        total_time = time.time()
         # total_losses = {"train_loss": [], "validation_loss": [], "curr_epoch": []}
         for i, epoch_num in enumerate(range(self.starting_epoch, self.args.num_epochs)):
             logging.info('Epoch: %d' % i)
@@ -136,3 +137,4 @@ class ExperimentRunner(nn.Module):
             output_frames, target_frames = get_test_predictions_pairs(self.model, batch_images, self.args.test_starting_point, self.args.num_total_output_frames)
             save_sequence_plots(epoch_num, self.args.test_starting_point, output_frames, target_frames, self.exp.dirs['training'], self.exp.normalizer, prediction=False, cutthrough=True)
 
+            self.exp.logger.save_training_progress(self.exp.files['progress'])

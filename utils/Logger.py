@@ -55,6 +55,7 @@ class Logger():
         sns.lineplot(x="Epoch", y="Loss",
                      data=pd.DataFrame.from_dict(data), ax=fig)
         save_figure(os.path.join(figures_dir, "Epoch_Loss"), obj=fig)
+        plt.close()
 
     def save_batchwise_loss_plot(self, figures_dir):
         fig = plt.figure().add_axes()
@@ -65,6 +66,7 @@ class Logger():
         sns.lineplot(x="Batch", y="Loss",
                      data=pd.DataFrame.from_dict(data), ax=fig)
         save_figure(os.path.join(figures_dir, "Batch_Loss"), obj=fig)
+        plt.close()
 
     def save_validation_loss_plot(self, figures_dir):
         """
@@ -88,6 +90,7 @@ class Logger():
         data.update({"Epoch": nr, "Loss": loss, "Dataset": hue})
         sns.lineplot(x="Epoch", y="Loss", hue="Dataset", data=pd.DataFrame.from_dict(data), ax=fig)
         save_figure(os.path.join(figures_dir, "Validation_Loss"), obj=fig)
+        plt.close()
 
     def save_training_progress(self, file):
         progress = {'latest_epoch': self.logs['epoch_nr'][-1],

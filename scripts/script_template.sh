@@ -33,4 +33,4 @@ fi
 source /home/s1680171/miniconda3/bin/activate mlp
 cd /home/s1680171/wave_propagation/
 
-python train_network.py --experiment_name {exp_name} --model_type {model_type} --batch_size {batch_size} --num_epochs {num_epochs} --samples_per_sequence {samples_per_sequence} --num_input_frames {num_input_frames} --num_output_frames {num_output_frames} --num_workers 12
+python train_network.py {args}

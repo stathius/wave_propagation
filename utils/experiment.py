@@ -128,6 +128,7 @@ class Experiment():
         self.args = args
         self.sub_folders = ['pickles', 'models', 'predictions', 'charts', 'training']
         self._filesystem_structure()
+        self._mkdirs()
         self.device = get_device()
 
     def _create_model(self, model_type):
@@ -146,7 +147,6 @@ class Experiment():
                                                           patience=self.args.scheduler_patience)
 
     def create_new(self):
-        self._mkdirs()
         self.normalizer = get_normalizer(self.args.normalizer_type)
         self.datasets = create_new_datasets(self.dirs['data'], self.normalizer)
         save(self.datasets, self.files['datasets'])

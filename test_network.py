@@ -13,7 +13,7 @@ args.batch_size = 16
 experiment = Experiment(args)
 experiment.load_from_disk(test=True)
 
-evaluator = Evaluator(args.test_starting_point, experiment.normalizer,)
+evaluator = Evaluator(args.test_starting_point, experiment.normalizer)
 
 logging.info("Start testing")
 evaluator.compute_experiment_metrics(experiment, args.num_total_output_frames, debug=args.debug)

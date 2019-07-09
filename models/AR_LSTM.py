@@ -6,12 +6,13 @@ class AR_LSTM(nn.Module):
     """
     The network structure
     """
-    def __init__(self, num_input_frames, reinsert_frequency, device):
+    def __init__(self, num_input_frames, num_output_frames, reinsert_frequency, device):
         super(AR_LSTM, self).__init__()
         self.num_input_frames = num_input_frames
+        self.num_output_frames = num_output_frames
         self.device = device
         self.reinsert_frequency = reinsert_frequency
-        self.NUM_OUTPUT_FRAMES = 1  # the model outputs one frame at a time
+        self.NUM_OUTPUT_FRAMES_PER_ITER = 1  # the model outputs one frame at a time
         self.LSTM_SIZE = 1000
         # self.reset_hidden(2)
         self.encoder_conv = nn.Sequential(
@@ -53,7 +54,7 @@ class AR_LSTM(nn.Module):
             nn.BatchNorm2d(num_features=60),
             nn.Tanh(),
             nn.Dropout2d(0.25),
-            nn.ConvTranspose2d(60, self.NUM_OUTPUT_FRAMES, kernel_size=3, stride=2, padding=1, output_padding=1)
+            nn.ConvTranspose2d(60, self.NUM_OUTPUT_FRAMES_PER_ITER, kernel_size=3, stride=2, padding=1, output_padding=1)
         )
 
         self.LSTM_initial_input = nn.LSTMCell(input_size=self.LSTM_SIZE, hidden_size=self.LSTM_SIZE, bias=True)
@@ -64,7 +65,7 @@ class AR_LSTM(nn.Module):
         return self.num_input_frames
 
     def get_num_output_frames(self):
-        return self.NUM_OUTPUT_FRAMES
+        return self.num_output_frames
 
     def forward(self, x, mode="initial_input"):
         if "initial_input" in mode:

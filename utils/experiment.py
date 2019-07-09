@@ -169,7 +169,7 @@ class Experiment():
         self.datasets['Validation data'].transform = get_transforms(self.normalizer)['Test']
         self.datasets['Testing data'].root_dir = self.dirs['data']
         self.datasets['Testing data'].transform = get_transforms(self.normalizer)['Test']
-        self.dataloaders = create_dataloaders(self.datasets, self.args.batch_size, self.args.num_workers)
+        self.dataloaders = create_dataloaders(self.datasets, self.args_new.batch_size, self.args_new.num_workers)
         self.model = self._create_model(self.args.model_type)
         self.lr_scheduler = self._create_scheduler()
         if test:

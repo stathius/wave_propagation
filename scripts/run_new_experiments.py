@@ -21,11 +21,15 @@ for exp, exp_args in new_experiments.items():
     print(exp, exp_args)
     # for arg, arg_val in exp_args:
     exp_name = '{model_type}_batch_{batch_size}_samples_{samples_per_sequence}_epoch_{num_epochs}_in_{num_input_frames}_out_{num_output_frames}_normalizer_{normalizer_type}_lr_{learning_rate}'.format(**exp_args)
-    template_exp = template.format_map(SafeDict(exp_args))
-    template_exp = template_exp.format_map(SafeDict(exp_name=exp_name))
+
+    args_template = "--experiment_name {exp_name} --model_type {model_type} --batch_size {batch_size} --num_epochs {num_epochs} --samples_per_sequence {samples_per_sequence} --num_input_frames {num_input_frames} --num_output_frames {num_output_frames} --learning_rate {learning_rate} --normalizer_type {normalizer_type} --num_workers 12"
+
+    args_template = args_template.format_map(SafeDict(exp_name=exp_name))
+    args_template = args_template.format(**exp_args)
+    exp_template = template.format_map(SafeDict(args=args_template))
     exp_script = '%s.sh' % exp_name
     with open(exp_script, 'w') as file:
-        file.write(template_exp)
+        file.write(exp_template)
     file.close()
 
-    os.system("sbatch -o %s_%%j.out %s" % (exp_name, exp_script))
+    # os.system("sbatch -o %s_%%j.out %s" % (exp_name, exp_script))

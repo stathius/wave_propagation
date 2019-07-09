@@ -46,7 +46,7 @@ def get_args():
     parser.add_argument('--seed_everything', type=str2bool, default=True)
     parser.add_argument('--debug', type=str2bool, default=False)
     parser.add_argument('--weight_decay_coefficient', type=float, default=1e-05, help='Weight decay to use for Adam')
-    parser.add_argument('--learning_rate', type=float, default=1e-03, help='learning rate to use for Adam')
+    parser.add_argument('--learning_rate', type=float, default=1e-04, help='learning rate to use for Adam')
     parser.add_argument('--scheduler_patience', type=int, default=7, help='Epoch patience before reducing learning_rate')
     parser.add_argument('--scheduler_factor', type=float, default=0.1, help='Factor to reduce learning_rate')
     parser.add_argument('--continue_experiment', type=str2bool, default=False, help='Whether the experiment should continue from the last epoch')

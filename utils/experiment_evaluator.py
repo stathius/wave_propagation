@@ -121,10 +121,11 @@ class Evaluator():
                 logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(exp.dataloaders['test'])))
                 batch_images = batch_images.to(exp.device)
 
+                target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
+                num_real_output_frames = target_frames.size(1)
+
                 input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
-                output_frames = exp.model.get_future_frames(input_frames, num_total_output_frames)
-                num_real_output_frames = output_frames.size(1)
-                target_frames = batch_images[:, input_end_point:(input_end_point + num_real_output_frames), :, :]
+                output_frames = exp.model.get_future_frames(input_frames, num_real_output_frames)
 
                 self.compare_output_target(output_frames, target_frames)
 

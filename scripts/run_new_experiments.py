@@ -26,10 +26,11 @@ for exp, exp_args in new_experiments.items():
 
     args_template = args_template.format_map(SafeDict(exp_name=exp_name))
     args_template = args_template.format(**exp_args)
-    exp_template = template.format_map(SafeDict(args=args_template))
+    exp_template = template.format_map(SafeDict(exp_args))
+    exp_template = exp_template.format_map(SafeDict(args=args_template))
     exp_script = '%s.sh' % exp_name
     with open(exp_script, 'w') as file:
         file.write(exp_template)
     file.close()
 
-    # os.system("sbatch -o %s_%%j.out %s" % (exp_name, exp_script))
+    os.system("sbatch -o %s_%%j.out %s" % (exp_name, exp_script))

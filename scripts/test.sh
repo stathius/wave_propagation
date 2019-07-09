@@ -35,8 +35,5 @@ fi
 
 source /home/${STUDENT_ID}/miniconda3/bin/activate mlp
 cd /home/s1680171/wave_propagation/
-python test_network.py --experiment_name AR_LSTM_batch16_samples10_epoch_25_out20
-python test_network.py --experiment_name AR_LSTM_batch16_samples10_epoch_25_out20_2
 
-python test_network.py --experiment_name AR_LSTM_AR_LSTM_batch16_samples10_epoch_25_out20_unnorm
-python test_network.py --experiment_name AR_LSTM_AR_LSTM_batch16_samples10_epoch_25_out20_unnorm_2
+python test_network.py --experiment_name AR_LSTM_batch_16_samples_10_in_5_out_20_none_lr_0.0001

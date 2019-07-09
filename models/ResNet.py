@@ -149,7 +149,7 @@ class ResNet(nn.Module):
             else:
                 input_frames = output_frames[:, -num_input_frames:, :, :].clone()
             output_frames = torch.cat((output_frames, self(input_frames)), dim=1)
-        return output_frames
+        return output_frames[:, :num_total_output_frames, :, :]
 
     def get_num_input_frames(self):
         return self.num_input_frames

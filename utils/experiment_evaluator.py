@@ -91,15 +91,21 @@ class Evaluator():
                       "SSIM_val": [],
                       "SSIM_frame": [],
                       "SSIM_hue": [],
-                      "SSIM_baseline_val": [],
-                      "SSIM_baseline_frame": [],
-                      "SSIM_baseline_hue": [],
+                      "SSIM_previous_frame_val": [],
+                      "SSIM_previous_frame_frame": [],
+                      "SSIM_previous_frame_hue": [],
+                      "SSIM_last_input_val": [],
+                      "SSIM_last_input_frame": [],
+                      "SSIM_last_input_hue": [],
                       "MSE_val": [],
                       "MSE_frame": [],
                       "MSE_hue": [],
-                      "MSE_baseline_val": [],
-                      "MSE_baseline_frame": [],
-                      "MSE_baseline_hue": []
+                      "MSE_previous_frame_val": [],
+                      "MSE_previous_frame_frame": [],
+                      "MSE_previous_frame_hue": [],
+                      "MSE_last_input_val": [],
+                      "MSE_last_input_frame": [],
+                      "MSE_last_input_hue": [],
                       }
 
         self.own = False
@@ -113,27 +119,29 @@ class Evaluator():
         # save_json(self, file + '.json')
         save_json(self.state, file + '.state.json')
 
-    def compute_experiment_metrics(self, exp, num_total_output_frames, debug=False):
-        exp.model.eval()
-        input_end_point = self.starting_point + exp.model.get_num_input_frames()
+    def compute_experiment_metrics(self, model, dataloader, num_total_output_frames, device, debug=False):
+        model.eval()
+        input_end_point = self.starting_point + model.get_num_input_frames()
         with torch.no_grad():
-            for batch_num, batch_images in enumerate(exp.dataloaders['test']):
-                logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(exp.dataloaders['test'])))
-                batch_images = batch_images.to(exp.device)
+            for batch_num, batch_images in enumerate(dataloader):
+                logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
+                batch_images = batch_images.to(device)
 
                 target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
                 num_real_output_frames = target_frames.size(1)
 
-                input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
-                output_frames = exp.model.get_future_frames(input_frames, num_real_output_frames)
+                last_input = batch_images[:, (input_end_point - 1):input_end_point, :, :]
 
-                self.compare_output_target(output_frames, target_frames)
+                input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
+                output_frames = model.get_future_frames(input_frames, num_real_output_frames)
+
+                self.compare_output_target(output_frames, target_frames, last_input)
 
                 if debug:
                     print('batch_num %d\tSSIM %f' % (batch_num, self.state['SSIM_val'][-1]))
                     break
 
-    def compare_output_target(self, output_frames, target_frames):
+    def compare_output_target(self, output_frames, target_frames, last_input_batch):
         batch_size = output_frames.size(0)
         num_output_frames = output_frames.size(1)
         for batch_index in range(batch_size):
@@ -142,18 +150,20 @@ class Evaluator():
                 target = self.prepro(target_frames[batch_index, frame_index, :, :].cpu().numpy())
                 self.add(output, target, frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
                 if frame_index == 0:
-                    dummy_prediction = target  # previous frame predicts the next
+                    previous_frame = target  # previous frame predicts the next
                 elif frame_index > 0:
-                    self.add_baseline(dummy_prediction, target, frame_index)
-                    dummy_prediction = target
+                    self.add_baseline('previous_frame', previous_frame, target, frame_index)
+                    previous_frame = target
+                last_input = self.prepro(last_input_batch[batch_index, 0, :, :].cpu().numpy())
+                self.add_baseline('last_input', last_input, target, frame_index)
 
-    def add_baseline(self, predicted, target, frame_nr):
-        self.state['SSIM_baseline_val'].append(self.ssim(predicted, target))
-        self.state['SSIM_baseline_frame'].append(frame_nr)
-        self.state['SSIM_baseline_hue'].append("SSIM baseline")
-        self.state['MSE_baseline_val'].append(np.sqrt(measure.compare_mse(predicted, target)))
-        self.state['MSE_baseline_frame'].append(frame_nr)
-        self.state['MSE_baseline_hue'].append("RMSE baseline")
+    def add_baseline(self, name, predicted, target, frame_nr):
+        self.state['SSIM_%s_val' % name].append(self.ssim(predicted, target))
+        self.state['SSIM_%s_frame' % name].append(frame_nr)
+        self.state['SSIM_%s_hue' % name].append("SSIM %s" % name.replace('_', ' ').title())
+        self.state['MSE_%s_val' % name].append(np.sqrt(measure.compare_mse(predicted, target)))
+        self.state['MSE_%s_frame' % name].append(frame_nr)
+        self.state['MSE_%s_hue' % name].append("RMSE %s" % name.replace('_', ' ').title())
 
     def add(self, predicted, target, frame_nr, *args):
         if "Own"in args:
@@ -242,9 +252,9 @@ class Evaluator():
         if self.SSIM:
             all_data = {}
             all_data.update(
-                {"Time-steps Ahead": self.state['SSIM_frame'] + self.state['SSIM_baseline_frame'],
-                 "Similarity": self.state['SSIM_val'] + self.state['SSIM_baseline_val'],
-                 "Scoring Type": self.state['SSIM_hue'] + self.state['SSIM_baseline_hue']})
+                {"Time-steps Ahead": self.state['SSIM_frame'] + self.state['SSIM_previous_frame_frame'] +  self.state['SSIM_last_input_frame'] ,
+                 "Similarity": self.state['SSIM_val']         + self.state['SSIM_previous_frame_val']   +  self.state['SSIM_last_input_val']   ,
+                 "Scoring Type": self.state['SSIM_hue']       + self.state['SSIM_previous_frame_hue']   +  self.state['SSIM_last_input_hue']   })
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Similarity", hue="Scoring Type",
@@ -253,12 +263,12 @@ class Evaluator():
 
         if self.MSE:
             all_data = {}
-            all_data.update({"Time-steps Ahead": self.state['MSE_frame'] + self.state['MSE_baseline_frame'],
-                             "Root Mean Square Error (L2 residual)": self.state['MSE_val'] + self.state['MSE_baseline_val'],
-                             "Scoring Type": self.state['MSE_hue'] + self.state['MSE_baseline_hue']})
+            all_data.update({"Time-steps Ahead":        self.state['MSE_frame'] + self.state['MSE_previous_frame_frame'] + self.state['MSE_last_input_frame'] ,
+                             "Root Mean Square Error":  self.state['MSE_val']   + self.state['MSE_previous_frame_val']   + self.state['MSE_last_input_val']   ,
+                             "Scoring Type":            self.state['MSE_hue']   + self.state['MSE_previous_frame_hue']   + self.state['MSE_last_input_hue']   })
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
-            sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error (L2 residual)", hue="Scoring Type", data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
+            sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error", hue="Scoring Type", data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
             save_figure(os.path.join(output_dir, "RMSE_Quality_start_%02d" % self.starting_point), obj=fig)
 
         if self.phash:

@@ -94,7 +94,7 @@ class AR_LSTM(nn.Module):
         for future_frame_idx in range(num_total_output_frames):
             if future_frame_idx == 0:
                 output_frames = self(input_frames, mode='initial_input')
-            elif future_frame_idx == self.reinsert_frequency:
+            elif (future_frame_idx % self.reinsert_frequency) == 0:
                 input_frames = output_frames[:, -self.num_input_frames:, :, :].clone()
                 output_frames = torch.cat((output_frames, self(input_frames, mode="reinsert")), dim=1)
             else:

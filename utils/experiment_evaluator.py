@@ -138,8 +138,8 @@ class Evaluator():
         num_output_frames = output_frames.size(1)
         for batch_index in range(batch_size):
             for frame_index in range(num_output_frames):
-                output = output_frames[batch_index, frame_index, :, :].cpu().numpy()
-                target = target_frames[batch_index, frame_index, :, :].cpu().numpy()
+                output = self.prepro(output_frames[batch_index, frame_index, :, :].cpu().numpy())
+                target = self.prepro(target_frames[batch_index, frame_index, :, :].cpu().numpy())
                 self.add(output, target, frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
                 if frame_index == 0:
                     dummy_prediction = target  # previous frame predicts the next
@@ -156,10 +156,6 @@ class Evaluator():
         self.state['MSE_baseline_hue'].append("RMSE baseline")
 
     def add(self, predicted, target, frame_nr, *args):
-        # input H * W
-        predicted = self.prepro(predicted)
-        target = self.prepro(target)
-
         if "Own"in args:
             spatial_score, scale_score = self.score(predicted, target)
             self.intermitted.append(spatial_score)
@@ -219,7 +215,7 @@ class Evaluator():
 
     def prepro(self, image):
         image = normalize_image(image, self.normalizer)
-        # image = np.clip(image, 0, 1)
+        image = np.clip(image, 0, 1)
         return image
 
     def score(self, predicted, target):

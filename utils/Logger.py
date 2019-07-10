@@ -59,6 +59,8 @@ class Logger():
 
     def save_batchwise_loss_plot(self, figures_dir):
         fig = plt.figure().add_axes()
+        ax = plt.gca()
+        ax.set(yscale='log')
         sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
         sns.set_context("talk")
         data = {}
@@ -84,6 +86,8 @@ class Logger():
             nr.append(self.logs['epoch_nr'][i])
             hue.append("Validation")
         fig = plt.figure().add_axes()
+        ax = plt.gca()
+        ax.set(yscale='log')
         sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
         sns.set_context("talk")
         data = {}

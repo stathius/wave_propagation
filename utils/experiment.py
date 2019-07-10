@@ -114,6 +114,7 @@ def save_network(model, filename):
 
 
 def load_network(model, filename):
+    logging.info('Loading model %s' % filename)
     dct = torch.load(filename, map_location='cpu')
     try:
         model.load_state_dict(dct)
@@ -173,9 +174,10 @@ class Experiment():
         self.model = self._create_model(self.args.model_type)
         self.lr_scheduler = self._create_scheduler()
         if test:
-            self.model = load_network(self.model, self.files['model_best'])
+            file = self.files['model_best']
         else:
-            self.model = load_network(self.model, self.files['model_lastest'])
+            file = self.files['model_latest']
+        self.model = load_network(self.model, file)
         self.model.to(self.device)
         # Plus more stuff to get the best val accuracy and the last epoch numbers
 

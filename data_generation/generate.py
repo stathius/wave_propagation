@@ -39,7 +39,7 @@ def get_args():
     parser.add_argument('--dt', type=float, default=0.01, help='Time interval between frames in seconds')
     parser.add_argument('--image_size_x', type=int, default=184, help='Pixel size of the output images')
     parser.add_argument('--image_size_y', type=int, default=184, help='Pixel size of the output images')
-    parser.add_argument('--data_points', type=int, default=10, help='How many sequences to create')
+    parser.add_argument('--data_points', type=int, default=500, help='How many sequences to create')
 
     args = parser.parse_args()
 

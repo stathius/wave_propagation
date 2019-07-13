@@ -13,7 +13,7 @@ class SafeDict(dict):
 
 new_experiments = load_json('new_experiments.json')
 
-with open('script_template.sh', 'r') as file:
+with open('train.template', 'r') as file:
     template = file.read()
 file.close()
 

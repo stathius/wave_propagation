@@ -64,10 +64,6 @@ def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, d
     logging.info('Sample predictions finished in %.1fs' % (time.time() - time_start))
 
 
-def get_train_val_plots():
-    pass
-
-
 class Evaluator():
     """
     Calculates and keeps track of testing results
@@ -240,6 +236,7 @@ class Evaluator():
         return relative_diff, absolute_diff
 
     def save_metrics_plots(self, output_dir):
+        logging.info('saving metric plots to %s' % output_dir)
         if self.own:
             all_data = {}
             all_data.update({"Time-steps Ahead": self.frame, "Difference": self.intermitted, "Scoring Type": self.hue})

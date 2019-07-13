@@ -81,7 +81,6 @@ class ExperimentRunner(nn.Module):
 
     def run_experiment(self):
         logging.info('Start training')
-        total_time = time.time()
         # total_losses = {"train_loss": [], "validation_loss": [], "curr_epoch": []}
         for i, epoch_num in enumerate(range(self.starting_epoch, self.args.num_epochs)):
             logging.info('Epoch: %d' % i)

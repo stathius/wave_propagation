@@ -3,7 +3,6 @@ import os
 sys.path.append('/home/s1680171/wave_propagation/')
 sys.path.append('/mnt/mscteach_home/s1680171/wave_propagation/')
 sys.path.append(os.path.dirname(os.getcwd()))
-from utils.io import load_json
 
 
 class SafeDict(dict):

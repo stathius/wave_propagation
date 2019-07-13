@@ -5,7 +5,6 @@ import os
 from PIL import Image
 import random
 import copy
-import matplotlib.pyplot as plt
 import argparse
 import sys
 sys.path.append('..')
@@ -57,6 +56,7 @@ def is_interactive():
 
 if is_interactive():
     # %matplotlib notebook
+    import matplotlib.pyplot as plt
     args = argsclass()
     plot = True
     args.location = "./debug"

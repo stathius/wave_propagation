@@ -38,8 +38,7 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--samples_per_sequence', type=int, default=10, help='how may training points to generate from a video sequence')
     parser.add_argument('--reinsert_frequency', type=int, default=10, help='AR LSTM: how often to use the reinsert mechanism')
-    parser.add_argument('--experiment_name', type=str, default="dummy",
-                        help='Experiment name - to be used for building the experiment folder')
+    parser.add_argument('--experiment_name', type=str, default="dummy", help='Experiment name - to be used for building the experiment folder')
     parser.add_argument('--normalizer_type', type=str, default='normal', help='how to normalize the images [normal, m1to1, none]')
     parser.add_argument('--num_workers', type=int, default=8, help='how many workers for the dataloader')
     parser.add_argument('--seed', type=int, default=12345, help='Seed to use for random number generator for experiment')

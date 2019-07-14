@@ -74,8 +74,8 @@ class ExperimentRunner(nn.Module):
     def run_experiment(self):
         logging.info('Start training')
         print(self.exp.starting_epoch, self.args.num_epochs)
-        for i, epoch_num in enumerate(range(self.exp.starting_epoch, self.args.num_epochs)):
-            logging.info('Epoch: %d' % i)
+        for epoch_num in range(self.exp.starting_epoch, self.args.num_epochs):
+            logging.info('Epoch: %d' % epoch_num)
             epoch_start_time = time.time()
             current_epoch_losses = {"train_loss": [], "validation_loss": []}
             with tqdm.tqdm(total=len(self.train_data), ncols=40) as pbar_train:  # create a progress bar for training
@@ -94,8 +94,7 @@ class ExperimentRunner(nn.Module):
             with tqdm.tqdm(total=len(self.val_data), ncols=40) as pbar_val:  #
                 for batch_images in self.val_data:
                     batch_images = batch_images.to(self.exp.device)
-                    if (i == 0):
-                        self.test_batch_images = batch_images
+
                     with torch.no_grad():
                         loss = self.run_batch_iter(batch_images, train=False)
                     current_epoch_losses["validation_loss"].append(loss)  # add current iter loss to val loss list.

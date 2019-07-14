@@ -31,15 +31,7 @@ class ExperimentRunner(nn.Module):
         self.model = experiment.model
         self.model.to(self.exp.device)
 
-        # if continue_experiment != -1:
-        #     self.best_val_model_idx, self.best_val_model_loss, self.state = self.load_model(
-        #         model_save_dir=self.experiment_saved_models, model_save_name="train_model",
-        #         model_idx=continue_from_epoch)  # reload existing model from epoch and return best val model index
-        #     # and the best val acc of that model
-        #     self.starting_epoch = self.state['current_epoch_num']
-        # else:
-        self.best_val_model_loss = np.Inf
-        self.starting_epoch = 0
+        self.best_val_model_loss = experiment.logger.get_best_val_loss()
 
     def get_num_parameters(self):
         total_num_params = 0
@@ -81,8 +73,8 @@ class ExperimentRunner(nn.Module):
 
     def run_experiment(self):
         logging.info('Start training')
-        # total_losses = {"train_loss": [], "validation_loss": [], "curr_epoch": []}
-        for i, epoch_num in enumerate(range(self.starting_epoch, self.args.num_epochs)):
+        print(self.exp.starting_epoch, self.args.num_epochs)
+        for i, epoch_num in enumerate(range(self.exp.starting_epoch, self.args.num_epochs)):
             logging.info('Epoch: %d' % i)
             epoch_start_time = time.time()
             current_epoch_losses = {"train_loss": [], "validation_loss": []}
@@ -134,6 +126,6 @@ class ExperimentRunner(nn.Module):
 
             # Plot test predictions during training. Cool!
             output_frames, target_frames = get_test_predictions_pairs(self.model, batch_images, self.args.test_starting_point, self.args.num_total_output_frames)
-            save_sequence_plots(epoch_num, self.args.test_starting_point, output_frames, target_frames, self.exp.dirs['training'], self.exp.normalizer, dataset='Training', prediction=False, cutthrough=True)
+            save_sequence_plots(epoch_num, self.args.test_starting_point, output_frames, target_frames, self.exp.dirs['training'], self.exp.normalizer, 'Training', prediction=False, cutthrough=True)
 
             self.exp.logger.save_training_progress(self.exp.files['progress'])

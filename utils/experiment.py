@@ -216,7 +216,7 @@ class Experiment():
         self.dirs = {}
         if 'Darwin' in platform.system():
             self.dirs['base'] = '/Users/stathis/Code/thesis/wave_propagation/'
-            self.dirs['data_base'] = '/Users/stathis/Code/thesis/wave_propagation/data/'
+            self.dirs['data_base'] = '/Users/stathis/Code/thesis/wave_propagation/'
         else:
             self.dirs['base'] = '/home/s1680171/wave_propagation/'
             self.dirs['data_base'] = '/disk/scratch/s1680171/wave_propagation/data/'

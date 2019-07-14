@@ -157,11 +157,13 @@ class Experiment():
         self._save_metadata()
         self.logger = Logger()
         self.model.to(self.device)
+        self.starting_epoch = 0
 
     def load_from_disk(self, test=True):
         self.metadata = self._load_metadata()
         self.args_new = self.args
         self.args = Namespace(**self.metadata['args'])
+        self.args.num_epochs = self.args_new.num_epochs
         self.normalizer = get_normalizer(self.args.normalizer_type)
         self.datasets = load_datasets(self.files['datasets'])
         self.datasets['Training data'].root_dir = self.dirs['data']
@@ -179,6 +181,9 @@ class Experiment():
             file = self.files['model_latest']
         self.model = load_network(self.model, file)
         self.model.to(self.device)
+        self.logger = Logger()
+        self.logger.load_from_json(self.files['logger'])
+        self.starting_epoch = self.logger.get_last_epoch() + 1
         # Plus more stuff to get the best val accuracy and the last epoch numbers
 
     def _save_metadata(self):

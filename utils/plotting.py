@@ -30,20 +30,7 @@ def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normali
         return image
 
 
-def plot_input_frames(input_frames, image_to_plot, normalize, figures_dir):
-    # Plot the N first input frames
-    for imag in range(int(input_frames.shape[1])):
-        fig = plt.figure().add_axes()
-        sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
-        sns.set_context("talk")
-        imshow(input_frames[image_to_plot, imag:(imag + 1), :, :], title="Input %01d" % imag, obj=fig, normalize=normalize)
-        save_figure(os.path.join(figures_dir, "Input_%02d" % imag))
-
-
 def save_prediction_plot(title, predicted, target, normalize, figures_dir):
-    # -1 means print last frame
-    # predicted = predicted[image_to_plot, -1:, :, :].cpu()
-    # target = target[image_to_plot, -1:, :, :].cpu()
     fig = plt.figure(figsize=(6, 6))
     sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
     sns.set_context("talk")
@@ -52,7 +39,7 @@ def save_prediction_plot(title, predicted, target, normalize, figures_dir):
     tar = fig.add_subplot(1, 2, 2)
     imshow(target, title="Target", obj=tar, normalize=normalize)
     fig.suptitle(title)
-    save_figure(os.path.join(figures_dir, "Prediction_start_%s" % title), fig)
+    save_figure(os.path.join(figures_dir, title), fig)
     plt.close()
 
 
@@ -79,9 +66,6 @@ def save_cutthrough_plot(title, predicted, target, normalize, figures_dir, direc
                      data=pd.DataFrame.from_dict(data_dict), ax=profile)
         profile.set_title("Intensity Profile")
 
-    # predicted = predicted[image_to_plot, -1:, :, :].cpu()
-    # target = target[image_to_plot, -1:, :, :].cpu()
-    # fig = plt.figure()
     fig = plt.figure(figsize=(12, 4))
     sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
     with sns.axes_style("white"):
@@ -97,7 +81,7 @@ def save_cutthrough_plot(title, predicted, target, normalize, figures_dir, direc
             std = np.std(target, axis=1)
         elif "Vertical" in direction:
             std = np.std(target, axis=0)
-        stdmax = np.where(std.max() == std)
+        stdmax = np.where(std.max() == std)[0]  # just keep one line
     else:
         stdmax = location
 
@@ -108,8 +92,7 @@ def save_cutthrough_plot(title, predicted, target, normalize, figures_dir, direc
         pre.plot([stdmax[0], stdmax[0]], [0, np.shape(std)[0]], color="yellow")
         tar.plot([stdmax[0], stdmax[0]], [0, np.shape(std)[0]], color="yellow")
 
-    # print(predicted.size())
     cutthrough(predicted, target, "Predicted", "Target")
     fig.suptitle(title)
-    save_figure(os.path.join(figures_dir, "Cut-Through_start_%s" % title), obj=fig)
+    save_figure(os.path.join(figures_dir, title), obj=fig)
     plt.close()

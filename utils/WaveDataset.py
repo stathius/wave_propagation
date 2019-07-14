@@ -30,7 +30,8 @@ class WaveDataset(Dataset):
     def __getitem__(self, idx):
         # logging.info('Get item')
         img_path = self.imagesets[idx][1]
-        im_list = sorted(os.listdir(self.root_dir + img_path))
+        # skip hidden files
+        im_list = sorted([f for f in os.listdir(self.root_dir + img_path) if not f.startswith('.')])
 
         Concat_Img = self.concatenate_data(img_path, im_list)
 

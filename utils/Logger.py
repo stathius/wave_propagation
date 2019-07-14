@@ -17,7 +17,7 @@ class Logger():
                      'validation_loss': [],
                      'epoch_nr': [],
                      'batch_loss': [],
-                     'batch_nr': []
+                     'batch_nr': [],
                      }
         self.start_time = time.time()
 
@@ -41,7 +41,11 @@ class Logger():
         self.logs['batch_nr'].append(batch_num)
 
     def get_best_val_loss(self):
-        return min(self.logs['validation_loss'])
+        if len(self.logs['validation_loss']) > 0:
+            best = min(self.logs['validation_loss'])
+        else:
+            best = np.Inf
+        return best
 
     def get_current_epoch_loss(self, type):
         return self.logs['%s_loss' % type][-1]
@@ -88,8 +92,8 @@ class Logger():
             ax.set_title(title)
         return fig
 
-    def save_batchwise_loss(self, figures_dir):
-        fig = self.batchwise_loss_plot()
+    def save_batchwise_loss_plot(self, figures_dir):
+        fig = self.plot_batchwise_loss()
         save_figure(os.path.join(figures_dir, "Batch_Loss"), obj=fig)
         plt.close()
 
@@ -102,7 +106,8 @@ class Logger():
         progress = {'latest_epoch': self.get_last_epoch(),
                     'best_val_loss': self.get_best_val_loss(),
                     'best_epoch': self.get_best_epoch(),
-                    'time': time.time() - self.start_time
+                    'total_time': time.time() - self.start_time,
+                    'epoch_time': (time.time() - self.start_time) / (self.get_last_epoch() + 1)
                     }
         save_json(progress, file)
 

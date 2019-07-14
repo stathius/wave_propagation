@@ -216,7 +216,7 @@ class Experiment():
             self.dirs['base'] = '/home/s1680171/wave_propagation/'
             self.dirs['data_base'] = '/disk/scratch/s1680171/wave_propagation/data/'
 
-        self.dirs['data'] = os.path.join(self.dirs['data_base'], 'Video_Data/')
+        self.dirs['data'] = os.path.join(self.dirs['data_base'], 'Training_Data/')
         self.dirs['exp_folder'] = os.path.join(self.dirs['base'], "experiments_results/")
         self.dirs['results'] = os.path.join(self.dirs['exp_folder'], self.args.experiment_name)
         for d in self.sub_folders:

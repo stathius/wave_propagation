@@ -12,7 +12,7 @@ args = get_args()
 experiment = Experiment(args)
 
 if args.continue_experiment:
-    experiment.load()
+    experiment.load_from_disk()
 else:
     experiment.create_new()
 

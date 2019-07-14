@@ -2,6 +2,7 @@ import time
 import matplotlib.pyplot as plt
 import math
 import torch
+from torch.utils.data import DataLoader
 import logging
 import seaborn as sns
 import pandas as pd
@@ -14,17 +15,20 @@ import os
 from utils.helper_functions import hex_str2bool, normalize_image
 from utils.plotting import save_prediction_plot, save_cutthrough_plot
 from utils.io import save, save_json, save_figure
+from utils.experiment import get_transforms, get_normalizer
+from utils.WaveDataset import WaveDataset
 
 
-def save_sequence_plots(sequence_index, starting_point, output_frames, target_frames, figures_dir, normalizer, prediction=True, cutthrough=True):
+def save_sequence_plots(sequence_index, starting_point, output_frames, target_frames, figures_dir, normalizer, dataset_name, prediction=True, cutthrough=True):
     num_total_frames = output_frames.size(1)
     for frame_index in range(0, num_total_frames, 10):
-        title = 'seq_%02d_start_%02d_frame_%02d' % (sequence_index, starting_point, frame_index)
+        params = 'seq_%02d_start_%02d_frame_%02d' % (sequence_index, starting_point, frame_index + 1)
         output = output_frames[0, frame_index, :, :].cpu().numpy()
         target = target_frames[0, frame_index, :, :].cpu().numpy()
-        if prediction:
-            save_prediction_plot(title, output, target, normalizer, figures_dir)
+        # if prediction:
+            # save_prediction_plot("%s_PR_%s" % params, output, target, normalizer, figures_dir)
         if cutthrough:
+            title = "%s_CT_%s" % (dataset_name, params)
             save_cutthrough_plot(title, output, target, normalizer, figures_dir, direction='Horizontal', location=None)
 
 
@@ -39,7 +43,7 @@ def get_test_predictions_pairs(model, batch_images, starting_point, num_total_ou
     return output_frames, target_frames
 
 
-def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, debug):
+def get_sample_predictions(model, dataloader, dataset_name, device, figures_dir, normalizer, debug):
     time_start = time.time()
     num_input_frames = model.get_num_input_frames()
     num_output_frames = model.get_num_output_frames()
@@ -54,7 +58,7 @@ def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, d
 
             output_frames, target_frames = get_test_predictions_pairs(model, batch_images, starting_point, num_total_output_frames)
 
-            save_sequence_plots(batch_num, starting_point, output_frames, target_frames, figures_dir, normalizer)
+            save_sequence_plots(batch_num, starting_point, output_frames, target_frames, figures_dir, normalizer, dataset_name)
 
             if debug:
                 break
@@ -64,15 +68,55 @@ def get_sample_predictions(model, dataloader, device, figures_dir, normalizer, d
     logging.info('Sample predictions finished in %.1fs' % (time.time() - time_start))
 
 
+def create_evaluation_dataloader(data_directory, normalizer_type):
+    logging.info('Creating evaluation dataset %s' % data_directory)
+    transform = get_transforms(get_normalizer(normalizer_type))
+
+    classes = [dI for dI in os.listdir(data_directory) if os.path.isdir(os.path.join(data_directory, dI))]
+    # classes = os.listdir(data_directory)
+    imagesets = []
+    for cla in classes:
+        im_list = sorted(os.listdir(data_directory + cla))
+        imagesets.append((im_list, cla))
+
+    dataset_info = [data_directory, classes, imagesets]
+    dataset = WaveDataset(dataset_info, transform["Test"])
+    return DataLoader(dataset, batch_size=16, shuffle=False, num_workers=4)
+
+
+def evaluate_experiment(experiment, args):
+    logging.info("Start testing")
+    dataloaders = {"Test": experiment.dataloaders['test'],
+                   "Lines": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Lines/'), args.normalizer_type),
+                   "Double_Drop": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Double_Drop/'), args.normalizer_type),
+                   "Illumination_135": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Illumination_135/'), args.normalizer_type),
+                   "Shallow_Depth": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Shallow_Depth/'), args.normalizer_type),
+                   "Smaller_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Smaller_Tub/'), args.normalizer_type),
+                   "Bigger_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Bigger_Tub/'), args.normalizer_type)
+                   }
+
+    for dataset_name, dataloader in dataloaders.items():
+        logging.info("Evaluating dataset: %s" % dataset_name)
+        evaluator = Evaluator(args.test_starting_point, dataset_name, experiment.normalizer)
+        evaluator.compute_experiment_metrics(experiment.model, dataloader, args.num_total_output_frames, experiment.device, debug=args.debug)
+        evaluator.save_metrics_plots(experiment.dirs['charts'])
+        evaluator.save_to_file(experiment.files['evaluator'] % (dataset_name, args.test_starting_point))
+        # Get the sample plots after you compute everything else because the dataloader iterates from the beginning
+        if args.get_sample_predictions:
+            logging.info("Generate prediction plots for %s" % dataset_name)
+            get_sample_predictions(experiment.model, dataloader, dataset_name, experiment.device, experiment.dirs['predictions'], experiment.normalizer, args.debug)
+
+
 class Evaluator():
     """
     Calculates and keeps track of testing results
     SSIM/pHash/RMSE etc.
     """
-    def __init__(self, starting_point, normalizer):
+    def __init__(self, starting_point, dataset_name, normalizer):
         super(Evaluator, self).__init__()
         self.starting_point = starting_point
         self.normalizer = normalizer
+        self.dataset_name = dataset_name
 
         self.intermitted = []
         self.frame = []
@@ -244,7 +288,7 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Difference", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            save_figure(os.path.join(output_dir, "Scoring_Quality_start_%02d" % self.starting_point), obj=fig)
+            save_figure(os.path.join(output_dir, "%s_Scoring_Quality_start_%02d" % (self.dataset_name, self.starting_point)), obj=fig)
 
         if self.SSIM:
             all_data = {}
@@ -256,7 +300,7 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Similarity", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            save_figure(os.path.join(output_dir, "SSIM_Quality_start_%02d" % self.starting_point), obj=fig)
+            save_figure(os.path.join(output_dir, "%s_SSIM_Quality_start_%02d" % (self.dataset_name, self.starting_point)), obj=fig)
 
         if self.MSE:
             all_data = {}
@@ -266,7 +310,7 @@ class Evaluator():
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error", hue="Scoring Type", data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            save_figure(os.path.join(output_dir, "RMSE_Quality_start_%02d" % self.starting_point), obj=fig)
+            save_figure(os.path.join(output_dir, "%s_RMSE_Quality_start_%02d" % (self.dataset_name, self.starting_point)), obj=fig)
 
         if self.phash:
             all_data = {}
@@ -275,7 +319,7 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Hamming Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            save_figure(os.path.join(output_dir, "Scoring_Spatial_Hamming_start_%02d" % self.starting_point), obj=fig)
+            save_figure(os.path.join(output_dir, "%s_Scoring_Spatial_Hamming_start_%02d" % (self.dataset_name, self.starting_point)), obj=fig)
 
         if self.phash2:
             all_data = {}
@@ -284,5 +328,5 @@ class Evaluator():
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Jaccard Distance", hue="Scoring Type",
                          data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')
-            save_figure(os.path.join(output_dir, "Scoring_Spatial_Jaccard_start_%02d" % self.starting_point), obj=fig)
+            save_figure(os.path.join(output_dir, "%s_Scoring_Spatial_Jaccard_start_%02d" % (self.dataset_name, self.starting_point)), obj=fig)
         plt.close()

@@ -214,7 +214,7 @@ class Experiment():
             self.dirs['data_base'] = '/Users/stathis/Code/thesis/wave_propagation/data/'
         else:
             self.dirs['base'] = '/home/s1680171/wave_propagation/'
-            self.dirs['data_base'] = '/disk/scratch/s1680171/wave_propagation/'
+            self.dirs['data_base'] = '/disk/scratch/s1680171/wave_propagation/data/'
 
         self.dirs['data'] = os.path.join(self.dirs['data_base'], 'Video_Data/')
         self.dirs['exp_folder'] = os.path.join(self.dirs['base'], "experiments_results/")
@@ -226,7 +226,7 @@ class Experiment():
         self.files['datasets'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
         self.files['logger'] = os.path.join(self.dirs['pickles'], "logger.json")
-        self.files['evaluator'] = os.path.join(self.dirs['pickles'], '%s_evaluator_sp_%d.pickle')
+        self.files['evaluator'] = os.path.join(self.dirs['pickles'], 'evaluator_%s_sp_%d.pickle')
         self.files['model_latest'] = os.path.join(self.dirs['models'], 'model_latest.pt')
         self.files['model_best'] = os.path.join(self.dirs['models'], 'model_best.pt')
         self.files['progress'] = os.path.join(self.dirs['training'], "progress.json")

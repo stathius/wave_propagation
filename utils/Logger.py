@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
-from utils.io import save_figure, save_json
+from utils.io import save_figure, save_json, load_json
 import os
 import time
 
@@ -41,23 +41,18 @@ class Logger():
         self.logs['batch_nr'].append(batch_num)
 
     def get_best_val_loss(self):
-        return max(self.logs['validation_loss'])
+        return min(self.logs['validation_loss'])
 
     def get_current_epoch_loss(self, type):
         return self.logs['%s_loss' % type][-1]
 
-    def save_train_loss_plot(self, figures_dir):
-        fig = plt.figure().add_axes()
-        sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
-        sns.set_context("talk")
-        data = {}
-        data.update({"Epoch": self.logs['train_epoch_nr'], "Loss": self.logs['train_loss']})
-        sns.lineplot(x="Epoch", y="Loss",
-                     data=pd.DataFrame.from_dict(data), ax=fig)
-        save_figure(os.path.join(figures_dir, "Epoch_Loss"), obj=fig)
-        plt.close()
+    def get_best_epoch(self):
+        return np.argmin(self.logs['validation_loss'])
 
-    def save_batchwise_loss_plot(self, figures_dir):
+    def get_last_epoch(self):
+        return self.logs['epoch_nr'][-1]
+
+    def plot_batchwise_loss(self):
         fig = plt.figure().add_axes()
         ax = plt.gca()
         ax.set(yscale='log')
@@ -67,13 +62,9 @@ class Logger():
         data.update({"Batch": self.logs['batch_nr'], "Loss": self.logs['batch_loss']})
         sns.lineplot(x="Batch", y="Loss",
                      data=pd.DataFrame.from_dict(data), ax=fig)
-        save_figure(os.path.join(figures_dir, "Batch_Loss"), obj=fig)
-        plt.close()
+        return fig
 
-    def save_validation_loss_plot(self, figures_dir):
-        """
-        Plots validation and epoch loss next to each other
-        """
+    def plot_validation_loss(self, title=None):
         hue = []
         loss = []
         nr = []
@@ -93,19 +84,30 @@ class Logger():
         data = {}
         data.update({"Epoch": nr, "Loss": loss, "Dataset": hue})
         sns.lineplot(x="Epoch", y="Loss", hue="Dataset", data=pd.DataFrame.from_dict(data), ax=fig)
+        if title is not None:
+            ax.set_title(title)
+        return fig
+
+    def save_batchwise_loss(self, figures_dir):
+        fig = self.batchwise_loss_plot()
+        save_figure(os.path.join(figures_dir, "Batch_Loss"), obj=fig)
+        plt.close()
+
+    def save_validation_loss_plot(self, figures_dir):
+        fig = self.plot_validation_loss()
         save_figure(os.path.join(figures_dir, "Validation_Loss"), obj=fig)
         plt.close()
 
     def save_training_progress(self, file):
-        progress = {'latest_epoch': self.logs['epoch_nr'][-1],
-                    'best_val_loss': min(self.logs['validation_loss']),
-                    'best_epoch': np.argmin(self.logs['validation_loss']),
+        progress = {'latest_epoch': self.get_last_epoch(),
+                    'best_val_loss': self.get_best_val_loss(),
+                    'best_epoch': self.get_best_epoch(),
                     'time': time.time() - self.start_time
                     }
         save_json(progress, file)
 
     def load_from_json(self, filename):
-        pass
+        self.logs = load_json(filename)
 
     def save_to_json(self, filename):
         save_json(self.logs, filename)

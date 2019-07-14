@@ -21,7 +21,7 @@ mkdir -p /disk/scratch/s1680171/wave_propagation
 
 export TMPDIR=/disk/scratch/s1680171/
 
-file=/disk/scratch/s1680171/wave_propagation/video.tar.gz
+file=/disk/scratch/s1680171/wave_propagation/data.tar.gz
 if [ ! -f $file ]
 then
 	echo 'sending tar file'

@@ -163,7 +163,7 @@ class Experiment():
         self.metadata = self._load_metadata()
         self.args_new = self.args
         self.args = Namespace(**self.metadata['args'])
-        self.args.num_epochs = self.args_new.num_epochs
+        self.args.num_epochs = self.args_new.num_epochs  # we are going to be using the new epochs
         self.normalizer = get_normalizer(self.args.normalizer_type)
         self.datasets = load_datasets(self.files['datasets'])
         self.datasets['Training data'].root_dir = self.dirs['data']
@@ -172,15 +172,16 @@ class Experiment():
         self.datasets['Validation data'].transform = get_transforms(self.normalizer)['Test']
         self.datasets['Testing data'].root_dir = self.dirs['data']
         self.datasets['Testing data'].transform = get_transforms(self.normalizer)['Test']
-        self.dataloaders = create_dataloaders(self.datasets, self.args_new.batch_size, self.args_new.num_workers)
-        self.model = self._create_model(self.args.model_type)
-        self.lr_scheduler = self._create_scheduler()
         if test:
             file = self.files['model_best']
+            self.dataloaders = create_dataloaders(self.datasets, self.args_new.batch_size, self.args_new.num_workers)
         else:
             file = self.files['model_latest']
+            self.dataloaders = create_dataloaders(self.datasets, self.args.batch_size, self.args.num_workers)
+        self.model = self._create_model(self.args.model_type)
         self.model = load_network(self.model, file)
         self.model.to(self.device)
+        self.lr_scheduler = self._create_scheduler()
         self.logger = Logger()
         self.logger.load_from_json(self.files['logger'])
         self.starting_epoch = self.logger.get_last_epoch() + 1

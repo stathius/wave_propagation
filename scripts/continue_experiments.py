@@ -14,7 +14,7 @@ with open('train.template', 'r') as file:
     template = file.read()
 file.close()
 
-experiment_names = ['ar_lstm_batch_16_samples_10_epoch_25_in_5_out_20_normalizer_m1to1_lr_0.0001']
+experiment_names = ['ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_16h_c']
 
 
 num_epochs = 100
@@ -30,7 +30,7 @@ for exp_name in experiment_names:
     args_template = args_template.format_map(SafeDict(exp_name=exp_name))
     exp_template = template.format_map(SafeDict(sbatch_args))
     exp_template = exp_template.format_map(SafeDict(args=args_template))
-    exp_script = '%s.sh' % exp_name
+    exp_script = 'continue_%s.sh' % exp_name
     with open(exp_script, 'w') as file:
         file.write(exp_template)
     file.close()

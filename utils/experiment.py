@@ -176,6 +176,7 @@ class Experiment():
             file = self.files['model_best']
             self.dataloaders = create_dataloaders(self.datasets, self.args_new.batch_size, self.args_new.num_workers)
         else:
+            logging.info('Loading latest model to continue with batch_size %s' % self.args.batch_size)
             file = self.files['model_latest']
             self.dataloaders = create_dataloaders(self.datasets, self.args.batch_size, self.args.num_workers)
         self.model = self._create_model(self.args.model_type)

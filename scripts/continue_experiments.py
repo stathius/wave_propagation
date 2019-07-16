@@ -14,10 +14,14 @@ with open('train.template', 'r') as file:
     template = file.read()
 file.close()
 
-experiment_names = ['ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_16h_c']
+experiment_names = [
+                    # 'ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_16h_c',
+                    'convlstm_batch_8_samples_5_in_5_out_10_normal_lr_0.001_16h_c',
+                    # 'resnet_batch_16_samples_5_in_5_out_10_normal_lr_0.001_16_c'
+                    ]
 
 
-num_epochs = 100
+num_epochs = 1000
 sbatch_args = {"partition": "Standard",
                "time": "0-07:59:59"}
 

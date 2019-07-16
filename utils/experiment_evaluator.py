@@ -154,6 +154,16 @@ class Evaluator():
         self.MSE = False
         self.phash2 = False
 
+    def get_rmse_values(self):
+        df = pd.DataFrame.from_dict({'RMSE': self.state['MSE_val'],
+                                       'Frames': self.state['MSE_frame']}).groupby('Frames', as_index=False).agg(['mean', 'std'])
+        return df['RMSE']
+
+    def get_ssim_values(self):
+        df = pd.DataFrame.from_dict({'SSIM': self.state['SSIM_val'],
+                                       'Frames': self.state['SSIM_frame']}).groupby('Frames', as_index=False).agg(['mean', 'std'])
+        return df['SSIM']
+
     def save_to_file(self, file):
         save(self, file)
         # save_json(self, file + '.json')

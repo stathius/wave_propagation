@@ -19,4 +19,5 @@ else:
 experiment_runner = ExperimentRunner(experiment)
 experiment_runner.run_experiment()
 
-evaluate_experiment(experiment, args)
+# No need cause it timeouts
+# evaluate_experiment(experiment, args)

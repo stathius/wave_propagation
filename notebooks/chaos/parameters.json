@@ -1,0 +1,1 @@
+{"location": "./chaos", "azimuth": 45, "viewing_angle": 20, "container_size_min": 10, "container_size_max": 10, "water_depth": 10, "initial_stimulus": 1, "coriolis_force": 0.0, "water_viscocity": 1e-05, "total_time": 5.0, "dt": 0.01, "data_points": 5, "image_size_x": 184, "image_size_y": 184}

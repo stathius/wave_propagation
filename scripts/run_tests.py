@@ -37,4 +37,4 @@ for exp_name in experiments_to_test:
     file.close()
 
     print('Running test for %s' % exp_name)
-    os.system("sbatch -o test_%s_%%j.out %s" % (exp_name, exp_script))
+    os.system("sbatch -o test_%s_%%j.out %s" % (exp_script, exp_script))

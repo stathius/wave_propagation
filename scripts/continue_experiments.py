@@ -39,4 +39,4 @@ for exp_name in experiment_names:
         file.write(exp_template)
     file.close()
 
-    os.system("sbatch -o %s_%%j.out %s" % (exp_name, exp_script))
+    os.system("sbatch -o %s_%%j.out %s" % (exp_script, exp_script))

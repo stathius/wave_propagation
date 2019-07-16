@@ -160,8 +160,8 @@ class Experiment():
         self.starting_epoch = 0
 
     def load_from_disk(self, test=True):
-        self.metadata = self._load_metadata()
         self.args_new = self.args
+        self.metadata = self._load_metadata()
         self.args = Namespace(**self.metadata['args'])
         self.args.num_epochs = self.args_new.num_epochs  # we are going to be using the new epochs
         self.normalizer = get_normalizer(self.args.normalizer_type)

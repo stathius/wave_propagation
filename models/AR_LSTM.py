@@ -68,7 +68,7 @@ class AR_LSTM(nn.Module):
         return self.num_output_frames
 
     def forward(self, x, mode="initial_input"):
-        if "initial_input" in mode:
+        if (mode == "initial_input") or (mode == 'reinsert'):
             x = self.encoder_conv(x)
             self.org_size = x.size()
             x = x.view(-1, 30720)
@@ -76,7 +76,7 @@ class AR_LSTM(nn.Module):
             if mode == "initial_input":
                 self.h0, self.c0 = self.LSTM_initial_input(x, (self.h0, self.c0))
             elif mode == "reinsert":
-                self.h0, self.c0 = self.LSTM_reinserting(x, (self.h0, self.c0))
+                self.h0, self.c0 = self.LSTM_reinsert(x, (self.h0, self.c0))
         elif mode == "propagate":
             self.h0, self.c0 = self.LSTM_propagation(self.h0, (self.h0, self.c0))
         x = self.h0.clone()
@@ -100,45 +100,3 @@ class AR_LSTM(nn.Module):
             else:
                 output_frames = torch.cat((output_frames, self(torch.Tensor([0]), mode="propagate")), dim=1)
         return output_frames
-
-
-# def run_iteration(model, lr_scheduler, epoch, dataloader, num_input_frames, num_output_frames, reinsert_frequency, samples_per_sequence, device, analyser, training=False, debug=False):
-#     if training:
-#         model.train()
-#     else:
-#         model.eval()           # initialises training stage/functions
-#     total_loss = 0
-#     for batch_num, batch_images in enumerate(dataloader):
-#         batch_start = time.time()
-#         batch_loss = 0
-#         sequence_length = batch_images.size(1)
-#         random_starting_points = random.sample(range(sequence_length - num_input_frames - num_output_frames - 1), samples_per_sequence)
-#         # print('RANDOM POINTS: ',random_starting_points)
-
-#         for sp_idx, starting_point in enumerate(random_starting_points):
-#             target_index = starting_point + num_input_frames
-#             input_frames = batch_images[:, starting_point:target_index, :, :].clone()
-#             output_frames = model.get_future_frames(input_frames, num_output_frames)
-#             target_frames = batch_images[:, target_index:(target_index + num_output_frames), :, :]
-
-#             # print('ar size out tar ', output_frames.size(), target_frames.size())
-#             loss = F.mse_loss(output_frames, target_frames)
-#             # print('idx, loss: ', sp_idx, loss.item())
-#             batch_loss += loss.item()
-
-#             if training:
-#                 lr_scheduler.optimizer.zero_grad()
-#                 loss.backward()
-#                 lr_scheduler.optimizer.step()
-
-#         mean_batch_loss = batch_loss / (sp_idx + 1)
-#         analyser.save_loss_batchwise(mean_batch_loss, batch_increment=1)
-#         total_loss += mean_batch_loss
-
-#         batch_time = time.time() - batch_start
-#         logging.info("Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tTime {:.2f}".format(epoch, batch_num + 1, len(dataloader), 100. * (batch_num + 1) / len(dataloader), mean_batch_loss, batch_time))
-
-#         if debug:
-#             break
-#     mean_loss = total_loss / (batch_num + 1)
-#     return mean_loss

@@ -11,19 +11,7 @@ class SafeDict(dict):
 
 
 experiments_to_test = [
-                        "ar_lstm_batch_16_samples_10_in_3_out_10_normal_lr_0.0001",
-                        "resnet_batch_16_samples_10_in_5_out_20_normal_lr_0.001",
-                        "convlstm_batch_8_samples_5_in_5_out_10_normal_lr_0.001_16h",
-                        "resnet_batch_16_samples_5_in_5_out_20_normal_lr_0.001",
-                        "convlstm_batch_8_samples_5_in_3_out_10_normal_lr_0.001",
-                        "ar_lstm_batch_16_samples_10_in_3_out_20_normal_lr_0.0001",
-                        "ar_lstm_batch_16_samples_5_in_5_out_20_normal_lr_0.0001",
-                        "convlstm_batch_8_samples_3_in_5_out_10_normal_lr_0.001",
-                        "convlstm_batch_8_samples_3_in_3_out_10_normal_lr_0.001",
-                        "ar_lstm_batch_16_samples_2_in_5_out_20_normal_lr_0.0001",
-                        "convlstm_batch_8_samples_5_in_5_out_10_normal_lr_0.001_16h_c",
-                        "resnet_batch_16_samples_5_in_5_out_10_normal_lr_0.001_16_c",
-                        "ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_16h_c"
+
                       ]
 
 with open('test.template', 'r') as file:

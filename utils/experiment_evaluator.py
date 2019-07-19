@@ -46,7 +46,7 @@ def get_test_predictions_pairs(model, batch_images, starting_point, num_total_ou
 def get_sample_predictions(model, dataloader, dataset_name, device, figures_dir, normalizer, debug):
     time_start = time.time()
     num_input_frames = model.get_num_input_frames()
-    num_output_frames = model.get_num_output_frames()
+    num_output_frames = model.get_num_output_frames()  # TODO is this needed?
     for batch_num, batch_images in enumerate(dataloader):
         num_total_frames = batch_images.size(1)
         batch_images = batch_images.to(device)

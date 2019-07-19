@@ -35,6 +35,7 @@ def get_args():
     parser.add_argument('--num_epochs', type=int, default=50, help='The experiment\'s epoch budget')
     parser.add_argument('--num_input_frames', type=int, default=5, help='LSTM. How many frames to insert initially')
     parser.add_argument('--num_output_frames', type=int, default=20, help='LSTM. How many framres to predict in the future"')
+    parser.add_argument('--dataset', type=str, default='original', help='select which dataset to use [original, fixed_tub]')
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--samples_per_sequence', type=int, default=10, help='how may training points to generate from a video sequence')
     parser.add_argument('--reinsert_frequency', type=int, default=10, help='AR LSTM: how often to use the reinsert mechanism')

@@ -44,7 +44,8 @@ def create_new_datasets(data_directory, normalizer):
     validation_fraction = 0.15
     transform = get_transforms(normalizer)
 
-    classes = os.listdir(data_directory)
+    # classes = os.listdir(data_directory)
+    classes = [dI for dI in os.listdir(data_directory) if os.path.isdir(os.path.join(data_directory, dI))]
     imagesets = []
     for cla in classes:
         im_list = sorted(os.listdir(data_directory + cla))
@@ -148,6 +149,7 @@ class Experiment():
                                                           patience=self.args.scheduler_patience)
 
     def create_new(self):
+        assert self.args.model_type is not None, "Please specify model type when starting new experiment"
         self.normalizer = get_normalizer(self.args.normalizer_type)
         self.datasets = create_new_datasets(self.dirs['data'], self.normalizer)
         save(self.datasets, self.files['datasets'])
@@ -223,7 +225,11 @@ class Experiment():
             self.dirs['base'] = '/home/s1680171/wave_propagation/'
             self.dirs['data_base'] = '/disk/scratch/s1680171/wave_propagation/'
 
-        self.dirs['data'] = os.path.join(self.dirs['data_base'], 'Training_Data/')
+        if self.args.dataset == 'original':
+            self.dirs['data'] = os.path.join(self.dirs['data_base'], 'Training_Data/')
+        elif self.args.dataset == 'fixed_tub':
+            self.dirs['data'] = os.path.join(self.dirs['data_base'], 'Fixed_tub_10/')
+
         self.dirs['exp_folder'] = os.path.join(self.dirs['base'], "experiments_results/")
         self.dirs['results'] = os.path.join(self.dirs['exp_folder'], self.args.experiment_name)
         for d in self.sub_folders:

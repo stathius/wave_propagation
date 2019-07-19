@@ -9,7 +9,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.io import save, load, save_json, load_json
 from models.AR_LSTM import AR_LSTM
-from models.ConvLSTM import get_convlstm_model
+from models.ConvLSTM import get_convlstm_model, get_ar_convlstm_model
 from models.ResNet import resnet12
 from utils.Logger import Logger
 
@@ -140,6 +140,10 @@ class Experiment():
             model = AR_LSTM(self.args.num_input_frames, self.args.num_output_frames, self.args.reinsert_frequency, self.device)
         elif model_type == 'resnet':
             model = resnet12(self.args.num_input_frames, self.args.num_output_frames)
+        elif model_type == 'ar_convlstm':
+            model = get_ar_convlstm_model(self.args.num_input_frames, self.args.batch_size, self.device)
+        else:
+            raise Warning('Not supported model')
         return model
 
     def _create_scheduler(self):

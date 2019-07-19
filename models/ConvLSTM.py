@@ -27,6 +27,7 @@ class ConvLSTMCell(nn.Module):
     # inputs: S*B*C*H*W
 
     def forward(self, inputs=None, states=None, seq_len=None):
+        # print('new forward')
 
         if states is None:
             c = torch.zeros((inputs.size(1), self._num_filter, self._state_height,
@@ -58,6 +59,7 @@ class ConvLSTMCell(nn.Module):
             o = torch.sigmoid(o + self.Wco * c)
             h = o * torch.tanh(c)
             outputs.append(h)
+            # print('convlstm output: ', h.size())
         return torch.stack(outputs), (h, c)
 
 
@@ -179,14 +181,15 @@ class EncoderForecaster(nn.Module):
         output_frames = self(input_frames)
         num_input_frames = self.get_num_input_frames()
 
+        # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         while output_frames.size(1) < num_total_output_frames:
-            # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
             if output_frames.size(1) < num_input_frames:
                 keep_from_input = num_input_frames - output_frames.size(1)
                 input_frames = torch.cat((input_frames[:, -keep_from_input:, :, :], output_frames), dim=1)
             else:
                 input_frames = output_frames[:, -num_input_frames:, :, :].clone()
             output_frames = torch.cat((output_frames, self(input_frames)), dim=1)
+            # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         return output_frames[:, :num_total_output_frames, :, :]
 
     def get_future_frames_alt(self, input_frames, num_total_output_frames, num_output_keep_frames):
@@ -234,4 +237,40 @@ def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):
 
     encoder = Encoder(encoder_architecture[0], encoder_architecture[1]).to(device)
     forecaster = Forecaster(forecaster_architecture[0], forecaster_architecture[1], num_output_frames).to(device)
+    return EncoderForecaster(encoder, forecaster, device)
+
+
+def get_ar_convlstm_model(num_input_frames, batch_size, device):    # Define encoder #
+    NUM_OUTPUT_FRAMES = 1  # forces it to be autoregressive
+    encoder_architecture = [
+        # in_channels, out_channels, kernel_size, stride, padding
+        [OrderedDict({'conv1_leaky_1': [1, 8, 3, 2, 1]}),
+         OrderedDict({'conv2_leaky_1': [64, 192, 3, 2, 1]}),
+         OrderedDict({'conv3_leaky_1': [192, 192, 3, 2, 1]})],
+
+        [ConvLSTMCell(input_channel=8, num_filter=64, b_h_w=(batch_size, 64, 64),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_input_frames),
+         ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 32, 32),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_input_frames),
+         ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 16, 16),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_input_frames)]
+    ]
+
+    forecaster_architecture = [
+        [OrderedDict({'deconv1_leaky_1': [192, 192, 4, 2, 1]}),
+         OrderedDict({'deconv2_leaky_1': [192, 64, 4, 2, 1]}),
+         OrderedDict({'deconv3_leaky_1': [64, 8, 4, 2, 1],
+                      'conv3_leaky_2': [8, 8, 3, 1, 1],
+                      'conv3_3': [8, 1, 1, 1, 0]}), ],
+
+        [ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 16, 16),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=NUM_OUTPUT_FRAMES),
+         ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 32, 32),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=NUM_OUTPUT_FRAMES),
+         ConvLSTMCell(input_channel=64, num_filter=64, b_h_w=(batch_size, 64, 64),
+                      kernel_size=3, stride=1, padding=1, device=device, seq_len=NUM_OUTPUT_FRAMES)]
+    ]
+
+    encoder = Encoder(encoder_architecture[0], encoder_architecture[1]).to(device)
+    forecaster = Forecaster(forecaster_architecture[0], forecaster_architecture[1], NUM_OUTPUT_FRAMES).to(device)
     return EncoderForecaster(encoder, forecaster, device)

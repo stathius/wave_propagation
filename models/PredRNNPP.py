@@ -12,11 +12,9 @@ class PredRNNPP(nn.Module):
     def __init__(self, num_input_frames, num_output_frames, batch_size, device, use_GHU=False):
         super(PredRNNPP, self).__init__()
 
-        self.num_input_frames = num_input_frames
         self.num_output_frames = num_output_frames
-        self.seq_length = num_input_frames + num_output_frames
+        self.num_input_frames = num_input_frames
         self.device = device
-        self.batch_size = batch_size
         self.num_hidden = [64, 64, 64, 64]
         self.num_layers = len(self.num_hidden)
 
@@ -29,7 +27,7 @@ class PredRNNPP(nn.Module):
                                padding=0)
         self.pool = nn.MaxPool2d(kernel_size=4)
 
-        self.compressed_shape = [batch_size, 8, 31, 31]
+        self.compressed_shape = [8, 31, 31]
         self.use_GHU = use_GHU
         for i in range(self.num_layers):
             if i == 0:
@@ -56,8 +54,27 @@ class PredRNNPP(nn.Module):
             output_padding=1
         )
 
-    def forward(self, x):
+    def get_future_frames_belated(self, input_frames, num_total_output_frames):
+        output_frames = self(input_frames, num_total_output_frames)
+        num_input_frames = self.get_num_input_frames()
 
+        # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
+        while output_frames.size(1) < num_total_output_frames:
+            print('i should not appear in training')
+            if output_frames.size(1) < num_input_frames:
+                keep_from_input = num_input_frames - output_frames.size(1)
+                input_frames = torch.cat((input_frames[:, -keep_from_input:, :, :], output_frames), dim=1)
+            else:
+                input_frames = output_frames[:, -num_input_frames:, :, :].clone()
+            output_frames = torch.cat((output_frames, self(input_frames)), dim=1)
+            # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
+        return output_frames[:, :num_total_output_frames, :, :]
+
+    def get_future_frames(self, input_frames, num_total_output_frames):
+        return self(input_frames, num_total_output_frames)
+
+    def forward(self, input_frames, num_output_frames):
+        seq_length = self.num_input_frames + num_output_frames
         cell = []
         hidden = []
         mem = None
@@ -68,10 +85,10 @@ class PredRNNPP(nn.Module):
         output = []
         x_gen = None
         # x has shape B S H W
-        for t in range(self.seq_length):
+        for t in range(seq_length):
 
             if t < self.num_input_frames:
-                inputs = x[:, t, :, :].unsqueeze(1)
+                inputs = input_frames[:, t, :, :].unsqueeze(1)
             else:
                 inputs = x_gen
 
@@ -93,6 +110,6 @@ class PredRNNPP(nn.Module):
             # print('t= ', t, ' memory :', torch.cuda.max_memory_allocated())
 
         output = torch.stack(output[self.num_input_frames:])
-        if self.batch_size == 1:
+        if input_frames.size(0) == 1:  # if batch size one
             output = output.unsqueeze(1)
         return output.permute(1, 0, 2, 3)

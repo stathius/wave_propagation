@@ -125,6 +125,6 @@ class ExperimentRunner(nn.Module):
 
             # Plot test predictions during training. Cool!
             output_frames, target_frames = get_test_predictions_pairs(self.model, batch_images, self.args.test_starting_point, self.args.num_total_output_frames)
-            save_sequence_plots(epoch_num, self.args.test_starting_point, output_frames, target_frames, self.exp.dirs['training'], self.exp.normalizer, 'Training', prediction=False, cutthrough=True)
+            save_sequence_plots(epoch_num, self.args.test_starting_point, output_frames, target_frames, self.exp.dirs['training'], self.exp.normalizer, 'Training')
 
             self.exp.logger.save_training_progress(self.exp.files['progress'])

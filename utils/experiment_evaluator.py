@@ -13,23 +13,30 @@ from PIL import Image
 import imagehash
 import os
 from utils.helper_functions import hex_str2bool, normalize_image
-from utils.plotting import save_prediction_plot, save_cutthrough_plot
+from utils.plotting import get_cutthrough_plot
 from utils.io import save, save_json, save_figure
 from utils.experiment import get_transforms, get_normalizer
 from utils.WaveDataset import WaveDataset
 
 
-def save_sequence_plots(sequence_index, starting_point, output_frames, target_frames, figures_dir, normalizer, dataset_name, prediction=True, cutthrough=True):
+def image_prepro(image, normalizer):
+    image = normalize_image(image, normalizer)
+    image = np.clip(image, 0, 1)
+    return image
+
+
+def save_sequence_plots(sequence_index, starting_point, output_frames, target_frames, figures_dir, normalizer, dataset_name):
     num_total_frames = output_frames.size(1)
     for frame_index in range(0, num_total_frames, 10):
         params = 'seq_%02d_start_%02d_frame_%02d' % (sequence_index, starting_point, frame_index + 1)
-        output = output_frames[0, frame_index, :, :].cpu().numpy()
-        target = target_frames[0, frame_index, :, :].cpu().numpy()
-        # if prediction:
-            # save_prediction_plot("%s_PR_%s" % params, output, target, normalizer, figures_dir)
-        if cutthrough:
-            title = "%s_CT_%s" % (dataset_name, params)
-            save_cutthrough_plot(title, output, target, normalizer, figures_dir, direction='Horizontal', location=None)
+        output = image_prepro(output_frames[0, frame_index, :, :].cpu().numpy(), normalizer)
+        target = image_prepro(target_frames[0, frame_index, :, :].cpu().numpy(), normalizer)
+        title = "%s_Ver_%s" % (dataset_name, params)
+        fig = get_cutthrough_plot(title, output, target, direction='Horizontal', location=None)
+        save_figure(os.path.join(figures_dir, title), obj=fig)
+        title = "%s_Hor_%s" % (dataset_name, params)
+        fig = get_cutthrough_plot(title, output, target, direction='Vertical', location=None)
+        plt.close()
 
 
 def get_test_predictions_pairs(model, batch_images, starting_point, num_total_output_frames):
@@ -46,12 +53,11 @@ def get_test_predictions_pairs(model, batch_images, starting_point, num_total_ou
 def get_sample_predictions(model, dataloader, dataset_name, device, figures_dir, normalizer, debug):
     time_start = time.time()
     num_input_frames = model.get_num_input_frames()
-    num_output_frames = model.get_num_output_frames()  # TODO is this needed?
     for batch_num, batch_images in enumerate(dataloader):
         num_total_frames = batch_images.size(1)
         batch_images = batch_images.to(device)
 
-        for starting_point in range(0, num_total_frames - num_output_frames - num_input_frames, 10):
+        for starting_point in range(0, max(21, num_total_frames - num_input_frames), 10):
             num_total_output_frames = math.floor(math.floor((num_total_frames - num_input_frames - starting_point)) / 10) * 10  # requests multiple of ten
             if num_total_output_frames < 10:
                 continue
@@ -81,7 +87,7 @@ def create_evaluation_dataloader(data_directory, normalizer_type):
 
     dataset_info = [data_directory, classes, imagesets]
     dataset = WaveDataset(dataset_info, transform["Test"])
-    return DataLoader(dataset, batch_size=16, shuffle=False, num_workers=4)
+    return DataLoader(dataset, batch_size=8, shuffle=False, num_workers=4)
 
 
 def evaluate_experiment(experiment, args):
@@ -183,7 +189,7 @@ class Evaluator():
                 last_input = batch_images[:, (input_end_point - 1):input_end_point, :, :]
 
                 input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
-                output_frames = model.get_future_frames(input_frames, num_real_output_frames)
+                output_frames = model.get_future_frames_belated(input_frames, num_real_output_frames)
 
                 self.compare_output_target(output_frames, target_frames, last_input)
 
@@ -196,15 +202,15 @@ class Evaluator():
         num_output_frames = output_frames.size(1)
         for batch_index in range(batch_size):
             for frame_index in range(num_output_frames):
-                output = self.prepro(output_frames[batch_index, frame_index, :, :].cpu().numpy())
-                target = self.prepro(target_frames[batch_index, frame_index, :, :].cpu().numpy())
+                output = image_prepro(output_frames[batch_index, frame_index, :, :].cpu().numpy(), self.normalizer)
+                target = image_prepro(target_frames[batch_index, frame_index, :, :].cpu().numpy(), self.normalizer)
                 self.add(output, target, frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
                 if frame_index == 0:
                     previous_frame = target  # previous frame predicts the next
                 elif frame_index > 0:
                     self.add_baseline('previous_frame', previous_frame, target, frame_index)
                     previous_frame = target
-                last_input = self.prepro(last_input_batch[batch_index, 0, :, :].cpu().numpy())
+                last_input = image_prepro(last_input_batch[batch_index, 0, :, :].cpu().numpy(), self.normalizer)
                 self.add_baseline('last_input', last_input, target, frame_index)
 
     def add_baseline(self, name, predicted, target, frame_nr):
@@ -272,11 +278,6 @@ class Evaluator():
 
     def ssim(self, predicted, target):
         return measure.compare_ssim(predicted, target, multichannel=False, gaussian_weights=True)
-
-    def prepro(self, image):
-        image = normalize_image(image, self.normalizer)
-        image = np.clip(image, 0, 1)
-        return image
 
     def score(self, predicted, target):
         predicted_mean = np.mean(predicted, axis=(0, 1))

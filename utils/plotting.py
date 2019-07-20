@@ -7,7 +7,7 @@ import os
 from utils.io import save_figure
 
 
-def imshow(image, title=None, smoothen=False, return_np=False, obj=None, normalize=None):
+def imshow(image, title=None, smoothen=False, return_np=False, obj=None):
     """Imshow for Tensor."""
     smooth_filter = (.5, .5)
 
@@ -35,15 +35,15 @@ def save_prediction_plot(title, predicted, target, normalize, figures_dir):
     sns.set(style="white")  # darkgrid, whitegrid, dark, white, and ticks
     sns.set_context("talk")
     pred = fig.add_subplot(1, 2, 1)
-    imshow(predicted, title="Predicted", smoothen=True, obj=pred, normalize=normalize)
+    imshow(predicted, title="Predicted", smoothen=True, obj=pred)
     tar = fig.add_subplot(1, 2, 2)
-    imshow(target, title="Target", obj=tar, normalize=normalize)
+    imshow(target, title="Target", obj=tar)
     fig.suptitle(title)
     save_figure(os.path.join(figures_dir, title), fig)
     plt.close()
 
 
-def save_cutthrough_plot(title, predicted, target, normalize, figures_dir, direction, location=None):
+def get_cutthrough_plot(title, predicted, target, direction, location=None):
     def cutthrough(img1, img2, hue1, hue2):
         intensity = []
         location = []
@@ -74,8 +74,8 @@ def save_cutthrough_plot(title, predicted, target, normalize, figures_dir, direc
     with sns.axes_style("darkgrid"):  # darkgrid, whitegrid, dark, white, and ticks
         profile = fig.add_subplot(1, 4, (3, 4))
 
-    predicted = imshow(predicted, title="Predicted", return_np=True, obj=pre, normalize=normalize)
-    target = imshow(target, title="Target", return_np=True, obj=tar, normalize=normalize)
+    predicted = imshow(predicted, title="Predicted", return_np=True, obj=pre)
+    target = imshow(target, title="Target", return_np=True, obj=tar)
     if not location:
         if "Horizontal" in direction:
             std = np.std(target, axis=1)
@@ -94,5 +94,4 @@ def save_cutthrough_plot(title, predicted, target, normalize, figures_dir, direc
 
     cutthrough(predicted, target, "Predicted", "Target")
     fig.suptitle(title)
-    save_figure(os.path.join(figures_dir, title), obj=fig)
-    plt.close()
+    return fig

@@ -7,7 +7,7 @@ import torch.nn as nn
 class CausalLSTMCell(nn.Module):
     def __init__(self, input_channels, filter_size, num_hidden_in, num_hidden_out,
                  seq_shape, device, forget_bias=1.0, initializer=0.001):
-        super(CausalLSTMCell, self).__init__()
+        super().__init__()
 
         self.device = device
         # self.layer_name = layer_name
@@ -15,9 +15,8 @@ class CausalLSTMCell(nn.Module):
         self.input_channels = input_channels
         self.num_hidden_in = num_hidden_in
         self.num_hidden = num_hidden_out
-        self.batch = seq_shape[0]
-        self.height = seq_shape[2]
-        self.width = seq_shape[3]
+        self.height = seq_shape[1]
+        self.width = seq_shape[2]
         # self.layer_norm = tln
         self._forget_bias = forget_bias
 
@@ -57,12 +56,13 @@ class CausalLSTMCell(nn.Module):
                                   padding=0)
 
     def forward(self, x, h, c, m):
+        batch_size = x.size(0)
         if h is None:
-            h = torch.zeros([self.batch, self.num_hidden, self.height, self.width]).to(self.device)
+            h = torch.zeros([batch_size, self.num_hidden, self.height, self.width]).to(self.device)
         if c is None:
-            c = torch.zeros([self.batch, self.num_hidden, self.height, self.width]).to(self.device)
+            c = torch.zeros([batch_size, self.num_hidden, self.height, self.width]).to(self.device)
         if m is None:
-            m = torch.zeros([self.batch, self.num_hidden_in, self.height, self.width]).to(self.device)
+            m = torch.zeros([batch_size, self.num_hidden_in, self.height, self.width]).to(self.device)
 
         h_cc = self.conv_h(h)
         c_cc = self.conv_c(c)

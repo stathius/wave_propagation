@@ -54,6 +54,12 @@ class PredRNNPP(nn.Module):
             output_padding=1
         )
 
+    def get_num_input_frames(self):
+        return self.num_input_frames
+
+    def get_num_output_frames(self):
+        return self.num_output_frames
+
     def get_future_frames_belated(self, input_frames, num_total_output_frames):
         output_frames = self(input_frames, num_total_output_frames)
         num_input_frames = self.get_num_input_frames()

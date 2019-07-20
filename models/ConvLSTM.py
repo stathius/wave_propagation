@@ -193,16 +193,10 @@ class EncoderForecaster(nn.Module):
         return output_frames[:, :num_total_output_frames, :, :]
 
     def get_future_frames_alt(self, input_frames, num_total_output_frames, num_output_keep_frames):
-        #  This one can keep a subset of the output instead of all
-        output_frames = self(input_frames)[:, :num_output_keep_frames, :, :]
-        num_input_frames = self.get_num_input_frames()
-
-        while output_frames.size(1) < num_total_output_frames:
-            # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
-            input_frames = output_frames[:, -num_input_frames:, :, :].clone()
-            output_keep_frames = self(input_frames)[:, :num_output_keep_frames, :, :]
-            output_frames = torch.cat((output_frames, output_keep_frames), dim=1)
-        return output_frames[:, :num_total_output_frames, :, :]
+        input_frames = convert_BSHW_to_SBCHW(input_frames)
+        state = self.encoder(input_frames)
+        output = self.forecaster(state)
+        return convert_SBCHW_to_BSHW(output)
 
 
 def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):    # Define encoder #

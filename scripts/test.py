@@ -11,17 +11,8 @@ class SafeDict(dict):
 
 
 experiments_to_test = [
-"train_ar_convlstm_batch_3_samples_5_in_5_out_5_normal_lr_0.001",
-"train_ar_convlstm_batch_3_samples_5_in_5_out_10_normal_lr_0.01",
-"train_ar_convlstm_batch_2_samples_5_in_5_out_10_normal_lr_0.001",
-"rain_ar_convlstm_batch_2_samples_5_in_5_out_10_normal_lr_0.0001",
-"train_ar_convlstm_batch_2_samples_3_in_5_out_10_normal_lr_0.001",
-"train_ar_convlstm_batch_2_samples_1_in_5_out_10_normal_lr_0.001",
-"train_ar_convlstm_batch_2_samples_5_in_3_out_10_normal_lr_0.001",
-"train_ar_convlstm_batch_2_samples_1_in_3_out_10_normal_lr_0.001",
-"train_ar_convlstm_batch_1_samples_1_in_5_out_20_normal_lr_0.001",
-"train_ar_convlstm_batch_1_samples_5_in_5_out_20_normal_lr_0.001",
-"train_ar_convlstm_batch_1_samples_5_in_3_out_20_normal_lr_0.001",
+"ar_convlstm_batch_2_samples_1_in_5_out_10_normal_lr_0.001",
+"ar_convlstm_batch_2_samples_1_in_3_out_10_normal_lr_0.001"
 ]
 
 with open('test.template', 'r') as file:

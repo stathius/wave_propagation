@@ -130,9 +130,9 @@ class Experiment():
         logging.info('Experiment %s' % args.experiment_name)
         self.args = args
         self.sub_folders = ['pickles', 'models', 'predictions', 'charts', 'training']
+        self.device = get_device()
         self._filesystem_structure()
         self._mkdirs()
-        self.device = get_device()
 
     def _create_model(self, model_type):
         if model_type == 'convlstm':
@@ -156,8 +156,9 @@ class Experiment():
 
     def create_new(self):
         assert self.args.model_type is not None, "Please specify model type when starting new experiment"
+
         self.normalizer = get_normalizer(self.args.normalizer_type)
-        self.datasets = create_new_datasets(self.dirs['data'], self.normalizer)
+        self.datasets = create_new_datasets(self.get_train_data_dir(), self.normalizer)
         save(self.datasets, self.files['datasets'])
         self.dataloaders = create_dataloaders(self.datasets, self.args.batch_size, self.args.num_workers)
         self.model = self._create_model(self.args.model_type)
@@ -172,13 +173,15 @@ class Experiment():
         self.metadata = self._load_metadata()
         self.args = Namespace(**self.metadata['args'])
         self.args.num_epochs = self.args_new.num_epochs  # we are going to be using the new epochs
+        if not hasattr(self.args, 'dataset'):
+            self.args.dataset = 'original'
         self.normalizer = get_normalizer(self.args.normalizer_type)
         self.datasets = load_datasets(self.files['datasets'])
-        self.datasets['Training data'].root_dir = self.dirs['data']
+        self.datasets['Training data'].root_dir = self.get_train_data_dir()
         self.datasets['Training data'].transform = get_transforms(self.normalizer)['Train']
-        self.datasets['Validation data'].root_dir = self.dirs['data']
+        self.datasets['Validation data'].root_dir = self.get_train_data_dir()
         self.datasets['Validation data'].transform = get_transforms(self.normalizer)['Test']
-        self.datasets['Testing data'].root_dir = self.dirs['data']
+        self.datasets['Testing data'].root_dir = self.get_train_data_dir()
         self.datasets['Testing data'].transform = get_transforms(self.normalizer)['Test']
         if test:
             file = self.files['model_best']
@@ -222,6 +225,15 @@ class Experiment():
             if not os.path.isdir(self.dirs[d]):
                 os.mkdir(self.dirs[d])
 
+    def get_train_data_dir(self):
+        if self.args.dataset == 'original':
+            logging.info('Using original data')
+            d = os.path.join(self.dirs['data_base'], 'Training_Data/')
+        elif self.args.dataset == 'fixed_tub':
+            logging.info('Using fixed tub data')
+            d = os.path.join(self.dirs['data_base'], 'Fixed_tub_10/')
+        return d
+
     def _filesystem_structure(self):
         self.dirs = {}
         if 'Darwin' in platform.system():
@@ -230,11 +242,6 @@ class Experiment():
         else:
             self.dirs['base'] = '/home/s1680171/wave_propagation/'
             self.dirs['data_base'] = '/disk/scratch/s1680171/wave_propagation/'
-
-        if self.args.dataset == 'original':
-            self.dirs['data'] = os.path.join(self.dirs['data_base'], 'Training_Data/')
-        elif self.args.dataset == 'fixed_tub':
-            self.dirs['data'] = os.path.join(self.dirs['data_base'], 'Fixed_tub_10/')
 
         self.dirs['exp_folder'] = os.path.join(self.dirs['base'], "experiments_results/")
         self.dirs['results'] = os.path.join(self.dirs['exp_folder'], self.args.experiment_name)

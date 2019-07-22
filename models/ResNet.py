@@ -138,7 +138,7 @@ class ResNet(nn.Module):
         x = self.conv2(x)
         return x
 
-    def get_future_frames(self, input_frames, num_total_output_frames):
+    def get_future_frames(self, input_frames, num_total_output_frames, belated):
         output_frames = self(input_frames)
         num_input_frames = self.get_num_input_frames()
 

@@ -61,23 +61,27 @@ class PredRNNPP(nn.Module):
         return self.num_output_frames
 
     def get_future_frames_belated(self, input_frames, num_total_output_frames):
-        output_frames = self(input_frames, num_total_output_frames)
         num_input_frames = self.get_num_input_frames()
+        num_output_frames = self.get_num_output_frames()
+        output_frames = self(input_frames, num_output_frames)
 
         # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         while output_frames.size(1) < num_total_output_frames:
-            print('i should not appear in training')
+            # print('i should not appear in training')
             if output_frames.size(1) < num_input_frames:
                 keep_from_input = num_input_frames - output_frames.size(1)
                 input_frames = torch.cat((input_frames[:, -keep_from_input:, :, :], output_frames), dim=1)
             else:
                 input_frames = output_frames[:, -num_input_frames:, :, :].clone()
-            output_frames = torch.cat((output_frames, self(input_frames)), dim=1)
+            output_frames = torch.cat((output_frames, self(input_frames, num_output_frames)), dim=1)
             # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         return output_frames[:, :num_total_output_frames, :, :]
 
-    def get_future_frames(self, input_frames, num_total_output_frames):
-        return self(input_frames, num_total_output_frames)
+    def get_future_frames(self, input_frames, num_total_output_frames, belated):
+        if belated:
+            return self.get_future_frames_belated(input_frames, num_total_output_frames)
+        else:
+            return self(input_frames, num_total_output_frames)
 
     def forward(self, input_frames, num_output_frames):
         seq_length = self.num_input_frames + num_output_frames

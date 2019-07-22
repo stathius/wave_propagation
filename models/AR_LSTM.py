@@ -89,7 +89,7 @@ class AR_LSTM(nn.Module):
         self.h0 = torch.zeros((batch_size, self.LSTM_SIZE)).to(self.device)
         self.c0 = torch.zeros((batch_size, self.LSTM_SIZE)).to(self.device)
 
-    def get_future_frames(self, input_frames, num_total_output_frames):
+    def forward_many(self, input_frames, num_total_output_frames):
         self.reset_hidden(batch_size=input_frames.size(0))
         for future_frame_idx in range(num_total_output_frames):
             if future_frame_idx == 0:
@@ -100,3 +100,26 @@ class AR_LSTM(nn.Module):
             else:
                 output_frames = torch.cat((output_frames, self(torch.Tensor([0]), mode="propagate")), dim=1)
         return output_frames
+
+    def get_future_frames_belated(self, input_frames, num_total_output_frames):
+        num_input_frames = self.get_num_input_frames()
+        num_output_frames = self.get_num_output_frames()
+        output_frames = self.forward_many(input_frames, num_output_frames)
+
+        # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
+        while output_frames.size(1) < num_total_output_frames:
+            # print('i should not appear in training')
+            if output_frames.size(1) < num_input_frames:
+                keep_from_input = num_input_frames - output_frames.size(1)
+                input_frames = torch.cat((input_frames[:, -keep_from_input:, :, :], output_frames), dim=1)
+            else:
+                input_frames = output_frames[:, -num_input_frames:, :, :].clone()
+            output_frames = torch.cat((output_frames, self.forward_many(input_frames, num_output_frames)), dim=1)
+            # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
+        return output_frames[:, :num_total_output_frames, :, :]
+
+    def get_future_frames(self, input_frames, num_total_output_frames, belated):
+        if belated:
+            return self.get_future_frames_belated(input_frames, num_total_output_frames)
+        else:
+            return self.forward_many(input_frames, num_total_output_frames)

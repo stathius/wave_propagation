@@ -164,8 +164,11 @@ class EncoderForecaster(nn.Module):
             # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         return output_frames[:, :num_total_output_frames, :, :]
 
-    def get_future_frames(self, input_frames, num_total_output_frames):
-        return self(input_frames, num_total_output_frames)
+    def get_future_frames(self, input_frames, num_total_output_frames, belated):
+        if belated:
+            return self.get_future_frames_belated(input_frames, num_total_output_frames)
+        else:
+            return self(input_frames, num_total_output_frames)
 
 
 def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):    # Define encoder #

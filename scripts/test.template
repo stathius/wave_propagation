@@ -21,13 +21,14 @@ mkdir -p /disk/scratch/s1680171/wave_propagation
 
 export TMPDIR=/disk/scratch/s1680171/
 
-file=/disk/scratch/s1680171/wave_propagation/data.tar.gz
+rm /disk/scratch/s1680171/wave_propagation/data.tar.gz
+file=/disk/scratch/s1680171/wave_propagation/data_new.tar.gz
 if [ ! -f $file ]
 then
 	echo 'sending tar file'
-	rsync -ua --progress /home/s1680171/wave_propagation/data.tar.gz /disk/scratch/s1680171/wave_propagation/
+	rsync -ua --progress /home/s1680171/wave_propagation/data_new.tar.gz /disk/scratch/s1680171/wave_propagation/
 	echo 'unzipping'
-	tar zxfk /disk/scratch/s1680171/wave_propagation/data.tar.gz -C /disk/scratch/s1680171/wave_propagation/ >/dev/null 2>&1
+	tar zxfk /disk/scratch/s1680171/wave_propagation/data_new.tar.gz -C /disk/scratch/s1680171/wave_propagation/ >/dev/null 2>&1
 	echo 'unzipping finished'
 else
 	echo 'dataset already uploaded'

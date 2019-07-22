@@ -11,19 +11,32 @@ class SafeDict(dict):
 
 
 experiments_to_test = [
-"convlstm_batch_16_samples_5_in_5_out_1_normal_lr_0.001",
-"convlstm_batch_16_samples_5_in_5_out_5_normal_lr_0.001",
-"convlstm_batch_6_samples_10_in_5_out_20_normal_lr_0.001",
-"convlstm_batch_6_samples_3_in_5_out_20_normal_lr_0.001",
-"convlstm_batch_6_samples_5_in_2_out_20_normal_lr_0.001",
-"convlstm_batch_6_samples_5_in_5_out_20_normal_lr_0.001",
-"convlstm_batch_8_samples_3_in_3_out_10_normal_lr_0.001",
-"convlstm_batch_8_samples_3_in_5_out_10_normal_lr_0.001",
-"convlstm_batch_8_samples_5_in_3_out_10_normal_lr_0.001",
-"convlstm_batch_8_samples_5_in_5_out_10_normal_lr_0.001",
-"convlstm_batch_8_samples_5_in_5_out_10_normal_lr_0.001_16h_c",
-"convlstm_batch_8_samples_5_in_5_out_10_normal_lr_0.001_fixed_tub"
+"resnet_batch_16_samples_5_in_5_out_10_normal_lr_0.001_dataset_fixed_tub",
+"ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_dataset_fixed_tub",
+"convlstm_batch_8_samples_5_in_5_out_10_normal_lr_0.001_dataset_fixed_tub"
+            # "predrnn_batch_4_samples_1_in_5_out_10_normal_lr_0.0001",
+            # "predrnn_batch_4_samples_1_in_5_out_20_normal_lr_0.0001",
+            # "predrnn_batch_4_samples_5_in_5_out_5_normal_lr_0.0001",
+            # "predrnn_batch_4_samples_5_in_5_out_10_normal_lr_0.0001",
+            # "predrnn_batch_4_samples_5_in_5_out_20_normal_lr_0.0001"
 ]
+# "convlstm_batch_8_samples_5_in_3_out_10_normal_lr_0.001", FINISHED
+
+
+# convlstm_batch_8_samples_3_in_3_out_10_normal_lr_0.001   RUNNING
+# convlstm_batch_16_samples_5_in_5_out_5_normal_lr_0.001   RUNNING
+# convlstm_batch_6_samples_3_in_5_out_20_normal_lr_0.001   RUNNING
+# convlstm_batch_8_samples_3_in_5_out_10_normal_lr_0.001   RUNNING
+# convlstm_batch_16_samples_5_in_5_out_1_normal_lr_0.001   PENDING
+# convlstm_batch_6_samples_10_in_5_out_20_normal_lr_0.001       RUNNING
+# convlstm_batch_6_samples_5_in_2_out_20_normal_lr_0.001        RUNNING
+# convlstm_batch_6_samples_5_in_5_out_20_normal_lr_0.001        RUNNING
+# convlstm_batch_8_samples_5_in_5_out_10_normal_lr_0.001        RUNNING
+# convlstm_batch_8_samples_5_in_5_out_10_normal_lr_0.001_16h_c  RUNNING
+
+
+partition = 'Short'
+time = '0-03:59:59'
 
 with open('test.template', 'r') as file:
     template = file.read()
@@ -39,7 +52,7 @@ for exp_name in experiments_to_test:
 
     args_template = args_template.format_map(SafeDict(exp_name=exp_name))
     args_template = args_template.format(**exp_args)
-    exp_template = template.format_map(SafeDict(args=args_template))
+    exp_template = template.format_map(SafeDict(args=args_template, partition=partition, time=time))
     exp_script = 'test_%s_sp_%d.sh' % (exp_name, exp_args['test_starting_point'])
     with open(exp_script, 'w') as file:
         file.write(exp_template)

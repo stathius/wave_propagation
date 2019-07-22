@@ -7,8 +7,8 @@ from utils.experiment import Experiment
 plt.ioff()
 logging.basicConfig(format='%(message)s', level=logging.INFO)
 
-args = get_args()
-experiment = Experiment(args)
+args_new = get_args()
+experiment = Experiment(args_new)
 experiment.load_from_disk(test=True)
 
-evaluate_experiment(experiment, args)
+evaluate_experiment(experiment, args_new)

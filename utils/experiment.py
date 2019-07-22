@@ -129,7 +129,7 @@ class Experiment():
     def __init__(self, args):
         logging.info('Experiment %s' % args.experiment_name)
         self.args = args
-        self.sub_folders = ['pickles', 'models', 'predictions', 'charts', 'training']
+        self.sub_folders = ['pickles', 'models', 'predictions', 'charts', 'training', 'charts_belated', 'predictions_belated']
         self.device = get_device()
         self._filesystem_structure()
         self._mkdirs()
@@ -185,7 +185,7 @@ class Experiment():
         self.datasets['Testing data'].transform = get_transforms(self.normalizer)['Test']
         if test:
             file = self.files['model_best']
-            self.dataloaders = create_dataloaders(self.datasets, self.args_new.batch_size, self.args_new.num_workers)
+            self.dataloaders = create_dataloaders(self.datasets, self.args.batch_size, self.args_new.num_workers)
         else:
             logging.info('Loading latest model to continue with batch_size %s' % self.args.batch_size)
             file = self.files['model_latest']
@@ -197,6 +197,8 @@ class Experiment():
         self.logger = Logger()
         self.logger.load_from_json(self.files['logger'])
         self.starting_epoch = self.logger.get_last_epoch() + 1
+        logging.info(self.args)
+
         # Plus more stuff to get the best val accuracy and the last epoch numbers
 
     def _save_metadata(self):
@@ -252,7 +254,12 @@ class Experiment():
         self.files['datasets'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
         self.files['logger'] = os.path.join(self.dirs['pickles'], "logger.json")
-        self.files['evaluator'] = os.path.join(self.dirs['pickles'], 'evaluator_%s_sp_%d.pickle')
+        if self.args.belated:
+            self.files['evaluator'] = os.path.join(self.dirs['pickles'], 'belated_evaluator_%s_sp_%d.pickle')
+            self.dirs['predictions'] = self.dirs['predictions_belated']
+            self.dirs['charts'] = self.dirs['charts_belated']
+        else:
+            self.files['evaluator'] = os.path.join(self.dirs['pickles'], 'evaluator_%s_sp_%d.pickle')
         self.files['model_latest'] = os.path.join(self.dirs['models'], 'model_latest.pt')
         self.files['model_best'] = os.path.join(self.dirs['models'], 'model_best.pt')
         self.files['progress'] = os.path.join(self.dirs['training'], "progress.json")

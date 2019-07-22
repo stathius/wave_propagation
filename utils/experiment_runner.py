@@ -15,7 +15,6 @@ from utils.io import save_json
 class ExperimentRunner(nn.Module):
     def __init__(self, experiment):
         super(ExperimentRunner, self).__init__()
-
         self.exp = experiment
         self.args = experiment.args
         self.model = experiment.model
@@ -32,6 +31,7 @@ class ExperimentRunner(nn.Module):
         self.model.to(self.exp.device)
 
         self.best_val_model_loss = experiment.logger.get_best_val_loss()
+        self.belated = False
 
     def get_num_parameters(self):
         total_num_params = 0
@@ -55,7 +55,7 @@ class ExperimentRunner(nn.Module):
         for starting_point in random_starting_points:
             input_end_point = starting_point + self.args.num_input_frames
             input_frames = batch_images[:, starting_point:input_end_point, :, :].clone()
-            output_frames = self.model.get_future_frames(input_frames, self.args.num_output_frames)
+            output_frames = self.model.get_future_frames(input_frames, self.args.num_output_frames, self.belated)
             target_frames = batch_images[:, input_end_point:(input_end_point + self.args.num_output_frames), :, :]
             # print('ER sizes out, tar', output_frames.size(), target_frames.size())
             loss = F.mse_loss(output_frames, target_frames)
@@ -124,7 +124,7 @@ class ExperimentRunner(nn.Module):
                 save_network(self.model, os.path.join(self.exp.files['model_best']))
 
             # Plot test predictions during training. Cool!
-            output_frames, target_frames = get_test_predictions_pairs(self.model, batch_images, self.args.test_starting_point, self.args.num_total_output_frames)
+            output_frames, target_frames = get_test_predictions_pairs(self.model, self.belated, batch_images, self.args.test_starting_point, self.args.num_total_output_frames)
             save_sequence_plots(epoch_num, self.args.test_starting_point, output_frames, target_frames, self.exp.dirs['training'], self.exp.normalizer, 'Training')
 
             self.exp.logger.save_training_progress(self.exp.files['progress'])

@@ -25,32 +25,19 @@ def image_prepro(image, normalizer):
     return image
 
 
-def save_sequence_plots(sequence_index, starting_point, output_frames, target_frames, figures_dir, normalizer, dataset_name):
-    num_total_frames = output_frames.size(1)
-    for frame_index in range(0, num_total_frames, 10):
-        params = 'seq_%02d_start_%02d_frame_%02d' % (sequence_index, starting_point, frame_index + 1)
-        output = image_prepro(output_frames[0, frame_index, :, :].cpu().numpy(), normalizer)
-        target = image_prepro(target_frames[0, frame_index, :, :].cpu().numpy(), normalizer)
-        title = "%s_Ver_%s" % (dataset_name, params)
-        fig = get_cutthrough_plot(title, output, target, direction='Horizontal', location=None)
-        save_figure(os.path.join(figures_dir, title), obj=fig)
-        title = "%s_Hor_%s" % (dataset_name, params)
-        fig = get_cutthrough_plot(title, output, target, direction='Vertical', location=None)
-        plt.close()
-
-
-def get_test_predictions_pairs(model, batch_images, starting_point, num_total_output_frames):
-    model.eval()
-    num_input_frames = model.get_num_input_frames()
-    with torch.no_grad():
-        input_end_point = starting_point + num_input_frames
-        input_frames = batch_images[:1, starting_point:input_end_point, :, :].clone()
-        output_frames = model.get_future_frames(input_frames, num_total_output_frames)
-        target_frames = batch_images[:1, input_end_point:(input_end_point + num_total_output_frames), :, :]
-    return output_frames, target_frames
-
-
 def get_sample_predictions(model, dataloader, dataset_name, device, figures_dir, normalizer, debug):
+    def save_sequence_plots():
+        for frame_index in range(0, num_total_frames, 10):
+            params = 'seq_%02d_start_%02d_frame_%02d' % (batch_num, starting_point, frame_index + 1)
+            output = image_prepro(output_frames[0, frame_index, :, :].cpu().numpy(), normalizer)
+            target = image_prepro(target_frames[0, frame_index, :, :].cpu().numpy(), normalizer)
+            title = "%s_Ver_%s" % (dataset_name, params)
+            fig = get_cutthrough_plot(title, output, target, direction='Horizontal', location=None)
+            save_figure(os.path.join(figures_dir, title), obj=fig)
+            title = "%s_Hor_%s" % (dataset_name, params)
+            fig = get_cutthrough_plot(title, output, target, direction='Vertical', location=None)
+            plt.close()
+
     time_start = time.time()
     num_input_frames = model.get_num_input_frames()
     for batch_num, batch_images in enumerate(dataloader):
@@ -62,9 +49,16 @@ def get_sample_predictions(model, dataloader, dataset_name, device, figures_dir,
             if num_total_output_frames < 10:
                 continue
 
-            output_frames, target_frames = get_test_predictions_pairs(model, batch_images, starting_point, num_total_output_frames)
+            # output_frames, target_frames = get_test_predictions_pairs(model, batch_images, starting_point, num_total_output_frames)
+            model.eval()
+            num_input_frames = model.get_num_input_frames()
+            with torch.no_grad():
+                input_end_point = starting_point + num_input_frames
+                input_frames = batch_images[:1, starting_point:input_end_point, :, :].clone()
+                output_frames = model.get_future_frames(input_frames, num_total_output_frames, belated)
+                target_frames = batch_images[:1, input_end_point:(input_end_point + num_total_output_frames), :, :]
 
-            save_sequence_plots(batch_num, starting_point, output_frames, target_frames, figures_dir, normalizer, dataset_name)
+            save_sequence_plots()
 
             if debug:
                 break
@@ -87,30 +81,32 @@ def create_evaluation_dataloader(data_directory, normalizer_type):
 
     dataset_info = [data_directory, classes, imagesets]
     dataset = WaveDataset(dataset_info, transform["Test"])
-    return DataLoader(dataset, batch_size=8, shuffle=False, num_workers=4)
+    return DataLoader(dataset, batch_size=4, shuffle=False, num_workers=4)
 
 
-def evaluate_experiment(experiment, args):
+def evaluate_experiment(experiment, args_new):
+    start_time = time.time()
     logging.info("Start testing")
     dataloaders = {"Test": experiment.dataloaders['test'],
-                   "Lines": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Lines/'), args.normalizer_type),
-                   "Double_Drop": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Double_Drop/'), args.normalizer_type),
-                   "Illumination_135": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Illumination_135/'), args.normalizer_type),
-                   "Shallow_Depth": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Shallow_Depth/'), args.normalizer_type),
-                   "Smaller_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Smaller_Tub/'), args.normalizer_type),
-                   "Bigger_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Bigger_Tub/'), args.normalizer_type)
+                   "Lines": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Lines/'), experiment.args.normalizer_type),
+                   "Double_Drop": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Double_Drop/'), experiment.args.normalizer_type),
+                   "Illumination_135": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Illumination_135/'), experiment.args.normalizer_type),
+                   "Shallow_Depth": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Shallow_Depth/'), experiment.args.normalizer_type),
+                   "Smaller_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Smaller_Tub/'), experiment.args.normalizer_type),
+                   "Bigger_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Bigger_Tub/'), experiment.args.normalizer_type)
                    }
 
     for dataset_name, dataloader in dataloaders.items():
         logging.info("Evaluating dataset: %s" % dataset_name)
-        evaluator = Evaluator(args.test_starting_point, dataset_name, experiment.normalizer)
-        evaluator.compute_experiment_metrics(experiment.model, dataloader, args.num_total_output_frames, experiment.device, debug=args.debug)
+        evaluator = Evaluator(args_new.test_starting_point, dataset_name, experiment.normalizer)
+        evaluator.compute_experiment_metrics(experiment.model, dataloader, args_new.num_total_output_frames, experiment.device, debug=args_new.debug)
         evaluator.save_metrics_plots(experiment.dirs['charts'])
-        evaluator.save_to_file(experiment.files['evaluator'] % (dataset_name, args.test_starting_point))
+        evaluator.save_to_file(experiment.files['evaluator'] % (dataset_name, args_new.test_starting_point))
         # Get the sample plots after you compute everything else because the dataloader iterates from the beginning
-        if args.get_sample_predictions:
+        if args_new.get_sample_predictions:
             logging.info("Generate prediction plots for %s" % dataset_name)
-            get_sample_predictions(experiment.model, dataloader, dataset_name, experiment.device, experiment.dirs['predictions'], experiment.normalizer, args.debug)
+            get_sample_predictions(experiment.model, experiment.args_new.belated, dataloader, dataset_name, experiment.device, experiment.dirs['predictions'], experiment.normalizer, args_new.debug)
+        logging.info('Elapsed time: %.0f' % (time.time() - start_time))
 
 
 class Evaluator():
@@ -181,36 +177,35 @@ class Evaluator():
         with torch.no_grad():
             for batch_num, batch_images in enumerate(dataloader):
                 logging.info("Testing batch {:d} out of {:d}".format(batch_num + 1, len(dataloader)))
-                batch_images = batch_images.to(device)
+                # batch_images = batch_images.to(device)
 
-                target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :]
-                num_real_output_frames = target_frames.size(1)
+                target_frames = batch_images[:, input_end_point:(input_end_point + num_total_output_frames), :, :].cpu().numpy()
+                last_input = batch_images[:, (input_end_point - 1):input_end_point, :, :].cpu().numpy()
+                num_real_output_frames = target_frames.shape[1]
 
-                last_input = batch_images[:, (input_end_point - 1):input_end_point, :, :]
-
-                input_frames = batch_images[:, self.starting_point:input_end_point, :, :]
-                output_frames = model.get_future_frames_belated(input_frames, num_real_output_frames)
-
-                self.compare_output_target(output_frames, target_frames, last_input)
+                # logging.info('num_real_output_frames %d' % num_real_output_frames)
+                self.compare_output_target(
+                    model.get_future_frames(batch_images[:, self.starting_point:input_end_point, :, :].to(device),
+                                            num_real_output_frames).cpu().numpy(), target_frames, last_input)
 
                 if debug:
                     print('batch_num %d\tSSIM %f' % (batch_num, self.state['SSIM_val'][-1]))
                     break
 
     def compare_output_target(self, output_frames, target_frames, last_input_batch):
-        batch_size = output_frames.size(0)
-        num_output_frames = output_frames.size(1)
+        batch_size = output_frames.shape[0]
+        num_output_frames = output_frames.shape[1]
         for batch_index in range(batch_size):
             for frame_index in range(num_output_frames):
-                output = image_prepro(output_frames[batch_index, frame_index, :, :].cpu().numpy(), self.normalizer)
-                target = image_prepro(target_frames[batch_index, frame_index, :, :].cpu().numpy(), self.normalizer)
-                self.add(output, target, frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
+                outpu = image_prepro(output_frames[batch_index, frame_index, :, :], self.normalizer)
+                target = image_prepro(target_frames[batch_index, frame_index, :, :], self.normalizer)
+                self.add(outpu, target, frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
                 if frame_index == 0:
                     previous_frame = target  # previous frame predicts the next
                 elif frame_index > 0:
                     self.add_baseline('previous_frame', previous_frame, target, frame_index)
                     previous_frame = target
-                last_input = image_prepro(last_input_batch[batch_index, 0, :, :].cpu().numpy(), self.normalizer)
+                last_input = image_prepro(last_input_batch[batch_index, 0, :, :], self.normalizer)
                 self.add_baseline('last_input', last_input, target, frame_index)
 
     def add_baseline(self, name, predicted, target, frame_nr):

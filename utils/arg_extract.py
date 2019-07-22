@@ -52,7 +52,7 @@ def get_args():
     parser.add_argument('--continue_experiment', type=str2bool, default=False, help='Whether the experiment should continue from the last epoch')
     # TESTING
     parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
-    parser.add_argument('--num_total_output_frames', type=int, default=80, help='how many frames to predict to the future')
+    parser.add_argument('--num_total_output_frames', type=int, default=80, help='how many frames to predict to the future during evaluation')
     parser.add_argument('--get_sample_predictions', type=str2bool, default=True, help='Print sample predictions figures or not')
     parser.add_argument('--num_output_keep_frames', type=int, default=20, help='ConvLSTM: How many frames to keep from one pass to continue autoregression for longer outputs')
     parser.add_argument('--belated', type=str2bool, default=False, help='Whether to use the belated convol')
@@ -60,19 +60,18 @@ def get_args():
     args = parser.parse_args()
 
     if args.debug:
-        args.num_input_frames = 2
-        args.num_output_frames = 2
+        args.num_input_frames = 3
+        args.num_output_frames = 10
         args.batch_size = 2
         args.num_workers = 1
         args.samples_per_sequence = 5
         args.num_epochs = 3
-        args.test_starting_point = 75
+        args.test_starting_point = 20
         if args.model_type == 'ar_lstm':
             args.normalizer_type = 'none'
         else:
             args.normalizer_type = 'normal'
-        args.num_autoregress_frames = 5
-        args.num_total_output_frames = 20
+        args.num_total_output_frames = 40
 
     if args.seed_everything:
         seed_everything(args.seed)

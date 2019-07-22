@@ -55,6 +55,7 @@ def get_args():
     parser.add_argument('--num_total_output_frames', type=int, default=80, help='how many frames to predict to the future')
     parser.add_argument('--get_sample_predictions', type=str2bool, default=True, help='Print sample predictions figures or not')
     parser.add_argument('--num_output_keep_frames', type=int, default=20, help='ConvLSTM: How many frames to keep from one pass to continue autoregression for longer outputs')
+    parser.add_argument('--belated', type=str2bool, default=False, help='Whether to use the belated convol')
 
     args = parser.parse_args()
 

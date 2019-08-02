@@ -3,7 +3,7 @@ import logging
 from utils.arg_extract import get_args
 from utils.experiment_runner import ExperimentRunner
 from utils.experiment import Experiment
-from utils.experiment_evaluator import evaluate_experiment
+# from utils.experiment_evaluator import evaluate_experiment
 
 plt.ioff()
 logging.basicConfig(format='%(message)s', level=logging.INFO)

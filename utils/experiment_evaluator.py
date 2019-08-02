@@ -58,7 +58,7 @@ def get_sample_predictions(model, belated, dataloader, dataset_name, device, fig
         num_total_frames = batch_images.size(1)
         batch_images = batch_images.to(device)
 
-        for starting_point in range(0, max(21, num_total_frames - num_input_frames), 10):
+        for starting_point in range(0, min(21, num_total_frames - num_input_frames), 10):
             num_total_output_frames = math.floor(math.floor((num_total_frames - num_input_frames - starting_point)) / 10) * 10  # requests multiple of ten
             if num_total_output_frames < 10:
                 continue
@@ -95,10 +95,12 @@ def create_evaluation_dataloader(data_directory, normalizer_type):
 def evaluate_experiment(experiment, args_new):
     start_time = time.time()
     logging.info("Start testing")
-    dataloaders = {"Test": experiment.dataloaders['test'],
+    dataloaders = {
+                    "Test": experiment.dataloaders['test'],
                    "Lines": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Lines/'), experiment.args.normalizer_type),
                    "Double_Drop": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Double_Drop/'), experiment.args.normalizer_type),
                    "Illumination_135": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Illumination_135/'), experiment.args.normalizer_type),
+                   # "Illumination_Random": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Illumination_Random/'), experiment.args.normalizer_type),
                    "Shallow_Depth": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Shallow_Depth/'), experiment.args.normalizer_type),
                    "Smaller_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Smaller_Tub/'), experiment.args.normalizer_type),
                    "Bigger_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Bigger_Tub/'), experiment.args.normalizer_type)
@@ -149,6 +151,9 @@ class Evaluator():
                       "SSIM_last_input_val": [],
                       "SSIM_last_input_frame": [],
                       "SSIM_last_input_hue": [],
+                      "SSIM_flat_image_val": [],
+                      "SSIM_flat_image_frame": [],
+                      "SSIM_flat_image_hue": [],
                       "MSE_val": [],
                       "MSE_frame": [],
                       "MSE_hue": [],
@@ -158,6 +163,9 @@ class Evaluator():
                       "MSE_last_input_val": [],
                       "MSE_last_input_frame": [],
                       "MSE_last_input_hue": [],
+                      "MSE_flat_image_val": [],
+                      "MSE_flat_image_frame": [],
+                      "MSE_flat_image_hue": [],
                       }
 
         self.own = False
@@ -175,6 +183,12 @@ class Evaluator():
         df = pd.DataFrame.from_dict({'SSIM': self.state['SSIM_val'],
                                        'Frames': self.state['SSIM_frame']}).groupby('Frames', as_index=False).agg(['mean', 'std'])
         return df['SSIM']
+
+
+    def get_rmse_values_previous_frame(self):
+        df = pd.DataFrame.from_dict({'RMSE': self.state['MSE_previous_frame_val'],
+                                       'Frames': self.state['MSE_previous_frame_frame']}).groupby('Frames', as_index=False).agg(['mean', 'std'])
+        return df['RMSE']
 
     def save_to_file(self, file):
         save(self, file)
@@ -205,11 +219,13 @@ class Evaluator():
     def compare_output_target(self, output_frames, target_frames, last_input_batch):
         batch_size = output_frames.shape[0]
         num_output_frames = output_frames.shape[1]
+        flat_image = np.ones(output_frames.shape[2:], dtype='float32') * 0.5
+
         for batch_index in range(batch_size):
             for frame_index in range(num_output_frames):
-                outpu = image_prepro(output_frames[batch_index, frame_index, :, :], self.normalizer)
+                output = image_prepro(output_frames[batch_index, frame_index, :, :], self.normalizer)
                 target = image_prepro(target_frames[batch_index, frame_index, :, :], self.normalizer)
-                self.add(outpu, target, frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
+                self.add(output, target, frame_index, "pHash", "pHash2", "SSIM", "Own", "RMSE")
                 if frame_index == 0:
                     previous_frame = target  # previous frame predicts the next
                 elif frame_index > 0:
@@ -217,6 +233,7 @@ class Evaluator():
                     previous_frame = target
                 last_input = image_prepro(last_input_batch[batch_index, 0, :, :], self.normalizer)
                 self.add_baseline('last_input', last_input, target, frame_index)
+                self.add_baseline('flat_image', flat_image, target, frame_index)
 
     def add_baseline(self, name, predicted, target, frame_nr):
         self.state['SSIM_%s_val' % name].append(self.ssim(predicted, target))
@@ -295,6 +312,15 @@ class Evaluator():
         absolute_diff = np.mean(np.abs(predicted - target)) / (np.sum(target) / np.prod(np.shape(target)))
         return relative_diff, absolute_diff
 
+    def get_baseline_what(self, metric, what):
+        frames = []
+        for baseline in ['previous_frame', 'last_input', 'flat_image']:
+            key = '%s_%s_%s' % (metric, baseline, what)
+            if key in self.state:
+                frames += self.state[key]
+        return frames
+
+
     def save_metrics_plots(self, output_dir):
         logging.info('saving metric plots to %s' % output_dir)
         if self.own:
@@ -309,9 +335,9 @@ class Evaluator():
         if self.SSIM:
             all_data = {}
             all_data.update(
-                {"Time-steps Ahead": self.state['SSIM_frame'] + self.state['SSIM_previous_frame_frame'] +  self.state['SSIM_last_input_frame'] ,
-                 "Similarity": self.state['SSIM_val']         + self.state['SSIM_previous_frame_val']   +  self.state['SSIM_last_input_val']   ,
-                 "Scoring Type": self.state['SSIM_hue']       + self.state['SSIM_previous_frame_hue']   +  self.state['SSIM_last_input_hue']   })
+                {"Time-steps Ahead": self.state['SSIM_frame'] + self.get_baseline_what('SSIM', 'frame') ,
+                 "Similarity": self.state['SSIM_val']         + self.get_baseline_what('SSIM', 'val')    ,
+                 "Scoring Type": self.state['SSIM_hue']       + self.get_baseline_what('SSIM', 'hue')   })
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Similarity", hue="Scoring Type",
@@ -320,9 +346,9 @@ class Evaluator():
 
         if self.MSE:
             all_data = {}
-            all_data.update({"Time-steps Ahead":        self.state['MSE_frame'] + self.state['MSE_previous_frame_frame'] + self.state['MSE_last_input_frame'] ,
-                             "Root Mean Square Error":  self.state['MSE_val']   + self.state['MSE_previous_frame_val']   + self.state['MSE_last_input_val']   ,
-                             "Scoring Type":            self.state['MSE_hue']   + self.state['MSE_previous_frame_hue']   + self.state['MSE_last_input_hue']   })
+            all_data.update({"Time-steps Ahead":        self.state['MSE_frame'] + self.get_baseline_what('MSE', 'frame') ,
+                             "Root Mean Square Error":  self.state['MSE_val']   + self.get_baseline_what('MSE', 'val')   ,
+                             "Scoring Type":            self.state['MSE_hue']   + self.get_baseline_what('MSE', 'hue')   })
             fig = plt.figure().add_axes()
             sns.set(style="darkgrid")  # darkgrid, whitegrid, dark, white, and ticks
             sns.lineplot(x="Time-steps Ahead", y="Root Mean Square Error", hue="Scoring Type", data=pd.DataFrame.from_dict(all_data), ax=fig, ci='sd')

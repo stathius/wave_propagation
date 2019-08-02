@@ -2,7 +2,7 @@ data
 temp
 *.out
 sftp*json
-experiments_results/
+experiments_results*/
 *.tar.gz
 *.pt
 .DS_Store

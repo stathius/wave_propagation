@@ -11,13 +11,7 @@ class SafeDict(dict):
 
 
 experiments_to_test = [
-# "unet_batch_16_samples_5_in_5_out_20_normal_lr_0.0001_dataset_original_24h_patience_7",
-# "unet_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_dataset_original_24h_patience_7",
-# "unet_batch_32_samples_10_in_5_out_20_normal_lr_0.0001_dataset_original_24h_patience_7",
-# "resnet_dilated_batch_16_samples_5_in_5_out_20_normal_lr_0.001_dataset_original_16h_patience_7",
-# "resnet_dilated_batch_16_samples_5_in_5_out_10_normal_lr_0.001_dataset_original_16h_patience_7",
-"resnet_dilated_batch_16_samples_5_in_5_out_20_normal_lr_0.0001_dataset_original_24h_patience_7",
-"resnet_dilated_batch_16_samples_5_in_5_out_10_normal_lr_0.0001_dataset_original_24h_patience_7"
+"resnet_batch_16_samples_5_in_5_out_10_normal_lr_0.001"
 ]
 
 partition = 'Short'

@@ -143,6 +143,8 @@ class Experiment():
             model =  get_convlstm_model(self.args.num_input_frames, self.args.num_output_frames, self.args.batch_size, self.device, dilation=2, padding=2)
         elif model_type == 'predrnn':
             model = PredRNNPP(self.args.num_input_frames, self.args.num_output_frames, self.device, use_GHU=False)
+        elif model_type == 'predrnn_ghu':
+            model = PredRNNPP(self.args.num_input_frames, self.args.num_output_frames, self.device, use_GHU=True)
         elif model_type == 'resnet':
             model = resnet12(self.args.num_input_frames, self.args.num_output_frames)
         elif model_type == 'resnet_dilated':

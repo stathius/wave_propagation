@@ -8,12 +8,12 @@ from utils.WaveDataset import WaveDataset
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.io import save, load, save_json, load_json
+from utils.Logger import Logger
 from models.AR_LSTM import AR_LSTM
 from models.ConvLSTM import get_convlstm_model
 from models.ResNet import resnet12
 from models.PredRNNPP import PredRNNPP
-from utils.Logger import Logger
-
+from models.UNet import UNet
 
 def get_normalizer(normalizer):
     normalizers = {'none': {'mean': 0.0, 'std': 1.0},  # leave as is
@@ -135,15 +135,20 @@ class Experiment():
         self._mkdirs()
 
     def _create_model(self, model_type):
-        if model_type == 'convlstm':
-            model = get_convlstm_model(self.args.num_input_frames, self.args.num_output_frames, self.args.batch_size, self.device)
-        elif model_type == 'ar_lstm':
+        if model_type == 'ar_lstm':
             model = AR_LSTM(self.args.num_input_frames, self.args.num_output_frames, self.args.reinsert_frequency, self.device)
+        elif model_type == 'convlstm':
+            model = get_convlstm_model(self.args.num_input_frames, self.args.num_output_frames, self.args.batch_size, self.device, dilation=1, padding=1)
+        elif model_type =='dilated_convlstm':
+            model =  get_convlstm_model(self.args.num_input_frames, self.args.num_output_frames, self.args.batch_size, self.device, dilation=2, padding=2)
+        elif model_type == 'predrnn':
+            model = PredRNNPP(self.args.num_input_frames, self.args.num_output_frames, self.device, use_GHU=False)
         elif model_type == 'resnet':
             model = resnet12(self.args.num_input_frames, self.args.num_output_frames)
-        elif model_type == 'predrnn':
-            model = PredRNNPP(self.args.num_input_frames, self.args.num_output_frames, self.args.batch_size,
-                              self.device, use_GHU=False)
+        elif model_type == 'resnet_dilated':
+            model = resnet12(self.args.num_input_frames, self.args.num_output_frames, replace_stride_with_dilation=[1,2,4])
+        elif model_type == 'unet':
+            model = UNet(self.args.num_input_frames, self.args.num_output_frames)
         else:
             raise Warning('Not supported model')
         return model
@@ -254,7 +259,7 @@ class Experiment():
         self.files['datasets'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
         self.files['logger'] = os.path.join(self.dirs['pickles'], "logger.json")
-        if self.args.belated:
+        if 'belated' in self.args and self.args.belated:
             self.files['evaluator'] = os.path.join(self.dirs['pickles'], 'belated_evaluator_%s_sp_%d.pickle')
             self.dirs['predictions'] = self.dirs['predictions_belated']
             self.dirs['charts'] = self.dirs['charts_belated']

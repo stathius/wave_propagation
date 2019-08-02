@@ -11,17 +11,13 @@ class SafeDict(dict):
 
 
 experiments_to_test = [
-                        # "ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001",c
-                        # "ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_16h",
-                        # "ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_16h_2",
-                        # "ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_16h_c",
-                        # "ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_correct_code",
-                        # "ar_lstm_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_dataset_fixed_tub",
-                        "convlstm_batch_8_samples_5_in_5_out_10_normal_lr_0.001_dataset_fixed_tub",
-                        "predrnn_batch_4_samples_1_in_5_out_10_normal_lr_0.0001",
-                        "predrnn_batch_4_samples_1_in_5_out_20_normal_lr_0.0001",
-                        "predrnn_batch_4_samples_5_in_5_out_5_normal_lr_0.0001",
-                        "predrnn_batch_4_samples_5_in_5_out_10_normal_lr_0.0001",
+# "unet_batch_16_samples_5_in_5_out_20_normal_lr_0.0001_dataset_original_24h_patience_7",
+# "unet_batch_16_samples_10_in_5_out_20_normal_lr_0.0001_dataset_original_24h_patience_7",
+# "unet_batch_32_samples_10_in_5_out_20_normal_lr_0.0001_dataset_original_24h_patience_7",
+# "resnet_dilated_batch_16_samples_5_in_5_out_20_normal_lr_0.001_dataset_original_16h_patience_7",
+# "resnet_dilated_batch_16_samples_5_in_5_out_10_normal_lr_0.001_dataset_original_16h_patience_7",
+"resnet_dilated_batch_16_samples_5_in_5_out_20_normal_lr_0.0001_dataset_original_24h_patience_7",
+"resnet_dilated_batch_16_samples_5_in_5_out_10_normal_lr_0.0001_dataset_original_24h_patience_7"
 ]
 
 partition = 'Short'
@@ -34,7 +30,7 @@ file.close()
 exp_args = {"test_starting_point": 15,
             "num_total_output_frames": 80,
             "get_sample_predictions": "True",
-            "belated": "True"
+            "belated": "False"
             }
 
 for exp_name in experiments_to_test:
@@ -43,7 +39,7 @@ for exp_name in experiments_to_test:
     args_template = args_template.format_map(SafeDict(exp_name=exp_name))
     args_template = args_template.format(**exp_args)
     exp_template = template.format_map(SafeDict(args=args_template, partition=partition, time=time))
-    exp_script = 'test_%s_sp_%d.sh' % (exp_name, exp_args['test_starting_point'])
+    exp_script = 'test_%s_sp_%d_belated_%s.sh' % (exp_name, exp_args['test_starting_point'], exp_args['belated'])
     with open(exp_script, 'w') as file:
         file.write(exp_template)
     file.close()

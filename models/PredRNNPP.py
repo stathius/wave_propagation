@@ -9,7 +9,7 @@ from .GHU import GHU
 
 class PredRNNPP(nn.Module):
 
-    def __init__(self, num_input_frames, num_output_frames, batch_size, device, use_GHU=False):
+    def __init__(self, num_input_frames, num_output_frames, device, use_GHU=False):
         super(PredRNNPP, self).__init__()
 
         self.num_output_frames = num_output_frames

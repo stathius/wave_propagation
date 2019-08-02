@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mem=12000  # memory in Mb
 #SBATCH --time={time}
-#SBATCH --exclude=marax # 980 with 4gb
+#SBATCH --exclude=marax,letha05 # 980 with 4gb
 hostname
 nvidia-smi
 export LD_LIBRARY_PATH=/opt/cuDNN-7.0/lib64:/opt/cuda-9.0.176.1//lib64:$LD_LIBRARY_PATH
@@ -19,17 +19,17 @@ mkdir -p /disk/scratch/s1680171/wave_propagation
 export TMPDIR=/disk/scratch/s1680171/
 
 rm /disk/scratch/s1680171/wave_propagation/data.tar.gz
-file=/disk/scratch/s1680171/wave_propagation/data_new.tar.gz
-if [ ! -f $file ]
-then
-	echo 'sending tar file'
-	rsync -ua --progress /home/s1680171/wave_propagation/data_new.tar.gz /disk/scratch/s1680171/wave_propagation/
-	echo 'unzipping'
-	tar zxfk /disk/scratch/s1680171/wave_propagation/data_new.tar.gz -C /disk/scratch/s1680171/wave_propagation/ >/dev/null 2>&1
-	echo 'unzipping finished'
-else
-	echo 'dataset already uploaded'
-fi
+# file=/disk/scratch/s1680171/wave_propagation/data_new.tar.gz
+# if [ ! -f $file ]
+# then
+echo 'sending tar file'
+rsync -ua --progress /home/s1680171/wave_propagation/data_new.tar.gz /disk/scratch/s1680171/wave_propagation/
+echo 'unzipping'
+tar zxfk /disk/scratch/s1680171/wave_propagation/data_new.tar.gz -C /disk/scratch/s1680171/wave_propagation/ >/dev/null 2>&1
+echo 'unzipping finished'
+# else
+# 	echo 'dataset already uploaded'
+# fi
 
 source /home/s1680171/miniconda3/bin/activate mlp
 cd /home/s1680171/wave_propagation/

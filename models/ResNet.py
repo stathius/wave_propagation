@@ -53,7 +53,7 @@ class BasicBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, num_input_frames, num_output_frames, block, layers, num_classes=1000, zero_init_residual=False, groups=1, width_per_group=64, replace_stride_with_dilation=None,
+    def __init__(self, num_input_frames, num_output_frames, block, layers, dilation=1, num_classes=1000, zero_init_residual=False, groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None):
         super(ResNet, self).__init__()
         self.num_input_frames = num_input_frames
@@ -63,7 +63,7 @@ class ResNet(nn.Module):
         self._norm_layer = norm_layer
 
         self.inplanes = 64
-        self.dilation = 1
+        self.dilation = dilation
         if replace_stride_with_dilation is None:
             # each element in the tuple indicates if we should replace
             # the 2x2 stride with a dilated convolution instead

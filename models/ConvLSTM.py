@@ -5,13 +5,14 @@ from utils.helper_functions import convert_SBCHW_to_BSHW, convert_BSHW_to_SBCHW
 
 
 class ConvLSTMCell(nn.Module):
-    def __init__(self, input_channel, num_filter, b_h_w, kernel_size, stride=1, padding=1, device=None, seq_len=None):
+    def __init__(self, input_channel, num_filter, b_h_w, kernel_size, stride=1, padding=1, device=None, seq_len=None, dilation=0):
         super().__init__()
         self._conv = nn.Conv2d(in_channels=input_channel + num_filter,
                                out_channels=num_filter * 4,
                                kernel_size=kernel_size,
                                stride=stride,
-                               padding=padding)
+                               padding=padding,
+                               dilation=dilation)
         self._batch_size, self._state_height, self._state_width = b_h_w
         self.Wci = torch.zeros(1, num_filter, self._state_height, self._state_width).to(device)
         self.Wcf = torch.zeros(1, num_filter, self._state_height, self._state_width).to(device)
@@ -171,7 +172,7 @@ class EncoderForecaster(nn.Module):
             return self(input_frames, num_total_output_frames)
 
 
-def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):    # Define encoder #
+def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device, dilation=1, padding=1):    # Define encoder #
     encoder_architecture = [
         # in_channels, out_channels, kernel_size, stride, padding
         [OrderedDict({'conv1_leaky_1': [1, 8, 3, 2, 1]}),
@@ -179,11 +180,11 @@ def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):
          OrderedDict({'conv3_leaky_1': [192, 192, 3, 2, 1]})],
 
         [ConvLSTMCell(input_channel=8, num_filter=64, b_h_w=(batch_size, 64, 64),
-                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_input_frames),
+                      kernel_size=3, stride=1, padding=padding, device=device, seq_len=num_input_frames, dilation=dilation),
          ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 32, 32),
-                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_input_frames),
+                      kernel_size=3, stride=1, padding=padding, device=device, seq_len=num_input_frames, dilation=dilation),
          ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 16, 16),
-                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_input_frames)]
+                      kernel_size=3, stride=1, padding=padding, device=device, seq_len=num_input_frames, dilation=dilation)]
     ]
 
     forecaster_architecture = [
@@ -194,11 +195,11 @@ def get_convlstm_model(num_input_frames, num_output_frames, batch_size, device):
                       'conv3_3': [8, 1, 1, 1, 0]}), ],
 
         [ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 16, 16),
-                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_output_frames),
+                      kernel_size=3, stride=1, padding=padding, device=device, seq_len=num_output_frames, dilation=dilation),
          ConvLSTMCell(input_channel=192, num_filter=192, b_h_w=(batch_size, 32, 32),
-                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_output_frames),
+                      kernel_size=3, stride=1, padding=padding, device=device, seq_len=num_output_frames, dilation=dilation),
          ConvLSTMCell(input_channel=64, num_filter=64, b_h_w=(batch_size, 64, 64),
-                      kernel_size=3, stride=1, padding=1, device=device, seq_len=num_output_frames)]
+                      kernel_size=3, stride=1, padding=padding, device=device, seq_len=num_output_frames, dilation=dilation)]
     ]
 
     encoder = Encoder(encoder_architecture[0], encoder_architecture[1]).to(device)

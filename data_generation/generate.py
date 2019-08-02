@@ -26,6 +26,7 @@ def get_args():
 
     parser.add_argument('--location', type=str, default='./debug_data_gen', help='Folder to save the files')
     parser.add_argument('--azimuth', type=int, default=45, help='Lighting angle')
+    parser.add_argument('--azimuth_random', type=bool, default=False, help='Lighting angle random')
     parser.add_argument('--viewing_angle', type=int, default=20, help='Viewing angle')
     parser.add_argument('--container_size_min', type=int, default=10, help='How big the water container (box) is')
     parser.add_argument('--container_size_max', type=int, default=20, help='How big the water container (box) is')
@@ -179,6 +180,10 @@ if plot:
 model = NonConservative_ShallowWater()
 
 while len(os.listdir(args.location)) - 1 < args.data_points:
+    if args.azimuth_random:
+        azimuth = round(random.random()*360,0)
+    else:
+        azimuth = args.azimuth
     MaxRoll = args.image_size_x / 2 - 10
     size = random.uniform(args.container_size_min, args.container_size_max)  # Container size
     x_roll = random.randint(-MaxRoll, MaxRoll)
@@ -196,7 +201,7 @@ while len(os.listdir(args.location)) - 1 < args.data_points:
 
     scheme = trf.schemes.scipy_ode(model, integrator="dopri5")
 
-    Set_Name = "Size-{:.2f}_Centre_x{},y{}".format(size, str(x_roll).zfill(4), str(y_roll).zfill(4))
+    Set_Name = "Size-{:.2f}_Centre_x{},y{}_Azimuth_{:d}".format(size, str(x_roll).zfill(4), str(y_roll).zfill(4), int(azimuth))
     if not os.path.isdir(args.location + "/" + Set_Name):
         os.mkdir(args.location + "/" + Set_Name)
 
@@ -209,7 +214,7 @@ while len(os.listdir(args.location)) - 1 < args.data_points:
 
         eta = new_fields["h"] + new_fields["H"]
         norm_eta = (eta - eta.min()) / (eta.max() - eta.min())
-        im = Image.fromarray(hillshade(norm_eta, args.azimuth, args.viewing_angle))
+        im = Image.fromarray(hillshade(norm_eta, azimuth, args.viewing_angle))
         im = im.convert('RGB')
 
         number = str(i).zfill(3)

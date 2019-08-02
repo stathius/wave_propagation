@@ -25,9 +25,9 @@ file.close()
 for exp, exp_args in new_experiments.items():
     print(exp, exp_args)
     # for arg, arg_val in exp_args:
-    exp_name = '{model_type}_batch_{batch_size}_samples_{samples_per_sequence}_in_{num_input_frames}_out_{num_output_frames}_{normalizer_type}_lr_{learning_rate}_dataset_{dataset}'.format(**exp_args)
+    exp_name = '{model_type}_batch_{batch_size}_samples_{samples_per_sequence}_in_{num_input_frames}_out_{num_output_frames}_{normalizer_type}_lr_{learning_rate}_dataset_{dataset}_{time_readable}_patience_{scheduler_patience}'.format(**exp_args)
 
-    args_template = "--experiment_name {exp_name} --model_type {model_type} --batch_size {batch_size} --num_epochs {num_epochs} --samples_per_sequence {samples_per_sequence} --num_input_frames {num_input_frames} --num_output_frames {num_output_frames} --learning_rate {learning_rate} --normalizer_type {normalizer_type} --dataset {dataset} --num_workers 12"
+    args_template = "--experiment_name {exp_name} --model_type {model_type} --batch_size {batch_size} --num_epochs {num_epochs} --samples_per_sequence {samples_per_sequence} --num_input_frames {num_input_frames} --num_output_frames {num_output_frames} --learning_rate {learning_rate} --normalizer_type {normalizer_type} --dataset {dataset} --scheduler_patience {scheduler_patience} --num_workers 12"
 
     args_template = args_template.format_map(SafeDict(exp_name=exp_name))
     args_template = args_template.format(**exp_args)

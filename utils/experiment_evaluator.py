@@ -87,7 +87,7 @@ def create_evaluation_dataloader(data_directory, normalizer_type):
         im_list = sorted(os.listdir(data_directory + cla))
         imagesets.append((im_list, cla))
 
-    dataset_info = [data_directory, classes, imagesets]
+    dataset_info = [data_directory, classes, imagesets[:125]]
     dataset = WaveDataset(dataset_info, transform["Test"])
     return DataLoader(dataset, batch_size=4, shuffle=False, num_workers=4)
 
@@ -96,14 +96,16 @@ def evaluate_experiment(experiment, args_new):
     start_time = time.time()
     logging.info("Start testing")
     dataloaders = {
-                    "Test": experiment.dataloaders['test'],
-                   "Lines": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Lines/'), experiment.args.normalizer_type),
-                   "Double_Drop": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Double_Drop/'), experiment.args.normalizer_type),
-                   "Illumination_135": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Illumination_135/'), experiment.args.normalizer_type),
+                   #  "Test": experiment.dataloaders['test'],
+                   # "Lines": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Lines/'), experiment.args.normalizer_type),
+                   # "Double_Drop": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Double_Drop/'), experiment.args.normalizer_type),
+                   # "Illumination_135": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Illumination_135/'), experiment.args.normalizer_type),
                    # "Illumination_Random": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Illumination_Random/'), experiment.args.normalizer_type),
-                   "Shallow_Depth": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Shallow_Depth/'), experiment.args.normalizer_type),
-                   "Smaller_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Smaller_Tub/'), experiment.args.normalizer_type),
-                   "Bigger_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Bigger_Tub/'), experiment.args.normalizer_type)
+                   # "Shallow_Depth": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Shallow_Depth/'), experiment.args.normalizer_type),
+                   # "Smaller_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Smaller_Tub/'), experiment.args.normalizer_type),
+                   # "Bigger_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Bigger_Tub/'), experiment.args.normalizer_type),
+                    "Fixed_tub_10": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Fixed_tub_10/'), experiment.args.normalizer_type)
+
                    }
 
     for dataset_name, dataloader in dataloaders.items():
@@ -185,10 +187,16 @@ class Evaluator():
         return df['SSIM']
 
 
-    def get_rmse_values_previous_frame(self):
-        df = pd.DataFrame.from_dict({'RMSE': self.state['MSE_previous_frame_val'],
-                                       'Frames': self.state['MSE_previous_frame_frame']}).groupby('Frames', as_index=False).agg(['mean', 'std'])
+    def get_rmse_baseline(self, baseline):
+        df = pd.DataFrame.from_dict({'RMSE': self.state['MSE_%s_val' % baseline],
+                                       'Frames': self.state['MSE_%s_frame' % baseline]}).groupby('Frames', as_index=False).agg(['mean', 'std'])
         return df['RMSE']
+
+
+    def get_ssim_baseline(self, baseline):
+        df = pd.DataFrame.from_dict({'RMSE': self.state['SSIM_%s_val' % baseline],
+                                       'Frames': self.state['SSIM_%s_frame' % baseline]}).groupby('Frames', as_index=False).agg(['mean', 'std'])
+        return df['SSIM']
 
     def save_to_file(self, file):
         save(self, file)

@@ -65,16 +65,13 @@ class PredRNNPP(nn.Module):
         num_output_frames = self.get_num_output_frames()
         output_frames = self(input_frames, num_output_frames)
 
-        # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         while output_frames.size(1) < num_total_output_frames:
-            # print('i should not appear in training')
             if output_frames.size(1) < num_input_frames:
                 keep_from_input = num_input_frames - output_frames.size(1)
                 input_frames = torch.cat((input_frames[:, -keep_from_input:, :, :], output_frames), dim=1)
             else:
                 input_frames = output_frames[:, -num_input_frames:, :, :].clone()
             output_frames = torch.cat((output_frames, self(input_frames, num_output_frames)), dim=1)
-            # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         return output_frames[:, :num_total_output_frames, :, :]
 
     def get_future_frames(self, input_frames, num_total_output_frames, belated):
@@ -117,7 +114,6 @@ class PredRNNPP(nn.Module):
 
             x_gen = self.deconv(hidden[self.num_layers - 1])  # back to 100x100
             output.append(x_gen.squeeze())
-            # print('t= ', t, ' memory :', torch.cuda.max_memory_allocated())
 
         output = torch.stack(output[self.num_input_frames:])
         if input_frames.size(0) == 1:  # if batch size one

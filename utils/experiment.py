@@ -39,7 +39,7 @@ def get_transforms(normalizer):
     return trans
 
 
-def create_new_datasets(data_directory, normalizer):
+def create_new_datasets(data_directory, normalizer, back_and_forth=False):
     logging.info('Creating new datasets')
     test_fraction = 0.15
     validation_fraction = 0.15
@@ -69,7 +69,7 @@ def create_new_datasets(data_directory, normalizer):
     val_dataset = WaveDataset(Send, transform["Test"])
 
     Send = [data_directory, classes, imagesets]
-    train_dataset = WaveDataset(Send, transform["Train"])
+    train_dataset = WaveDataset(Send, transform["Train"], back_and_forth)
 
     datasets = {"Training data": train_dataset,
                 "Validation data": val_dataset,
@@ -165,7 +165,7 @@ class Experiment():
         assert self.args.model_type is not None, "Please specify model type when starting new experiment"
 
         self.normalizer = get_normalizer(self.args.normalizer_type)
-        self.datasets = create_new_datasets(self.get_train_data_dir(), self.normalizer)
+        self.datasets = create_new_datasets(self.get_train_data_dir(), self.normalizer, self.args.back_and_forth)
         save(self.datasets, self.files['datasets'])
         self.dataloaders = create_dataloaders(self.datasets, self.args.batch_size, self.args.num_workers)
         self.model = self._create_model(self.args.model_type)
@@ -209,7 +209,7 @@ class Experiment():
         # Plus more stuff to get the best val accuracy and the last epoch numbers
 
     def _save_metadata(self):
-        print(self.args)
+        logging.info(self.args)
         meta_data_dict = {"args": vars(self.args),
                           "optimizer": self.lr_scheduler.optimizer.state_dict(),
                           "scheduler": self.lr_scheduler.state_dict(),

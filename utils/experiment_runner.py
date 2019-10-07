@@ -72,8 +72,7 @@ class ExperimentRunner(nn.Module):
         return batch_loss / self.args.samples_per_sequence  # mean batch loss
 
     def run_experiment(self):
-        logging.info('Start training')
-        print(self.exp.starting_epoch, self.args.num_epochs)
+        logging.info('Start training at epoch %s / %s' % (self.exp.starting_epoch, self.args.num_epochs))
         for epoch_num in range(self.exp.starting_epoch, self.args.num_epochs):
             logging.info('Epoch: %d' % epoch_num)
             epoch_start_time = time.time()

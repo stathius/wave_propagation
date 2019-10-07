@@ -14,7 +14,6 @@ class AR_LSTM(nn.Module):
         self.reinsert_frequency = reinsert_frequency
         self.NUM_OUTPUT_FRAMES_PER_ITER = 1  # the model outputs one frame at a time
         self.LSTM_SIZE = 1000
-        # self.reset_hidden(2)
         self.encoder_conv = nn.Sequential(
             nn.Conv2d(self.num_input_frames, 60, kernel_size=7, stride=2, padding=1),
             nn.BatchNorm2d(num_features=60),
@@ -106,16 +105,13 @@ class AR_LSTM(nn.Module):
         num_output_frames = self.get_num_output_frames()
         output_frames = self.forward_many(input_frames, num_output_frames)
 
-        # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         while output_frames.size(1) < num_total_output_frames:
-            # print('i should not appear in training')
             if output_frames.size(1) < num_input_frames:
                 keep_from_input = num_input_frames - output_frames.size(1)
                 input_frames = torch.cat((input_frames[:, -keep_from_input:, :, :], output_frames), dim=1)
             else:
                 input_frames = output_frames[:, -num_input_frames:, :, :].clone()
             output_frames = torch.cat((output_frames, self.forward_many(input_frames, num_output_frames)), dim=1)
-            # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         return output_frames[:, :num_total_output_frames, :, :]
 
     def get_future_frames(self, input_frames, num_total_output_frames, belated):

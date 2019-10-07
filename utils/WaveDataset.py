@@ -18,11 +18,12 @@ class WaveDataset(Dataset):
     """
     Creates a data-loader for the wave prop data
     """
-    def __init__(self, data_directory, transform=None, check_bad_data=True):
+    def __init__(self, data_directory, transform=None, back_and_forth=False):
         self.root_dir = data_directory[0]
         self.classes = data_directory[1]
         self.imagesets = data_directory[2]
         self.transform = transform
+        self.back_and_forth = back_and_forth
 
     def __len__(self):
         return len(self.imagesets)
@@ -31,7 +32,12 @@ class WaveDataset(Dataset):
         # logging.info('Get item')
         img_path = self.imagesets[idx][1]
         # skip hidden files
-        im_list = sorted([f for f in os.listdir(self.root_dir + img_path) if not f.startswith('.')])
+        reverse = False
+        if hasattr(self, 'back_and_forth'):
+            if self.back_and_forth:
+                reverse = bool(random.getrandbits(1))
+
+        im_list = sorted([f for f in os.listdir(self.root_dir + img_path) if not f.startswith('.')], reverse=reverse)
 
         Concat_Img = self.concatenate_data(img_path, im_list)
 

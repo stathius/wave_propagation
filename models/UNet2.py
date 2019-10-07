@@ -99,7 +99,6 @@ class UNetConvBlock(nn.Module):
         super().__init__()
         block = []
 
-        # print(in_size, out_size, padding, batch_norm)
         block.append(nn.Conv2d(in_size, out_size, kernel_size=3, padding=int(padding)))
         block.append(nn.ReLU())
         if batch_norm:

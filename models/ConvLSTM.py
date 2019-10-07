@@ -28,11 +28,8 @@ class ConvLSTMCell(nn.Module):
     # inputs: S*B*C*H*W
 
     def forward(self, inputs=None, states=None, seq_len=None):
-        # print('forward: ', torch.cuda.max_memory_allocated())
-        # print('new forward')
 
         if states is None:
-            # print('new states: ', torch.cuda.max_memory_allocated())
             c = torch.zeros((inputs.size(1), self._num_filter, self._state_height,
                             self._state_width), dtype=torch.float).to(self.device)
             h = torch.zeros((inputs.size(1), self._num_filter, self._state_height,
@@ -42,14 +39,9 @@ class ConvLSTMCell(nn.Module):
         if seq_len is None:
             seq_len = self.seq_len
         outputs = []
-        # print('ConvLSTM seqlen', seq_len)
         # if inputs is not None:
-        # print(inputs.size())
-        # print('forward')
         for index in range(seq_len):
-            # print(index)
             if inputs is None:
-                # print('new inputs')
                 x = torch.zeros((h.size(0), self._input_channel, self._state_height,
                                 self._state_width), dtype=torch.float).to(self.device)
             else:
@@ -65,7 +57,6 @@ class ConvLSTMCell(nn.Module):
             o = torch.sigmoid(o + self.Wco * c)
             h = o * torch.tanh(c)
             outputs.append(h)
-            # print('convlstm output: ', h.size())
         return torch.stack(outputs), (h, c)
 
 
@@ -153,16 +144,13 @@ class EncoderForecaster(nn.Module):
         num_output_frames = self.get_num_output_frames()
         output_frames = self(input_frames, num_output_frames)
 
-        # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         while output_frames.size(1) < num_total_output_frames:
-            # print('i should not appear in training')
             if output_frames.size(1) < num_input_frames:
                 keep_from_input = num_input_frames - output_frames.size(1)
                 input_frames = torch.cat((input_frames[:, -keep_from_input:, :, :], output_frames), dim=1)
             else:
                 input_frames = output_frames[:, -num_input_frames:, :, :].clone()
             output_frames = torch.cat((output_frames, self(input_frames, num_output_frames)), dim=1)
-            # print('CONVLSTM OUTPUT FRAMES SIZE', output_frames.size())
         return output_frames[:, :num_total_output_frames, :, :]
 
     def get_future_frames(self, input_frames, num_total_output_frames, belated):

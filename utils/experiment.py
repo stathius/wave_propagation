@@ -1,4 +1,3 @@
-import platform
 import logging
 import torch
 import os
@@ -14,6 +13,7 @@ from models.ConvLSTM import get_convlstm_model
 from models.ResNet import resnet12
 from models.PredRNNPP import PredRNNPP
 from models.UNet import UNet
+import configparser
 
 def get_normalizer(normalizer):
     normalizers = {'none': {'mean': 0.0, 'std': 1.0},  # leave as is
@@ -245,14 +245,11 @@ class Experiment():
 
     def _filesystem_structure(self):
         self.dirs = {}
-        if 'Darwin' in platform.system():
-            self.dirs['base'] = '/Users/stathis/Code/thesis/wave_propagation/'
-            self.dirs['data_base'] = '/Users/stathis/Code/thesis/wave_propagation/data/'
-        else:
-            self.dirs['base'] = '/home/s1680171/wave_propagation/'
-            self.dirs['data_base'] = '/disk/scratch/s1680171/wave_propagation/'
+        config = configparser.ConfigParser()
+        config.read('../config.ini')
+        self.dirs['data_base'] = config['paths']['data_base']
+        self.dirs['exp_folder'] = config['paths']['exp_folder']
 
-        self.dirs['exp_folder'] = os.path.join(self.dirs['base'], "experiments_results/")
         self.dirs['results'] = os.path.join(self.dirs['exp_folder'], self.args.experiment_name)
         for d in self.sub_folders:
             self.dirs[d] = os.path.join(self.dirs['results'], '%s/' % d)

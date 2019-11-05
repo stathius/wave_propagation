@@ -12,26 +12,25 @@ def double_conv(in_channels, out_channels):
 
 class UNet(nn.Module):
 
-    def __init__(self, num_input_frames, num_output_frames):
+    def __init__(self, num_input_frames, num_output_frames, isize):
         super().__init__()
         self.num_input_frames = num_input_frames
         self.num_output_frames = num_output_frames
-        self.dconv_down1 = double_conv(num_input_frames, 64)
-        self.dconv_down2 = double_conv(64, 128)
-        self.dconv_down3 = double_conv(128, 256)
-        self.dconv_down4 = double_conv(256, 512)
+        self.dconv_down1 = double_conv(num_input_frames, isize)
+        self.dconv_down2 = double_conv(isize, isize*2)
+        self.dconv_down3 = double_conv(isize*2, isize*4)
+        self.dconv_down4 = double_conv(isize*4, isize*8)
 
         self.maxpool = nn.MaxPool2d(2)
         # self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
 
         self.upsample = lambda x: torch.nn.functional.interpolate(x, mode='bilinear', scale_factor=2, align_corners=True)
 
-        self.dconv_up3 = double_conv(256 + 512, 256)
-        self.dconv_up2 = double_conv(128 + 256, 128)
-        self.dconv_up1 = double_conv(128 + 64, 64)
+        self.dconv_up3 = double_conv(isize*4 + isize*8, isize*4)
+        self.dconv_up2 = double_conv(isize*2 + isize*4, isize*2)
+        self.dconv_up1 = double_conv(isize*2 + isize, isize)
 
-        self.conv_last = nn.Conv2d(64, num_output_frames, 1)
-
+        self.conv_last = nn.Conv2d(isize, num_output_frames, 1)
 
     def forward(self, x):
         conv1 = self.dconv_down1(x)

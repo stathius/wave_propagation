@@ -1,3 +1,4 @@
+# pytorch implementation of predrnn
 # based on the tensorflow implementation by 'yunbo':
 # https://github.com/Yunbo426/predrnn-pp/blob/master/nets/predrnn_pp.py
 

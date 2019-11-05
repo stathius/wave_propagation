@@ -33,8 +33,8 @@ def get_args():
 
     parser.add_argument('--model_type', type=str, help='Network architecture for training [ar_lstm, convlstm, resnet]')
     parser.add_argument('--num_epochs', type=int, default=50, help='The experiment\'s epoch budget')
-    parser.add_argument('--num_input_frames', type=int, default=5, help='LSTM. How many frames to insert initially')
-    parser.add_argument('--num_output_frames', type=int, default=20, help='LSTM. How many framres to predict in the future"')
+    parser.add_argument('--num_input_frames', type=int, default=5, help='How many frames to insert initially')
+    parser.add_argument('--num_output_frames', type=int, default=20, help='How many framres to predict in the future"')
     parser.add_argument('--dataset', type=str, default='original', help='select which dataset to use [original, fixed_tub]')
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--back_and_forth', type=bool, default=False, help='If training will be with predicting both future and past')
@@ -56,7 +56,7 @@ def get_args():
     parser.add_argument('--num_total_output_frames', type=int, default=80, help='how many frames to predict to the future during evaluation')
     parser.add_argument('--get_sample_predictions', type=str2bool, default=True, help='Print sample predictions figures or not')
     parser.add_argument('--num_output_keep_frames', type=int, default=20, help='ConvLSTM: How many frames to keep from one pass to continue autoregression for longer outputs')
-    parser.add_argument('--belated', type=str2bool, default=False, help='Whether to use the belated convol')
+    parser.add_argument('--refeed', type=str2bool, default=False, help='Whether to use the refeed mechanism in RNNs')
 
     args = parser.parse_args()
 

@@ -25,13 +25,13 @@ def image_prepro(image, normalizer):
     return image
 
 
-def get_test_predictions_pairs(model, belated, batch_images, starting_point, num_total_output_frames):
+def get_test_predictions_pairs(model, refeed, batch_images, starting_point, num_total_output_frames):
     model.eval()
     num_input_frames = model.get_num_input_frames()
     with torch.no_grad():
         input_end_point = starting_point + num_input_frames
         input_frames = batch_images[:1, starting_point:input_end_point, :, :].clone()
-        output_frames = model.get_future_frames(input_frames, num_total_output_frames, belated)
+        output_frames = model.get_future_frames(input_frames, num_total_output_frames, refeed)
         target_frames = batch_images[:1, input_end_point:(input_end_point + num_total_output_frames), :, :]
     return output_frames, target_frames
 
@@ -51,7 +51,7 @@ def save_sequence_plots(sequence_index, starting_point, output_frames, target_fr
         plt.close()
 
 
-def get_sample_predictions(model, belated, dataloader, dataset_name, device, figures_dir, normalizer, debug):
+def get_sample_predictions(model, refeed, dataloader, dataset_name, device, figures_dir, normalizer, debug):
     time_start = time.time()
     num_input_frames = model.get_num_input_frames()
     for batch_num, batch_images in enumerate(dataloader):
@@ -63,7 +63,7 @@ def get_sample_predictions(model, belated, dataloader, dataset_name, device, fig
             if num_total_output_frames < 10:
                 continue
 
-            output_frames, target_frames = get_test_predictions_pairs(model, belated, batch_images, starting_point, num_total_output_frames)
+            output_frames, target_frames = get_test_predictions_pairs(model, refeed, batch_images, starting_point, num_total_output_frames)
             save_sequence_plots(batch_num, starting_point, output_frames, target_frames, figures_dir, normalizer, dataset_name)
 
             if debug:
@@ -111,13 +111,13 @@ def evaluate_experiment(experiment, args_new):
     for dataset_name, dataloader in dataloaders.items():
         logging.info("Evaluating dataset: %s" % dataset_name)
         evaluator = Evaluator(args_new.test_starting_point, dataset_name, experiment.normalizer)
-        evaluator.compute_experiment_metrics(experiment.model, experiment.args_new.belated, dataloader, args_new.num_total_output_frames, experiment.device, debug=args_new.debug)
+        evaluator.compute_experiment_metrics(experiment.model, experiment.args_new.refeed, dataloader, args_new.num_total_output_frames, experiment.device, debug=args_new.debug)
         evaluator.save_metrics_plots(experiment.dirs['charts'])
         evaluator.save_to_file(experiment.files['evaluator'] % (dataset_name, args_new.test_starting_point))
         # Get the sample plots after you compute everything else because the dataloader iterates from the beginning
         if args_new.get_sample_predictions:
             logging.info("Generate prediction plots for %s" % dataset_name)
-            get_sample_predictions(experiment.model, args_new.belated, dataloader, dataset_name, experiment.device, experiment.dirs['predictions'], experiment.normalizer, args_new.debug)
+            get_sample_predictions(experiment.model, args_new.refeed, dataloader, dataset_name, experiment.device, experiment.dirs['predictions'], experiment.normalizer, args_new.debug)
         logging.info('Elapsed time: %.0f' % (time.time() - start_time))
         if args_new.debug:
             break
@@ -203,7 +203,7 @@ class Evaluator():
         # save_json(self, file + '.json')
         save_json(self.state, file + '.state.json')
 
-    def compute_experiment_metrics(self, model, belated, dataloader, num_total_output_frames, device, debug=False):
+    def compute_experiment_metrics(self, model, refeed, dataloader, num_total_output_frames, device, debug=False):
         model.eval()
         input_end_point = self.starting_point + model.get_num_input_frames()
         with torch.no_grad():
@@ -218,7 +218,7 @@ class Evaluator():
                 # logging.info('num_real_output_frames %d' % num_real_output_frames)
                 self.compare_output_target(
                     model.get_future_frames(batch_images[:, self.starting_point:input_end_point, :, :].to(device),
-                                            num_real_output_frames, belated).cpu().numpy(), target_frames, last_input)
+                                            num_real_output_frames, refeed).cpu().numpy(), target_frames, last_input)
 
                 if debug:
                     print('batch_num %d\tSSIM %f' % (batch_num, self.state['SSIM_val'][-1]))

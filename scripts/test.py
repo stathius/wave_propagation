@@ -45,16 +45,16 @@ file.close()
 exp_args = {"test_starting_point": 15,
             "num_total_output_frames": 80,
             "get_sample_predictions": "True",
-            "belated": "False"
+            "refeed": "False"
             }
 
 for exp_name in experiments_to_test:
-    args_template = "--experiment_name {exp_name} --test_starting_point {test_starting_point} --num_total_output_frames {num_total_output_frames} --get_sample_predictions {get_sample_predictions} --belated {belated}"
+    args_template = "--experiment_name {exp_name} --test_starting_point {test_starting_point} --num_total_output_frames {num_total_output_frames} --get_sample_predictions {get_sample_predictions} --refeed {refeed}"
 
     args_template = args_template.format_map(SafeDict(exp_name=exp_name))
     args_template = args_template.format(**exp_args)
     exp_template = template.format_map(SafeDict(args=args_template, partition=partition, time=time))
-    exp_script = 'test_%s_sp_%d_belated_%s.sh' % (exp_name, exp_args['test_starting_point'], exp_args['belated'])
+    exp_script = 'test_%s_sp_%d_refeed_%s.sh' % (exp_name, exp_args['test_starting_point'], exp_args['refeed'])
     with open(exp_script, 'w') as file:
         file.write(exp_template)
     file.close()

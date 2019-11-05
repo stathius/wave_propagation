@@ -129,7 +129,7 @@ class Experiment():
     def __init__(self, args):
         logging.info('Experiment %s' % args.experiment_name)
         self.args = args
-        self.sub_folders = ['pickles', 'models', 'predictions', 'charts', 'training', 'charts_belated', 'predictions_belated']
+        self.sub_folders = ['pickles', 'models', 'predictions', 'charts', 'training', 'charts_refeed', 'predictions_refeed']
         self.device = get_device()
         self._filesystem_structure()
         self._mkdirs()
@@ -260,10 +260,10 @@ class Experiment():
         self.files['datasets'] = os.path.join(self.dirs['pickles'], "datasets.pickle")
         self.files['metadata'] = os.path.join(self.dirs['pickles'], "metadata.pickle")
         self.files['logger'] = os.path.join(self.dirs['pickles'], "logger.json")
-        if 'belated' in self.args and self.args.belated:
-            self.files['evaluator'] = os.path.join(self.dirs['pickles'], 'belated_evaluator_%s_sp_%d.pickle')
-            self.dirs['predictions'] = self.dirs['predictions_belated']
-            self.dirs['charts'] = self.dirs['charts_belated']
+        if 'refeed' in self.args and self.args.refeed:
+            self.files['evaluator'] = os.path.join(self.dirs['pickles'], 'refeed_evaluator_%s_sp_%d.pickle')
+            self.dirs['predictions'] = self.dirs['predictions_refeed']
+            self.dirs['charts'] = self.dirs['charts_refeed']
         else:
             self.files['evaluator'] = os.path.join(self.dirs['pickles'], 'evaluator_%s_sp_%d.pickle')
         self.files['model_latest'] = os.path.join(self.dirs['models'], 'model_latest.pt')

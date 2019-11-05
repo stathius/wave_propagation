@@ -61,7 +61,7 @@ class UNet(nn.Module):
 
         return out
 
-    def get_future_frames(self, input_frames, num_total_output_frames, belated):
+    def get_future_frames(self, input_frames, num_total_output_frames, refeed):
         output_frames = self(input_frames)
         num_input_frames = self.get_num_input_frames()
 

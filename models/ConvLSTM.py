@@ -139,7 +139,7 @@ class EncoderForecaster(nn.Module):
     def get_num_output_frames(self):
         return self.forecaster.rnn3.seq_len
 
-    def get_future_frames_belated(self, input_frames, num_total_output_frames):
+    def get_future_frames_refeed(self, input_frames, num_total_output_frames):
         num_input_frames = self.get_num_input_frames()
         num_output_frames = self.get_num_output_frames()
         output_frames = self(input_frames, num_output_frames)
@@ -153,9 +153,9 @@ class EncoderForecaster(nn.Module):
             output_frames = torch.cat((output_frames, self(input_frames, num_output_frames)), dim=1)
         return output_frames[:, :num_total_output_frames, :, :]
 
-    def get_future_frames(self, input_frames, num_total_output_frames, belated):
-        if belated:
-            return self.get_future_frames_belated(input_frames, num_total_output_frames)
+    def get_future_frames(self, input_frames, num_total_output_frames, refeed):
+        if refeed:
+            return self.get_future_frames_refeed(input_frames, num_total_output_frames)
         else:
             return self(input_frames, num_total_output_frames)
 

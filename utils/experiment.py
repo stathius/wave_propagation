@@ -156,7 +156,9 @@ class Experiment():
         return model
 
     def _create_scheduler(self):
-        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.args.learning_rate)
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), 
+                                                lr=self.args.learning_rate,
+                                                weight_decay=self.args.weight_decay)
         return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                           factor=self.args.scheduler_factor,
                                                           patience=self.args.scheduler_patience)
@@ -200,7 +202,7 @@ class Experiment():
         self.model = self._create_model(self.args.model_type)
         self.model = load_network(self.model, file)
         self.model.to(self.device)
-        self.lr_scheduler = self._create_scheduler()
+        # self.lr_scheduler = self._create_scheduler()
         self.logger = Logger()
         self.logger.load_from_json(self.files['logger'])
         self.starting_epoch = self.logger.get_last_epoch() + 1
@@ -226,8 +228,8 @@ class Experiment():
 
     def _mkdirs(self):
         logging.info('Creating directories')
-        if not os.path.isdir(self.dirs['exp_folder']):
-            os.mkdir(self.dirs['exp_folder'])
+        if not os.path.isdir(self.dirs['experiments']):
+            os.mkdir(self.dirs['experiments'])
         if not os.path.isdir(self.dirs['results']):
             os.mkdir(self.dirs['results'])
         for d in self.sub_folders:
@@ -237,20 +239,20 @@ class Experiment():
     def get_train_data_dir(self):
         if self.args.dataset == 'original':
             logging.info('Using original data')
-            d = os.path.join(self.dirs['data_base'], 'Training_Data/')
+            d = os.path.join(self.dirs['data'], 'Training_Data/')
         elif self.args.dataset == 'fixed_tub':
             logging.info('Using fixed tub data')
-            d = os.path.join(self.dirs['data_base'], 'Fixed_tub_10/')
+            d = os.path.join(self.dirs['data'], 'Fixed_tub_10/')
         return d
 
     def _filesystem_structure(self):
         self.dirs = {}
         config = configparser.ConfigParser()
         config.read('../config.ini')
-        self.dirs['data_base'] = config['paths']['data_base']
-        self.dirs['exp_folder'] = config['paths']['exp_folder']
+        self.dirs['data'] = config['paths']['data']
+        self.dirs['experiments'] = config['paths']['experiments']
 
-        self.dirs['results'] = os.path.join(self.dirs['exp_folder'], self.args.experiment_name)
+        self.dirs['results'] = os.path.join(self.dirs['experiments'], self.args.experiment_name)
         for d in self.sub_folders:
             self.dirs[d] = os.path.join(self.dirs['results'], '%s/' % d)
 

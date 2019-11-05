@@ -150,7 +150,9 @@ class Experiment():
         elif model_type == 'resnet_dilated':
             model = resnet12(self.args.num_input_frames, self.args.num_output_frames, replace_stride_with_dilation=[1,2,4])
         elif model_type == 'unet':
-            model = UNet(self.args.num_input_frames, self.args.num_output_frames)
+            model = UNet(self.args.num_input_frames, self.args.num_output_frames, isize=64)
+        elif model_type == 'unet_small':
+            model = UNet(self.args.num_input_frames, self.args.num_output_frames, isize=16)
         else:
             raise Warning('Not supported model')
         return model
@@ -158,7 +160,7 @@ class Experiment():
     def _create_scheduler(self):
         optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), 
                                                 lr=self.args.learning_rate,
-                                                weight_decay=self.args.weight_decay)
+                                                weight_decay=self.args.weight_decay_coefficient)
         return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                           factor=self.args.scheduler_factor,
                                                           patience=self.args.scheduler_patience)

@@ -97,14 +97,14 @@ def evaluate_experiment(experiment, args_new):
     logging.info("Start testing")
     dataloaders = {
                    #  "Test": experiment.dataloaders['test'],
-                   # "Lines": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Lines/'), experiment.args.normalizer_type),
-                   # "Double_Drop": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Double_Drop/'), experiment.args.normalizer_type),
-                   # "Illumination_135": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Illumination_135/'), experiment.args.normalizer_type),
-                   # "Illumination_Random": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Illumination_Random/'), experiment.args.normalizer_type),
-                   # "Shallow_Depth": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Shallow_Depth/'), experiment.args.normalizer_type),
-                   # "Smaller_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Smaller_Tub/'), experiment.args.normalizer_type),
-                   # "Bigger_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Bigger_Tub/'), experiment.args.normalizer_type),
-                    "Fixed_tub_10": create_evaluation_dataloader(os.path.join(experiment.dirs['data_base'], 'Fixed_tub_10/'), experiment.args.normalizer_type)
+                   # "Lines": create_evaluation_dataloader(os.path.join(experiment.dirs['data'], 'Lines/'), experiment.args.normalizer_type),
+                   # "Double_Drop": create_evaluation_dataloader(os.path.join(experiment.dirs['data'], 'Double_Drop/'), experiment.args.normalizer_type),
+                   # "Illumination_135": create_evaluation_dataloader(os.path.join(experiment.dirs['data'], 'Illumination_135/'), experiment.args.normalizer_type),
+                   # "Illumination_Random": create_evaluation_dataloader(os.path.join(experiment.dirs['data'], 'Illumination_Random/'), experiment.args.normalizer_type),
+                   # "Shallow_Depth": create_evaluation_dataloader(os.path.join(experiment.dirs['data'], 'Shallow_Depth/'), experiment.args.normalizer_type),
+                   # "Smaller_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data'], 'Smaller_Tub/'), experiment.args.normalizer_type),
+                   # "Bigger_Tub": create_evaluation_dataloader(os.path.join(experiment.dirs['data'], 'Bigger_Tub/'), experiment.args.normalizer_type),
+                    "Fixed_tub_10": create_evaluation_dataloader(os.path.join(experiment.dirs['data'], 'Fixed_tub_10/'), experiment.args.normalizer_type)
 
                    }
 

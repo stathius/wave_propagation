@@ -1,36 +1,96 @@
+# About
+
+Framework to train deep learning networks to predict wave propagation. The data are simulations from shallow water equations (also known as Saint-Venant equations).
+
+This was the thesis project for the MSc in Artificial Intelligence at the University of Edinburgh. The thesis itself can be found in the thesis folder.
+
+
 # How to use
 
-python train_network.py --model_type YOUR_MODEL_TYPE ... other args
-python test_network.py --experiment_name YOUR_EXPERIMENT_NAME ... other arg
+## Data and data generation
 
-# Arguments
 
-## For training
+To faciliate the reproduction of my results you can download the same datasets I have used [here](https://imperialcollegelondon.box.com/s/hj1o82rwj8shlqekf2iyugo5u0ow50hz). 
 
-parser.add_argument('--model_type', type=str, help='Network architecture for training [ar_lstm, convlstm, resnet, unet, predrnn]')
-parser.add_argument('--num_epochs', type=int, default=50, help='The experiment\'s epoch budget')
-parser.add_argument('--num_input_frames', type=int, default=5, help='LSTM. How many frames to insert initially')
-parser.add_argument('--num_output_frames', type=int, default=20, help='LSTM. How many framres to predict in the future"')
-parser.add_argument('--dataset', type=str, default='original', help='select which dataset to use [original, fixed_tub]')
-parser.add_argument('--batch_size', type=int, default=16)
-parser.add_argument('--back_and_forth', type=bool, default=False, help='If training will be with predicting both future and past')
-parser.add_argument('--samples_per_sequence', type=int, default=10, help='how may training points to generate from a video sequence')
-parser.add_argument('--reinsert_frequency', type=int, default=10, help='AR LSTM: how often to use the reinsert mechanism')
-parser.add_argument('--experiment_name', type=str, default="dummy", help='Experiment name - to be used for building the experiment folder')
-parser.add_argument('--normalizer_type', type=str, default='normal', help='how to normalize the images [normal, m1to1, none]')
-parser.add_argument('--num_workers', type=int, default=8, help='how many workers for the dataloader')
-parser.add_argument('--seed', type=int, default=12345, help='Seed to use for random number generator for experiment')
-parser.add_argument('--seed_everything', type=str2bool, default=True)
-parser.add_argument('--debug', type=str2bool, default=False)
-parser.add_argument('--weight_decay_coefficient', type=float, default=1e-05, help='Weight decay to use for Adam')
-parser.add_argument('--learning_rate', type=float, default=1e-04, help='learning rate to use for Adam')
-parser.add_argument('--scheduler_patience', type=int, default=7, help='Epoch patience before reducing learning_rate')
-parser.add_argument('--scheduler_factor', type=float, default=0.1, help='Factor to reduce learning_rate')
-parser.add_argument('--continue_experiment', type=str2bool, default=False, help='Whether the experiment should continue from the last epoch')
+You can also generate more data using the script in the `data_generation` folder.
 
-## Args for testing
-parser.add_argument('--test_starting_point', type=int, default=15, help='which frame to start the test')
-parser.add_argument('--num_total_output_frames', type=int, default=80, help='how many frames to predict to the future during evaluation')
-parser.add_argument('--get_sample_predictions', type=str2bool, default=True, help='Print sample predictions figures or not')
-parser.add_argument('--num_output_keep_frames', type=int, default=20, help='ConvLSTM: How many frames to keep from one pass to continue autoregression for longer outputs')
-parser.add_argument('--belated', type=str2bool, default=False, help='Whether to use the belated convol')
+`
+python generate.py --location ./small_tank --container_size_mix 1 --container_size_max 2 --data_points 100
+`
+
+| Argument   | Type     | Default    | Description                                   |
+| ------------------------ | -------- | ---------- | ------------------------------------------------------------ |
+|location|str|'./debug_data_gen'|Folder to save the files|
+|azimuth|int|45|Lighting angle|
+|azimuth_random|bool|False|Lighting angle random|
+|viewing_angle|int|20|Viewing angle|
+|container_size_min|int|10|Minumum size of the water container|
+|container_size_max|int|20|Maximum size of the water container|
+|water_depth|int|10|
+|initial_stimulus|int|1|Strength of initial stimuli|
+|coriolis_force|float|0.0|Coriolis force coefficient|
+|water_viscocity|int|1e-6|Water viscocity|
+|total_time|float|1.0|Total sequence time in seconds|
+|dt|float|0.01|Time interval between frames in seconds|
+|image_size_x|int|184|Pixel size of the output images|
+|image_size_y|int|184|Pixel size of the output images|
+|data_points|int|500|How many sequences to create|
+
+## Setup
+
+Install the requirements with your package manager, i.e.  ` pip install -r requirements.txt`
+
+In the `config.ini` fill in the data folder and the folder you want the experiments to be saved.
+
+## Train
+
+`python train_network.py --experiment_name unet_wd_1e-5 --model_type --weight_decay_coefficient 1e-5 `
+
+
+Available arguments:
+
+| Argument                 | Type     | Default    | Description                                                  |
+| ------------------------ | -------- | ---------- | ------------------------------------------------------------ |
+| model_type               | str      | NA         | Network architecture for training [ar_lstm convlstm, resnet, unet, predrnn] |
+| num_epochs               | int      | 50         | The experiment's epoch budget                                |
+| num_input_frames         | int      | 5          | How many frames to insert initially                          |
+| num_output_frames        | int      | 20         | How many framres to predict in the future                    |
+| dataset                  | str      | 'original' | select which dataset to use [original, fixed_tub]             |
+| batch_size               | int      | 16         | Batch size                                                   |
+| samples_per_sequence     | int      | 10         | How may training points to generate from each simulation sequence |
+| experiment_name          | str      | 'dummy'    | Experiment name - used for building the experiment folder    |
+| normalizer_type          | str      | 'normal'   | how to normalize the images [normal, m1to1 (-1 to 1), none]  |
+| num_workers              | int      | 8          | how many workers for the dataloader                          |
+| seed                     | int      | 12345      | Seed to use for random number generator for experiment       |
+| seed_everything          | str2bool | True       | Use seed for everything random (numpy, pytorch, python)      |
+| debug                    | str2bool | False      | For debugging purposes                                       |
+| weight_decay_coefficient | float    | 1e-05      | Weight decay to use for Adam                                 |
+| learning_rate            | float    | 1e-04      | Learning rate to use for Adam                                |
+| scheduler_patience       | int      | 7          | Epoch patience before reducing learning_rate                 |
+| scheduler_factor         | float    | 0.1        | Factor to reduce learning_rated                              |
+| continue_experiment      | str2bool | False      | Whether the experiment should continue from the last epoch   |
+| back_and_forth           | bool     | False      | If training will be with predicting both future and past     |
+| reinsert_frequency       | int      | 10         | LSTM: how often to use the reinsert mechanism                |
+
+
+## Test
+
+`python test_network.py --experiment_name unet_wd_1e-5`
+
+Available arguments:
+
+| Argument                 | Type     | Default    | Description                                                  |
+| ------------------------ | -------- | ---------- | ------------------------------------------------------------ |
+| test_starting_point      | int      | 15         | Which frame to start the test                                |
+| num_total_output_frames  | int      | 80         | How many frames to predict to the future during evaluation   |
+| get_sample_predictions   | str2bool | True       | Print sample predictions figures or not                      |
+| num_output_keep_frames   | int      | 20         | How many frames to keep from each propagation in RNN models |
+| refeed                   | str2bool | False      | Whether to use the refeed mechanism in RNNs                  |
+
+## References
+
+
+[Approximating the solution to wave propagation using deep neural networks](https://arxiv.org/pdf/1812.01609.pdf)
+and [longer version](https://link.springer.com/chapter/10.1007/978-3-030-16841-4_26)
+
+This master thesis: [Forecasting wave propagation with neural networks]()

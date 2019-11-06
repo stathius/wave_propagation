@@ -7,8 +7,6 @@ experiments_results*/
 *.tar.gz
 *.pt
 .DS_Store
-Result*
-*.jpg
 Video*
 # Byte-compiled / optimized / DLL files
 __pycache__/

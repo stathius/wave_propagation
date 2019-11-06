@@ -1,13 +1,25 @@
-# About
+## About
 
-Framework to train deep learning networks to predict wave propagation. The data are simulations from shallow water equations (also known as Saint-Venant equations).
+Framework to train deep learning networks to predict wave propagation. The data are simulations from shallow water equations (also known as Saint-Venant equations). This was the thesis project for the MSc in Artificial Intelligence at the University of Edinburgh. The thesis itself can be found in the thesis folder.
 
-This was the thesis project for the MSc in Artificial Intelligence at the University of Edinburgh. The thesis itself can be found in the thesis folder.
+This is how the dataset looks like.
+![saint venant](images/saint-venant.png)
 
 
-# How to use
+In my project I trained 5 different architectures: LSTM, ConvLSTM, Causal LSTM,  Dilated ResNet-like, U-Net (CDNN). Here's some qualitative results for the prediction in the test set. As you can see the Causal LSTM and U-Net are pretty accurate.
 
-## Data and data generation
+<img src="images/qualitative_test_set.jpg" width="500">
+
+Looking at the profile of intensities in the image we get a better understanding. Both models are good but U-Net is actually closer to the ground truth.
+
+<img src="images/unet_vs_causal_lstm.jpg" width="800">
+
+The quantitative results based on Mean Square Error(MSE) corroborate that U-Net (CDNN) is better than LSTMs for long term prediction in this problem. It actually generalizes better in other datasets too, have a look at the [thesis](thesis/thesis_final.pdf) if you are interested. 
+<img src="images/quantitative_test_set.jpg" width="500">
+
+## How to use
+
+### Data and data generation
 
 
 To faciliate the reproduction of my results you can download the same datasets I have used [here](https://imperialcollegelondon.box.com/s/hj1o82rwj8shlqekf2iyugo5u0ow50hz). 
@@ -36,18 +48,22 @@ python generate.py --location ./small_tank --container_size_mix 1 --container_si
 |image_size_y|int|184|Pixel size of the output images|
 |data_points|int|500|How many sequences to create|
 
-## Setup
+### Setup
 
 Install the requirements with your package manager, i.e.  ` pip install -r requirements.txt`
 
 In the `config.ini` fill in the data folder and the folder you want the experiments to be saved.
 
-## Train
+### Train
+
+You can use the framework to train 5 different models: LSTM, ConvLSTM, Causal LSTM, Resnet-like and U-Net (CDNN). The full list of parameters can be found in the table below.
+
+The following trains a U-Net with a specific weight decay coefficient:
 
 `python train_network.py --experiment_name unet_wd_1e-5 --model_type --weight_decay_coefficient 1e-5 `
 
 
-Available arguments:
+There are many available arguments.
 
 | Argument                 | Type     | Default    | Description                                                  |
 | ------------------------ | -------- | ---------- | ------------------------------------------------------------ |
@@ -75,6 +91,8 @@ Available arguments:
 
 ## Test
 
+This is used to assess the generalization capabilities of a model. The test are run on all the datasets that are provided above. If you want to change that you'll need to change the dataloaders in the `evaluate_experiment` function in `utils/experiment_evaluatory.py`,
+
 `python test_network.py --experiment_name unet_wd_1e-5`
 
 Available arguments:
@@ -93,4 +111,4 @@ Available arguments:
 [Approximating the solution to wave propagation using deep neural networks](https://arxiv.org/pdf/1812.01609.pdf)
 and [longer version](https://link.springer.com/chapter/10.1007/978-3-030-16841-4_26)
 
-This master thesis: [Forecasting wave propagation with neural networks]()
+This master thesis: [Forecasting wave propagation with neural networks](https://github.com/stathius/wave_propagation/raw/master/thesis/thesis_final.pdf)

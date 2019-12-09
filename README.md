@@ -6,7 +6,7 @@ This is how the dataset looks like.
 ![saint venant](images/saint-venant.png)
 
 
-In my project I trained 5 different architectures: LSTM, ConvLSTM, Causal LSTM,  Dilated ResNet-like, U-Net (CDNN). Here's some qualitative results for the prediction in the test set. As you can see the Causal LSTM and U-Net are pretty accurate.
+In my project I trained 5 different architectures: LSTM, ConvLSTM, Causal LSTM (from PredRNN++),  Dilated ResNet-like, U-Net (CDNN). Here's some qualitative results for the prediction in the test set. As you can see the Causal LSTM and U-Net are pretty accurate.
 
 <img src="images/qualitative_test_set.jpg" width="500">
 

@@ -1,5 +1,6 @@
 # Based on the tensorflow implementation by yunbo:
 # https://github.com/Yunbo426/predrnn-pp/blob/master/layers/CausalLSTMCell.py
+# It is part of PredRNN and PredRNN++
 import torch
 import torch.nn as nn
 

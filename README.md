@@ -1,21 +1,17 @@
 ## About
 
-Framework to train deep learning networks to predict wave propagation. The data are simulations from shallow water equations (also known as Saint-Venant equations). This was the thesis project for the MSc in Artificial Intelligence at the University of Edinburgh. The thesis itself can be found in the thesis folder.
+Framework to train deep learning networks to predict wave propagation. This repo accompanies the [Fotiadis et. al. "Comparing recurrent and convolutional neural networks for predicting wave propagation"](https://arxiv.org/abs/2002.08981) paper which appears on the ICLR 2020 Workshop on Deep Learning and Differential Equations. The data are simulations from shallow water equations (also known as Saint-Venant equations). You can use this framework to train 5 different architectures: LSTM, ConvLSTM, Causal LSTM (i.e. PredRNN++) ,  Dilated ResNet-like, U-Net (CDNN). 
 
-This is how the dataset looks like.
+
+To get an idea this is how the dataset looks like.
 ![saint venant](images/saint-venant.png)
 
-
-In my project I trained 5 different architectures: LSTM, ConvLSTM, Causal LSTM (from PredRNN++),  Dilated ResNet-like, U-Net (CDNN). Here's some qualitative results for the prediction in the test set. As you can see the Causal LSTM and U-Net are pretty accurate.
-
+And here's some qualitative results for the prediction in the test set.
 <img src="images/qualitative_test_set.jpg" width="500">
 
-Looking at the profile of intensities in the image we get a better understanding. Both models are good but U-Net is actually closer to the ground truth.
 
-<img src="images/unet_vs_causal_lstm.jpg" width="800">
+The project started as the thesis project for the MSc in Artificial Intelligence at the University of Edinburgh. The thesis itself can be found [here](https://github.com/stathius/wave_propagation/raw/master/thesis/thesis_final.pdf). 
 
-The quantitative results based on Mean Square Error(MSE) corroborate that U-Net (CDNN) is better than LSTMs for long term prediction in this problem. It actually generalizes better in other datasets too, have a look at the [thesis](thesis/thesis_final.pdf) if you are interested. 
-<img src="images/quantitative_test_set.jpg" width="500">
 
 ## How to use
 
@@ -105,10 +101,16 @@ Available arguments:
 | num_output_keep_frames   | int      | 20         | How many frames to keep from each propagation in RNN models |
 | refeed                   | str2bool | False      | Whether to use the refeed mechanism in RNNs                  |
 
-## References
+## Cite
 
-
-[Approximating the solution to wave propagation using deep neural networks](https://arxiv.org/pdf/1812.01609.pdf)
-and [longer version](https://link.springer.com/chapter/10.1007/978-3-030-16841-4_26)
-
-This master thesis: [Forecasting wave propagation with neural networks](https://github.com/stathius/wave_propagation/raw/master/thesis/thesis_final.pdf)
+If you want to cite this work please use this:
+```
+@inproceedings{Fotiadis2020,
+author = {Fotiadis, Stathi and Pignatelli, Eduardo and Valencia, Mario Lino and Cantwell, Chris and Storkey, Amos and Bharath, Anil A.},
+title = {{Comparing recurrent and convolutional neural networks for predicting wave propagation}},
+url = {http://arxiv.org/abs/2002.08981},
+year = {2020},
+booktitle = {{ICLR} {W}orkshop on {Deep Neural Models 
+and Differential Equations}}
+}
+```
